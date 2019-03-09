@@ -23,7 +23,7 @@ import os;
 import math;
 
 .source icount(start:Num, end:Num, step:Num = 1) {
-	n=start
+	n=start;
 	while n <= end {
 		prod n;
 		n+=step;
