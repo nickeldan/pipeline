@@ -1,40 +1,20 @@
-/*
-Keywords
-
-import
-prod
-drop
-end
-local
-while
-if
-eif
-else
-continue
-break
-not
-and
-or
-verify
-
-*/
-
 import os;
 import math;
 
-.source icount(start:Num, end:Num, step:Num = 1) {
+.source icount(start:Num, finish:Num, step:Num = 1) {
 	n=start;
-	while n <= end {
+	while n <= finish {
 		prod n;
 		n+=step;
 	}
 }
 
-.predicate Posint(n) {n is Int and n > 0;}
+.predicate Posint(n) {n is Int and n > 0}
 
 .source factor(n:Posint) {
 	x=n;
 	s=n -> #math.sqrt;
+	verify s;
 	2,icount(3,s,2) -> local {
 		recompute=false;
 		while x%i == 0 {
@@ -64,7 +44,10 @@ import math;
 
 .MAIN {
 	start=1 -> os.args -> #toInt;
-	end=2 -> os.args -> #toInt;
-	icount(start,end) -> @isPrime -> filterPair -> doPrint;
+	verify start;
+	finish=2 -> os.args -> #toInt;
+	verify finish;
+	if start > finish {end;}
+	icount(start,finish) -> @isPrime -> filterPair -> doPrint;
 	prod 0;
 }

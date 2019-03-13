@@ -1,0 +1,90 @@
+#include <stdef.h>
+#include <stdint.h>
+
+typedef enum {
+	PL_MARKER_SOURCE_DEF = 0,
+	PL_MARKER_PIPE_DEF,
+	PL_MARKER_SINK_DEF,
+	PL_MARKER_PRED_DEF,
+	PL_MARKER_MAIN_DEF,
+	PL_MARKER_IMPORT,
+	PL_MARKER_PROD,
+	PL_MARKER_DROP,
+	PL_MARKER_END,
+	PL_MARKER_LOCAL,
+	PL_MARKER_WHILE,
+	PL_MARKER_BREAK,
+	PL_MARKER_CONTINUE,
+	PL_MARKER_IF,
+	PL_MARKER_EIF,
+	PL_MARKER_ELSE,
+	PL_MARKER_NOT,
+	PL_MARKER_LOGICAL,
+	PL_MARKER_OPERATOR,
+	PL_MARKER_OPERATOR_EQ,
+	PL_MARKER_COMPARISON,
+	PL_MARKER_ASSIGNMENT,
+	PL_MARKER_NAME,
+	PL_MARKER_LITERAL,
+	PL_MARKER_BLANK,
+	PL_MARKER_WHITESPACE,
+	PL_MARKER_SEMICOLON,
+	PL_MARKER_COLON,
+	PL_MARKER_PERIOD,
+	PL_MARKER_COMMA,
+	PL_MARKER_OPEN_PARENS,
+	PL_MARKER_CLOSE_PARENS,
+	PL_MARKER_OPEN_BRACE,
+	PL_MARKER_CLOSE_BRACE,
+	PL_MARKER_ARROW,
+	PL_MARKER_OPT,
+} plToken_marker;
+
+typedef enum {
+	PL_LOGICAL_AND = 0,
+	PL_LOGICAL_OR,
+} plToken_logical;
+
+typedef enum {
+	PL_OPERATOR_PLUS = 0,
+	PL_OPERATOR_MINUS,
+	PL_OPERATOR_MULTIPLY,
+	PL_OPERATOR_DIVIDE,
+	PL_OPERATOR_MODULO,
+	PL_OPERATOR_XOR,
+	PL_OPERATOR_MASK,
+	PL_OPERATOR_OR,
+	PL_OPERATOR_LSHIFT,
+	PL_OPERATOR_RSHIFT,
+} plToken_operator;
+
+typedef enum {
+	PL_COMPARISON_EQUALS = 0,
+	PL_COMPARISON_NOT_EQUALS,
+	PL_COMPARISON_LESS_THAN,
+	PL_COMPARISON_LESS_THAN_EQ,
+	PL_COMPARISON_GREATER_THAN,
+	PL_COMPARISON_GREATER_THAN_EQ,
+} plToken_comparison;
+
+typedef enum {
+	PL_LITERAL_NULL = -1,
+	PL_LITERAL_FALSE,
+	PL_LITERAL_TRUE,
+} plToken_literal;
+
+typedef struct {
+	union {
+		char *name,
+		int64_t integer;
+		double decimal;
+		bool boolean;
+		plToken_logical logical;
+		plToken_operator op;
+		plToken_comparison comparison;
+		plToken_literal literal;
+	} value;
+	char *fileName;
+	size_t lineNo;
+	plToken_marker marker;
+} plToken_t;
