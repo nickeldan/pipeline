@@ -1,8 +1,13 @@
+#ifndef __PIPELINE_TOKEN_H__
+#define __PIPELINE_TOKEN_H__
+
 #include <stdef.h>
-#include <stdint.h>
+
+#include "pipeline.h"
 
 typedef enum {
-	PL_MARKER_SOURCE_DEF = 0,
+	PL_MARKER_UNKNOWN = 0,
+	PL_MARKER_SOURCE_DEF,
 	PL_MARKER_PIPE_DEF,
 	PL_MARKER_SINK_DEF,
 	PL_MARKER_PRED_DEF,
@@ -12,6 +17,8 @@ typedef enum {
 	PL_MARKER_DROP,
 	PL_MARKER_END,
 	PL_MARKER_LOCAL,
+	PL_MARKER_DETOUR,
+	PL_MARKER_VERIFY,
 	PL_MARKER_WHILE,
 	PL_MARKER_BREAK,
 	PL_MARKER_CONTINUE,
@@ -19,9 +26,9 @@ typedef enum {
 	PL_MARKER_EIF,
 	PL_MARKER_ELSE,
 	PL_MARKER_NOT,
+	PL_MARKER_IS,
 	PL_MARKER_LOGICAL,
 	PL_MARKER_OPERATOR,
-	PL_MARKER_OPERATOR_EQ,
 	PL_MARKER_COMPARISON,
 	PL_MARKER_ASSIGNMENT,
 	PL_MARKER_NAME,
@@ -32,12 +39,13 @@ typedef enum {
 	PL_MARKER_COLON,
 	PL_MARKER_PERIOD,
 	PL_MARKER_COMMA,
+	PL_MARKER_QUESTION,
 	PL_MARKER_OPEN_PARENS,
 	PL_MARKER_CLOSE_PARENS,
 	PL_MARKER_OPEN_BRACE,
 	PL_MARKER_CLOSE_BRACE,
 	PL_MARKER_ARROW,
-	PL_MARKER_OPT,
+	PL_MARKER_OPTION,
 } plToken_marker;
 
 typedef enum {
@@ -68,23 +76,22 @@ typedef enum {
 } plToken_comparison;
 
 typedef enum {
-	PL_LITERAL_NULL = -1,
-	PL_LITERAL_FALSE,
-	PL_LITERAL_TRUE,
-} plToken_literal;
+	PL_OPTION_FORCE_TYPE = 0,
+	PL_OPTION_MAP,
+} plToken_option;
 
 typedef struct {
 	union {
-		char *name,
-		int64_t integer;
-		double decimal;
-		bool boolean;
+		char *name;
 		plToken_logical logical;
 		plToken_operator op;
 		plToken_comparison comparison;
-		plToken_literal literal;
+		plToken_option option;
+		plObject object;
 	} value;
 	char *fileName;
 	size_t lineNo;
 	plToken_marker marker;
-} plToken_t;
+} plToken;
+
+#endif // __PIPELINE_TOKEN_H__

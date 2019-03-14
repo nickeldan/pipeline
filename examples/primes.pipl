@@ -13,7 +13,7 @@ import math;
 
 .source factor(n:Posint) {
 	x=n;
-	s=n -> #math.sqrt;
+	s=n -> math.sqrt;
 	verify s;
 	2,icount(3,s,2) -> local {
 		recompute=false;
@@ -32,22 +32,27 @@ import math;
 	end;
 }
 
+.sink doCount(x) {
+	prod ?STORE+1;
+}
+
 .pipe isPrime(n:Posint) {
 	factor(n) -> doTakeFirst:firstFactor;
 	firstFactor == n;
 }
 
-.pipe filterPair(x, y:Bool) {
+.pipe filter(x, y:Bool) {
 	if not y {drop;}
 	x;
 }
 
 .MAIN {
-	start=1 -> os.args -> #toInt;
+	start=1 -> os.args -> toInt;
 	verify start;
-	finish=2 -> os.args -> #toInt;
+	finish=2 -> os.args -> toInt;
 	verify finish;
 	if start > finish {end;}
-	icount(start,finish) -> @isPrime -> filterPair -> doPrint;
+	icount(start,finish) -> @isPrime -> filter -> detour doCount{0}:numPrimes -> doPrint;
+	numPrimes -> doPrint;
 	prod 0;
 }
