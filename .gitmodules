@@ -1,3 +1,0 @@
-[submodule "externals/tiny_regex_c"]
-	path = externals/tiny_regex_c
-	url = git://github.com/kokke/tiny-regex-c
