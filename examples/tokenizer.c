@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
 
 int main(int argc, char **argv) {
 	if ( argc < 2 ) {
@@ -13,35 +14,38 @@ int main(int argc, char **argv) {
 	}
 	int fd;
 	struct stat f;
-	char *text;
+	plFileReader reader;
 	plToken token;
 
 	if ( stat(argv[1],&f) != 0 ) {
 		perror("stat");
 		return 2;
 	}
-	text=malloc(f.st_size);
-	if ( !text ) {
+	reader.text=malloc(f.st_size+1);
+	if ( !reader.text ) {
 		perror("malloc");
 		return 3;
 	}
 	fd=open(argv[1],O_RDONLY);
 	if ( fd == -1 ) {
 		perror("open");
-		free(text);
+		free(reader.text);
 		return 2;
 	}
-	read(fd,text,f.st_size);
+	read(fd,reader.text,f.st_size);
 	close(fd);
+	reader.text[f.st_size]='\0';
+	reader.textLen=f.st_size+1;
+	reader.idx=0;
+	reader.lineNo=0;
 
-	grabNextToken(NULL,NULL);
 	do {
-		grabNextToken(text,&token);
+		grabNextToken(&reader,&token);
 		if ( token.marker == PL_MARKER_NAME || token.marker == PL_MARKER_INVALID_LITERAL ) {
 			free(token.value.name);
 		}
-	} while ( token.marker > PL_MARKER_EOF );
-	free(text);
+	} while ( GOOD_MARKER(token.marker) );
+	free(reader.text);
 
 	return 0;
 }

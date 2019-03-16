@@ -4,17 +4,9 @@
 #include <stdint.h>
 #include <stddef.h>
 
-typedef unsigned char bool;
+#include "util.h"
 
-#ifndef TRUE
-#define TRUE 1
-#endif
-
-#ifndef FALSE
-#define FALSE 0
-#endif
-
-typedef uint8_t plObj_type;
+typedef uint8_t plObj_type_t;
 
 #define PL_TYPE_NULL 0x01
 #define PL_TYPE_BOOL 0x02
@@ -29,13 +21,11 @@ typedef enum {
 	PL_STATIC_TRUE,
 } plStatic_t;
 
-#define PL_STATIC_NULL 0
-
 typedef int64_t plInt_t;
 typedef double plFloat_t;
 
 #ifdef ARRAY_IMPLEMENTED
-union _plObj_value;
+union _plObj_value_t;
 
 typedef struct {
 	union _plObj_value *values;
@@ -43,18 +33,18 @@ typedef struct {
 } plArray_t;
 #endif // ARRAY_IMPLEMENTED
 
-typedef union _plObj_value {
+typedef union _plObj_value_t {
 	plInt_t integer;
 	plFloat_t decimal;
 	plStatic_t staticValue;
 #ifdef ARRAY_IMPLEMENTED
 	plArray_t array;
 #endif
-} plObj_value;
+} plObj_value_t;
 
 typedef struct {
-	plObj_value value;
-	plObj_type type;
+	plObj_value_t value;
+	plObj_type_t type;
 } plObject;
 
 #endif // __PIPELINE_PIPELINE_H__

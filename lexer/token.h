@@ -50,6 +50,8 @@ typedef enum {
 	PL_MARKER_OPTION,
 } plToken_marker;
 
+#define GOOD_MARKER(marker) (marker > PL_MARKER_EOF)
+
 typedef enum {
 	PL_LOGICAL_AND = 0,
 	PL_LOGICAL_OR,
@@ -96,6 +98,11 @@ typedef struct {
 	plToken_marker marker;
 } plToken;
 
-void grabNextToken(char *text, plToken *token);
+typedef struct {
+	char *text;
+	size_t textLen, idx, lineNo;
+} plFileReader;
+
+void grabNextToken(plFileReader *reader, plToken *token);
 
 #endif // __PIPELINE_TOKEN_H__

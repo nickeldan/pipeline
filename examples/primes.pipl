@@ -23,7 +23,7 @@ source factor(n:Posint) {
 	x=n;
 	s=n -> math.sqrt;
 	verify s;
-	2,icount(3,s,2) -> local {
+	2,icount(3,s,2) -> local {i:
 		recompute=false;
 		while x%i == 0 {
 			prod i;
@@ -54,7 +54,7 @@ pipe filter(x, y:Bool) {
 	x;
 }
 
-sink MAIN {
+sink main {
 	start=1 -> os.args -> toInt;
 	verify start;
 	finish=2 -> os.args -> toInt;
