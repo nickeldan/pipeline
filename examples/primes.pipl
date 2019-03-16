@@ -1,3 +1,11 @@
+/*
+
+This is a multi-line comment block.
+
+*/
+
+// This is a single-line comment.
+
 import os;
 import math;
 

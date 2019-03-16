@@ -2,6 +2,7 @@
 #define __PIPELINE_PIPELINE_H__
 
 #include <stdint.h>
+#include <stddef.h>
 
 typedef unsigned char bool;
 
@@ -33,18 +34,22 @@ typedef enum {
 typedef int64_t plInt_t;
 typedef double plFloat_t;
 
-struct _plObj_value;
+#ifdef ARRAY_IMPLEMENTED
+union _plObj_value;
 
-typedef struct _plArray_t {
-	struct _plObj_value *values;
+typedef struct {
+	union _plObj_value *values;
 	size_t size, space;
 } plArray_t;
+#endif // ARRAY_IMPLEMENTED
 
-typedef union {
+typedef union _plObj_value {
 	plInt_t integer;
 	plFloat_t decimal;
 	plStatic_t staticValue;
+#ifdef ARRAY_IMPLEMENTED
 	plArray_t array;
+#endif
 } plObj_value;
 
 typedef struct {

@@ -273,7 +273,7 @@ void grabNextToken(char *text, plToken *token) {
 		idx++;
 		DEBUG_MESSAGE("OPERATOR ");
 	}
-	else if ( text[idx] == '/' && text[idx+1] != '*' ) {
+	else if ( text[idx] == '/' && text[idx+1] != '*' && text[idx+1] != '/' ) {
 		token->marker=PL_MARKER_OPERATOR;
 		token->value.op=PL_OPERATOR_DIVIDE;
 		idx++;
@@ -407,14 +407,11 @@ void grabNextToken(char *text, plToken *token) {
 	}
 	else if ( text[idx] == '/' ) {
 		if ( text[idx+1] == '/' ) {
-			while ( idx < textLen && text[idx] != '\n' ) {
-				idx++;
-			}
+			for(; idx<textLen && text[idx] != '\n'; idx++);
 			goto look_for_token;
 		}
 		else if ( text[idx+1] == '*' ) {
-			idx+=2;
-			while ( idx < textLen ) {
+			for(idx+=2; idx<textLen; idx++) {
 				if ( strnEq(text+idx,"*/",2) ) {
 					idx+=2;
 					goto look_for_token;

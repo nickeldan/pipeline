@@ -1,5 +1,7 @@
 #include "../lexer/token.h"
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -35,6 +37,9 @@ int main(int argc, char **argv) {
 	grabNextToken(NULL,NULL);
 	do {
 		grabNextToken(text,&token);
+		if ( token.marker == PL_MARKER_NAME || token.marker == PL_MARKER_INVALID_LITERAL ) {
+			free(token.value.name);
+		}
 	} while ( token.marker > PL_MARKER_EOF );
 	free(text);
 

@@ -1,8 +1,6 @@
 #ifndef __PIPELINE_TOKEN_H__
 #define __PIPELINE_TOKEN_H__
 
-#include <stddef.h>
-
 #include "../pipeline/pipeline.h"
 
 typedef enum {
@@ -84,8 +82,7 @@ typedef enum {
 	PL_OPTION_MAP,
 } plToken_option;
 
-typedef struct _plToken {
-	struct _plToken *next;
+typedef struct {
 	union {
 		char *name;
 		plToken_logical logical;
