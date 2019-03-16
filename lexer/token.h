@@ -1,17 +1,19 @@
 #ifndef __PIPELINE_TOKEN_H__
 #define __PIPELINE_TOKEN_H__
 
-#include <stdef.h>
+#include <stddef.h>
 
 #include "pipeline.h"
 
 typedef enum {
 	PL_MARKER_UNKNOWN = 0,
-	PL_MARKER_SOURCE_DEF,
-	PL_MARKER_PIPE_DEF,
-	PL_MARKER_SINK_DEF,
-	PL_MARKER_PRED_DEF,
-	PL_MARKER_MAIN_DEF,
+	PL_MARKER_UNCLOSED_COMMENT_BLOCK,
+	PL_MARKER_INVALID_LITERAL;
+	PL_MARKER_EOF,
+	PL_MARKER_SOURCE,
+	PL_MARKER_PIPE,
+	PL_MARKER_SINK,
+	PL_MARKER_PRED,
 	PL_MARKER_IMPORT,
 	PL_MARKER_PROD,
 	PL_MARKER_DROP,
@@ -44,6 +46,8 @@ typedef enum {
 	PL_MARKER_CLOSE_PARENS,
 	PL_MARKER_OPEN_BRACE,
 	PL_MARKER_CLOSE_BRACE,
+	PL_MARKER_OPEN_BRACKET,
+	PL_MARKER_CLOSE_BRACKET,
 	PL_MARKER_ARROW,
 	PL_MARKER_OPTION,
 } plToken_marker;
@@ -80,7 +84,8 @@ typedef enum {
 	PL_OPTION_MAP,
 } plToken_option;
 
-typedef struct {
+typedef struct _plToken {
+	struct _plToken *next;
 	union {
 		char *name;
 		plToken_logical logical;
