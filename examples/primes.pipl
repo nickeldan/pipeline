@@ -1,7 +1,7 @@
 import os;
 import math;
 
-.source icount(start:Num, finish:Num, step:Num = 1) {
+source icount(start:Num, finish:Num, step:Num = 1) {
 	n=start;
 	while n <= finish {
 		prod n;
@@ -9,9 +9,9 @@ import math;
 	}
 }
 
-.predicate Posint(n) {n is Int and n > 0}
+predicate Posint(n) {n is Int and n > 0}
 
-.source factor(n:Posint) {
+source factor(n:Posint) {
 	x=n;
 	s=n -> math.sqrt;
 	verify s;
@@ -27,26 +27,26 @@ import math;
 	if x > 1 {prod x;}
 }
 
-.sink doTakeFirst(x) {
+sink doTakeFirst(x) {
 	prod x;
 	end;
 }
 
-.sink doCount(x) {
+sink doCount(x) {
 	prod ?STORE+1;
 }
 
-.pipe isPrime(n:Posint) {
+pipe isPrime(n:Posint) {
 	factor(n) -> doTakeFirst:firstFactor;
 	firstFactor == n;
 }
 
-.pipe filter(x, y:Bool) {
+pipe filter(x, y:Bool) {
 	if not y {drop;}
 	x;
 }
 
-.MAIN {
+sink MAIN {
 	start=1 -> os.args -> toInt;
 	verify start;
 	finish=2 -> os.args -> toInt;

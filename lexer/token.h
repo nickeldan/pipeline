@@ -3,12 +3,12 @@
 
 #include <stddef.h>
 
-#include "pipeline.h"
+#include "../pipeline/pipeline.h"
 
 typedef enum {
 	PL_MARKER_UNKNOWN = 0,
 	PL_MARKER_UNCLOSED_COMMENT_BLOCK,
-	PL_MARKER_INVALID_LITERAL;
+	PL_MARKER_INVALID_LITERAL,
 	PL_MARKER_EOF,
 	PL_MARKER_SOURCE,
 	PL_MARKER_PIPE,
@@ -98,5 +98,7 @@ typedef struct _plToken {
 	size_t lineNo;
 	plToken_marker marker;
 } plToken;
+
+void grabNextToken(char *text, plToken *token);
 
 #endif // __PIPELINE_TOKEN_H__
