@@ -1,12 +1,16 @@
 #ifndef __PIPELINE_TOKEN_H__
 #define __PIPELINE_TOKEN_H__
 
+#include <sys/types.h>
+
 #include "../pipeline/pipeline.h"
 
 typedef enum {
-	PL_MARKER_UNKNOWN = 0,
+	PL_MARKER_READ_FAILURE = 0,
 	PL_MARKER_UNCLOSED_COMMENT_BLOCK,
 	PL_MARKER_INVALID_LITERAL,
+	PL_MARKER_NAME_TOO_LONG,
+	PL_MARKER_UNKNOWN,
 	PL_MARKER_EOF,
 	PL_MARKER_SOURCE,
 	PL_MARKER_PIPE,
@@ -93,16 +97,22 @@ typedef struct {
 		plToken_option option;
 		plObject object;
 	} value;
-	char *fileName;
-	size_t lineNo;
+	const char *fileName;
+	off_t lineNo;
 	plToken_marker marker;
 } plToken;
 
+#define PL_READER_BUFFER_SIZE 100
+
 typedef struct {
-	char *text;
-	size_t textLen, idx, lineNo;
+	const char *path;
+	off_t lineNo;
+	int fd, idx, size;
+	char text[PL_READER_BUFFER_SIZE];
 } plFileReader;
 
+bool initReader(plFileReader *reader, const char *path);
+void closeReader(plFileReader *reader);
 void grabNextToken(plFileReader *reader, plToken *token);
 
 #endif // __PIPELINE_TOKEN_H__

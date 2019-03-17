@@ -4,7 +4,15 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include "util.h"
+typedef unsigned char bool;
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+
+#ifndef FALSE
+#define FALSE 0
+#endif
 
 typedef uint8_t plObj_type_t;
 
@@ -46,5 +54,7 @@ typedef struct {
 	plObj_value_t value;
 	plObj_type_t type;
 } plObject;
+
+#define PL_WORD_MAX_LENGTH 75
 
 #endif // __PIPELINE_PIPELINE_H__
