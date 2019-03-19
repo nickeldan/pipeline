@@ -135,7 +135,7 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 				else {
 					char upperName[15];
 					for (int j=0; j<keywords[k].len; j++) {
-						upperName[j]=keywords[k].name[j]-32;
+						upperName[j]=keywords[k].name[j]-32; // Make character upper-case.
 					}
 					upperName[keywords[k].len]='\0';
 					DEBUG_MESSAGE("%s ", upperName);
@@ -235,29 +235,26 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 		reader->idx++;
 		DEBUG_MESSAGE("CLOSE_BRACKET ");
 	}
-	else if ( reader->text[reader->idx] == '.' && !isNumeric(reader->text[reader->idx]+1) ) {
+	else if ( reader->text[reader->idx] == '.' ) {
 		if ( isNumeric(reader->text[reader->idx+1]) ) {
 			int idx2;
 			char c;
 			for (idx2=reader->idx+2; isNumeric(reader->text[idx2]); idx2++);
-			if ( idx2-reader->idx > PL_WORD_MAX_LENGTH ) {
-				token->marker=PL_MARKER_INVALID_LITERAL;
-				c=reader->text[idx2];
-				reader->text[idx2]='\0';
-				token->value.name=strdup(reader->text);
-				reader->text[idx2]=c;
-				reader->idx=idx2;
-				DEBUG_MESSAGE("INVALID_LITERAL ");
-				return;
-			}
-			token->marker=PL_MARKER_LITERAL;
 			c=reader->text[idx2];
 			reader->text[idx2]='\0';
-			token->value.object.value.decimal=atof(reader->text+reader->idx);
-			reader->text[idx2]=c;
-			token->value.object.type=PL_TYPE_FLOAT;
+			if ( idx2-reader->idx > PL_WORD_MAX_LENGTH ) {
+				token->marker=PL_MARKER_INVALID_LITERAL;
+				token->value.name=strdup(reader->text);
+				DEBUG_MESSAGE("INVALID_LITERAL ");
+			}
+			else {
+				token->marker=PL_MARKER_LITERAL;
+				token->value.object.value.decimal=atof(reader->text+reader->idx);
+				token->value.object.type=PL_TYPE_FLOAT;
+				DEBUG_MESSAGE("LITERAL ");
+			}
 			reader->idx=idx2;
-			DEBUG_MESSAGE("LITERAL ");
+			reader->text[idx2]=c;
 		}
 		else {
 			token->marker=PL_MARKER_PERIOD;
