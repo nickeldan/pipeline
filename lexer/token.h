@@ -102,7 +102,7 @@ typedef struct {
 	plToken_marker marker;
 } plToken;
 
-#define PL_READER_BUFFER_SIZE 100
+#define PL_READER_BUFFER_SIZE 200
 
 typedef struct {
 	const char *path;

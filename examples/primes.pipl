@@ -17,7 +17,7 @@ source icount(start:Num, finish:Num, step:Num = 1) {
 	}
 }
 
-predicate Posint(n) {n is Int and n > 0}
+pred Posint(n) {n is Int and n > 0}
 
 source factor(n:Posint) {
 	x=n;
@@ -60,7 +60,7 @@ sink main {
 	finish=2 -> os.args -> toInt;
 	verify finish;
 	if start > finish {end;}
-	icount(start,finish) -> @isPrime -> filter -> detour doCount{0}:numPrimes -> doPrint;
+	icount(start,finish) -> @isPrime -> filter -> detour doCount(0):numPrimes -> doPrint;
 	numPrimes -> doPrint;
 	prod 0;
 }

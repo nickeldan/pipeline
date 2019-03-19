@@ -4,6 +4,14 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#ifndef MAX
+#define MAX(a,b) ( ( (a) > (b) )? (a) : (b) )
+#endif
+
+#ifndef MIN
+#define MIN(a,b) ( ( (a) < (b) )? (a) : (b) )
+#endif
+
 typedef unsigned char bool;
 
 #ifndef TRUE
@@ -54,7 +62,5 @@ typedef struct {
 	plObj_value_t value;
 	plObj_type_t type;
 } plObject;
-
-#define PL_WORD_MAX_LENGTH 75
 
 #endif // __PIPELINE_PIPELINE_H__
