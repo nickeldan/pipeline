@@ -236,9 +236,34 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 		DEBUG_MESSAGE("CLOSE_BRACKET ");
 	}
 	else if ( reader->text[reader->idx] == '.' && !isNumeric(reader->text[reader->idx]+1) ) {
-		token->marker=PL_MARKER_PERIOD;
-		reader->idx++;
-		DEBUG_MESSAGE("PERIOD ");
+		if ( isNumeric(reader->text[reader->idx+1]) ) {
+			int idx2;
+			char c;
+			for (idx2=reader->idx+2; isNumeric(reader->text[idx2]); idx2++);
+			if ( idx2-reader->idx > PL_WORD_MAX_LENGTH ) {
+				token->marker=PL_MARKER_INVALID_LITERAL;
+				c=reader->text[idx2];
+				reader->text[idx2]='\0';
+				token->value.name=strdup(reader->text);
+				reader->text[idx2]=c;
+				reader->idx=idx2;
+				DEBUG_MESSAGE("INVALID_LITERAL ");
+				return;
+			}
+			token->marker=PL_MARKER_LITERAL;
+			c=reader->text[idx2];
+			reader->text[idx2]='\0';
+			token->value.object.value.decimal=atof(reader->text+reader->idx);
+			reader->text[idx2]=c;
+			token->value.object.type=PL_TYPE_FLOAT;
+			reader->idx=idx2;
+			DEBUG_MESSAGE("LITERAL ");
+		}
+		else {
+			token->marker=PL_MARKER_PERIOD;
+			reader->idx++;
+			DEBUG_MESSAGE("PERIOD ");
+		}
 	}
 	else if ( reader->text[reader->idx] == '#' ) {
 		token->marker=PL_MARKER_OPTION;
