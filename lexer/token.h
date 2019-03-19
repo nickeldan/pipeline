@@ -106,8 +106,9 @@ typedef struct {
 
 typedef struct {
 	const char *path;
+	char *idx;
 	off_t lineNo;
-	int fd, idx, size;
+	int fd, size;
 	char text[PL_READER_BUFFER_SIZE];
 } plFileReader;
 
