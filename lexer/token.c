@@ -108,6 +108,8 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 		}
 	}
 	else if ( isAlpha(reader->text[reader->idx]) ) {
+		int idx2;
+		char c;
 		for (int k=0; k<NUM_KEYWORDS; k++) {
 			if ( strncmp(reader->text+reader->idx,keywords[k].name,keywords[k].len) == 0 && !isVarChar(reader->text[reader->idx+keywords[k].len]) ) {
 				token->marker=keywords[k].marker;
@@ -145,60 +147,20 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 				return;
 			}
 		}
-		if ( strncmp(reader->text+reader->idx,"and",3) == 0 && !isVarChar(reader->text[reader->idx+3]) ) {
-			token->marker=PL_MARKER_LOGICAL;
-			token->value.logical=PL_LOGICAL_AND;
-			reader->idx+=3;
-			DEBUG_MESSAGE("LOGICAL ");
-		}
-		else if ( strncmp(reader->text+reader->idx,"or",2) == 0 && !isVarChar(reader->text[reader->idx+2]) ) {
-			token->marker=PL_MARKER_LOGICAL;
-			token->value.logical=PL_LOGICAL_OR;
-			reader->idx+=2;
-			DEBUG_MESSAGE("LOGICAL ");
-		}
-		else if ( strncmp(reader->text+reader->idx,"null",4) == 0 && !isVarChar(reader->text[reader->idx+4]) ) {
-			token->marker=PL_MARKER_LITERAL;
-			token->value.object.type=PL_TYPE_NULL;
-			reader->idx+=4;
-			DEBUG_MESSAGE("LITERAL ");
-		}
-		else if ( strncmp(reader->text+reader->idx,"true",4) == 0 && !isVarChar(reader->text[reader->idx+4]) ) {
-			token->marker=PL_MARKER_LITERAL;
-			token->value.object.value.staticValue=PL_STATIC_TRUE;
-			token->value.object.type=PL_TYPE_BOOL;
-			reader->idx+=4;
-			DEBUG_MESSAGE("LITERAL ");
-		}
-		else if ( strncmp(reader->text+reader->idx,"false",5) == 0 && !isVarChar(reader->text[reader->idx+5]) ) {
-			token->marker=PL_MARKER_LITERAL;
-			token->value.object.value.staticValue=PL_STATIC_FALSE;
-			token->value.object.type=PL_TYPE_BOOL;
-			reader->idx+=4;
-			DEBUG_MESSAGE("LITERAL ");
+		for (idx2=reader->idx+1; isVarChar(reader->text[idx2]); idx2++);
+		c=reader->text[idx2];
+		reader->text[idx2]='\0';
+		if ( idx2-reader->idx > PL_WORD_MAX_LENGTH ) {
+			token->marker=PL_MARKER_NAME_TOO_LONG;
+			DEBUG_MESSAGE("NAME_TOO_LONG ");
 		}
 		else {
-			int idx2;
-			char c;
-			for (idx2=reader->idx+1; isVarChar(reader->text[idx2]); idx2++);
-			if ( idx2-reader->idx > PL_WORD_MAX_LENGTH ) {
-				token->marker=PL_MARKER_NAME_TOO_LONG;
-				c=reader->text[idx2];
-				reader->text[idx2]='\0';
-				token->value.name=strdup(reader->text);
-				reader->text[idx2]=c;
-				reader->idx=idx2;
-				DEBUG_MESSAGE("NAME_TOO_LONG ");
-				return;
-			}
 			token->marker=PL_MARKER_NAME;
-			c=reader->text[idx2];
-			reader->text[idx2]='\0';
-			token->value.name=strdup(reader->text+reader->idx);
-			reader->text[idx2]=c;
-			reader->idx=idx2;
 			DEBUG_MESSAGE("NAME ");
 		}
+		token->value.name=strdup(reader->text+reader->idx);
+		reader->text[idx2]=c;
+		reader->idx=idx2;
 	}
 	else if ( reader->text[reader->idx] == ';' ) {
 		token->marker=PL_MARKER_SEMICOLON;
@@ -244,14 +206,22 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 			reader->text[idx2]='\0';
 			if ( idx2-reader->idx > PL_WORD_MAX_LENGTH ) {
 				token->marker=PL_MARKER_INVALID_LITERAL;
-				token->value.name=strdup(reader->text);
+				token->value.name=strdup(reader->text+reader->idx);
 				DEBUG_MESSAGE("INVALID_LITERAL ");
 			}
 			else {
-				token->marker=PL_MARKER_LITERAL;
+				errno=0;
 				token->value.object.value.decimal=atof(reader->text+reader->idx);
-				token->value.object.type=PL_TYPE_FLOAT;
-				DEBUG_MESSAGE("LITERAL ");
+				if ( errno != 0 ) {
+					token->marker=PL_MARKER_INVALID_LITERAL;
+					token->value.name=strdup(reader->text+reader->idx);
+					DEBUG_MESSAGE("INVALID_LITERAL ");
+				}
+				else {
+					token->marker=PL_MARKER_LITERAL;
+					token->value.object.type=PL_TYPE_FLOAT;
+					DEBUG_MESSAGE("LITERAL ");
+				}
 			}
 			reader->idx=idx2;
 			reader->text[idx2]=c;
@@ -423,26 +393,22 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 		if ( reader->text[idx2] == '.' ) {
 			token->value.object.type=PL_TYPE_FLOAT;
 			for(idx2++; isNumeric(reader->text[idx2]); idx2++);
-			if ( idx2-reader->idx > PL_WORD_MAX_LENGTH ) {
-				token->marker=PL_MARKER_INVALID_LITERAL;
-				c=reader->text[idx2];
-				reader->text[idx2]='\0';
-				token->value.name=strdup(reader->text);
-				reader->text[idx2]=c;
-				reader->idx=idx2;
-				DEBUG_MESSAGE("INVALID_LITERAL ");
-				return;
-			}
 			c=reader->text[idx2];
 			reader->text[idx2]='\0';
+			if ( idx2-reader->idx > PL_WORD_MAX_LENGTH ) {
+				token->marker=PL_MARKER_INVALID_LITERAL;
+				token->value.name=strdup(reader->text+reader->idx);
+				DEBUG_MESSAGE("INVALID_LITERAL ");
+			}
 			errno=0;
+			token->value.object.type=PL_TYPE_FLOAT;
 			token->value.object.value.decimal=atof(reader->text+reader->idx);
 		}
 		else {
-			token->value.object.type=PL_TYPE_INT;
 			c=reader->text[idx2];
 			reader->text[idx2]='\0';
 			errno=0;
+			token->value.object.type=PL_TYPE_INT;
 			token->value.object.value.integer=atol(reader->text+reader->idx);
 		}
 		if ( errno != 0 ) {
@@ -453,6 +419,33 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 		else {
 			token->marker=PL_MARKER_LITERAL;
 			DEBUG_MESSAGE("LITERAL ");
+		}
+		reader->text[idx2]=c;
+		reader->idx=idx2;
+	}
+	else if ( strncmp(reader->text+reader->idx,"0x",2) == 0 ) {
+		int idx2;
+		char c;
+		for (idx2=reader->idx+2; isHex(reader->text[idx2]); idx2++);
+		c=reader->text[idx2];
+		reader->text[idx2]='\0';
+		if ( idx2 == reader->idx+2 || idx2-reader->idx > PL_WORD_MAX_LENGTH ) {
+			token->marker=PL_MARKER_INVALID_LITERAL;
+			token->value.name=strdup(reader->text+reader->idx);
+			DEBUG_MESSAGE("INVALID_LITERAL ");
+		}
+		else {
+			errno=0;
+			token->value.object.value.integer=strtoll(reader->text+reader->idx,NULL,16);
+			if ( errno != 0 ) {
+				token->marker=PL_MARKER_INVALID_LITERAL;
+				DEBUG_MESSAGE("INVALID_LITERAL ");
+			}
+			else {
+				token->marker=PL_MARKER_LITERAL;
+				token->value.object.type=PL_TYPE_INT;
+				DEBUG_MESSAGE("LITERAL ");
+			}
 		}
 		reader->text[idx2]=c;
 		reader->idx=idx2;
@@ -503,7 +496,7 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 	}
 	else {
 		token->marker=PL_MARKER_UNKNOWN;
-		DEBUG_MESSAGE("UNKNOWN(0x%02x) ", reader->text[reader->idx]);
+		DEBUG_MESSAGE("UNKNOWN(0x%02x) ", (uint8_t)(reader->text[reader->idx]));
 		reader->idx++;
 	}
 }
