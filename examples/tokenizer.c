@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
 		if ( token.marker == PL_MARKER_NAME || token.marker == PL_MARKER_INVALID_LITERAL || token.marker == PL_MARKER_NAME_TOO_LONG ) {
 			free(token.value.name);
 		}
-	} while ( GOOD_MARKER(token.marker) );
+	} while ( token.marker != PL_MARKER_EOF );
 	closeReader(&reader);
 
 	return 0;

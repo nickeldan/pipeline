@@ -44,7 +44,7 @@ static const struct plToken_keyword keywords[]={
 	{"or",2,PL_MARKER_LOGICAL},
 	{"null",4,PL_MARKER_LITERAL},
 	{"true",4,PL_MARKER_LITERAL},
-	{"false",4,PL_MARKER_LITERAL},
+	{"false",5,PL_MARKER_LITERAL},
 	{"if",2,PL_MARKER_IF},
 	{"eif",3,PL_MARKER_EIF},
 	{"else",4,PL_MARKER_ELSE},
@@ -114,7 +114,7 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 			if ( strncmp(reader->idx,keywords[k].name,keywords[k].len) == 0 && !isVarChar(reader->idx[keywords[k].len]) ) {
 				token->marker=keywords[k].marker;
 				if ( token->marker == PL_MARKER_LOGICAL ) {
-					token->value.logical=( firstChar == 'a' )? PL_LOGICAL_AND : PL_LOGICAL_OR;
+					token->value.submarker=( firstChar == 'a' )? PL_SUBMARKER_AND : PL_SUBMARKER_OR;
 					DEBUG_MESSAGE("LOGICAL ");
 				}
 				else if ( token->marker == PL_MARKER_LITERAL ) {
@@ -234,13 +234,13 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 	}
 	else if ( firstChar == '#' ) {
 		token->marker=PL_MARKER_OPTION;
-		token->value.option=PL_OPTION_FORCE_TYPE;
+		token->value.submarker=PL_SUBMARKER_FORCE_TYPE;
 		reader->idx++;
 		DEBUG_MESSAGE("OPTION ");
 	}
 	else if ( firstChar == '@' ) {
 		token->marker=PL_MARKER_OPTION;
-		token->value.option=PL_OPTION_MAP;
+		token->value.submarker=PL_SUBMARKER_MAP;
 		reader->idx++;
 		DEBUG_MESSAGE("OPTION ");
 	}
@@ -271,67 +271,67 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 	}
 	else if ( firstChar == '+' ) {
 		token->marker=PL_MARKER_OPERATOR;
-		token->value.op=PL_OPERATOR_PLUS;
+		token->value.submarker=PL_SUBMARKER_PLUS;
 		reader->idx++;
 		DEBUG_MESSAGE("OPERATOR ");
 	}
 	else if ( firstChar == '-' ) {
 		token->marker=PL_MARKER_OPERATOR;
-		token->value.op=PL_OPERATOR_MINUS;
+		token->value.submarker=PL_SUBMARKER_MINUS;
 		reader->idx++;
 		DEBUG_MESSAGE("OPERATOR ");
 	}
 	else if ( firstChar == '*' ) {
 		token->marker=PL_MARKER_OPERATOR;
-		token->value.op=PL_OPERATOR_MULTIPLY;
+		token->value.submarker=PL_SUBMARKER_MULTIPLY;
 		reader->idx++;
 		DEBUG_MESSAGE("OPERATOR ");
 	}
 	else if ( firstChar == '/' && reader->idx[1] != '*' && reader->idx[1] != '/' ) {
 		token->marker=PL_MARKER_OPERATOR;
-		token->value.op=PL_OPERATOR_DIVIDE;
+		token->value.submarker=PL_SUBMARKER_DIVIDE;
 		reader->idx++;
 		DEBUG_MESSAGE("OPERATOR ");
 	}
 	else if ( firstChar == '%' ) {
 		token->marker=PL_MARKER_OPERATOR;
-		token->value.op=PL_OPERATOR_MODULO;
+		token->value.submarker=PL_SUBMARKER_MODULO;
 		reader->idx++;
 		DEBUG_MESSAGE("OPERATOR ");
 	}
 	else if ( firstChar == '^' ) {
 		token->marker=PL_MARKER_OPERATOR;
-		token->value.op=PL_OPERATOR_XOR;
+		token->value.submarker=PL_SUBMARKER_XOR;
 		reader->idx++;
 		DEBUG_MESSAGE("OPERATOR ");
 	}
 	else if ( firstChar == '&' ) {
 		token->marker=PL_MARKER_OPERATOR;
-		token->value.op=PL_OPERATOR_MASK;
+		token->value.submarker=PL_SUBMARKER_MASK;
 		reader->idx++;
 		DEBUG_MESSAGE("OPERATOR ");
 	}
 	else if ( firstChar == '|' ) {
 		token->marker=PL_MARKER_OPERATOR;
-		token->value.op=PL_OPERATOR_OR;
+		token->value.submarker=PL_SUBMARKER_BIT_OR;
 		reader->idx++;
 		DEBUG_MESSAGE("OPERATOR ");
 	}
 	else if ( firstChar == '<' ) {
 		if ( reader->idx[1] == '<' ) {
 			token->marker=PL_MARKER_OPERATOR;
-			token->value.op=PL_OPERATOR_LSHIFT;
+			token->value.submarker=PL_SUBMARKER_LSHIFT;
 			reader->idx+=2;
 			DEBUG_MESSAGE("OPERATOR ");
 		}
 		else {
 			token->marker=PL_MARKER_COMPARISON;
 			if ( reader->idx[1] == '=' ) {
-				token->value.comparison=PL_COMPARISON_LESS_THAN_EQ;
+				token->value.submarker=PL_SUBMARKER_LESS_THAN_EQ;
 				reader->idx+=2;
 			}
 			else {
-				token->value.comparison=PL_COMPARISON_LESS_THAN;
+				token->value.submarker=PL_SUBMARKER_LESS_THAN;
 				reader->idx++;
 			}
 			DEBUG_MESSAGE("COMPARISON ");
@@ -340,18 +340,18 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 	else if ( firstChar == '>' ) {
 		if ( reader->idx[1] == '>' ) {
 			token->marker=PL_MARKER_OPERATOR;
-			token->value.op=PL_OPERATOR_RSHIFT;
+			token->value.submarker=PL_SUBMARKER_RSHIFT;
 			reader->idx+=2;
 			DEBUG_MESSAGE("OPERATOR ");
 		}
 		else {
 			token->marker=PL_MARKER_COMPARISON;
 			if ( reader->idx[1] == '=' ) {
-				token->value.comparison=PL_COMPARISON_GREATER_THAN_EQ;
+				token->value.submarker=PL_SUBMARKER_GREATER_THAN_EQ;
 				reader->idx+=2;
 			}
 			else {
-				token->value.comparison=PL_COMPARISON_GREATER_THAN;
+				token->value.submarker=PL_SUBMARKER_GREATER_THAN;
 				reader->idx++;
 			}
 			DEBUG_MESSAGE("COMPARISON ");
@@ -360,7 +360,7 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 	else if ( firstChar == '=' ) {
 		if ( reader->idx[1] == '=' ) {
 			token->marker=PL_MARKER_COMPARISON;
-			token->value.comparison=PL_COMPARISON_EQUALS;
+			token->value.submarker=PL_SUBMARKER_EQUALS;
 			reader->idx+=2;
 			DEBUG_MESSAGE("COMPARISON ");
 		}
@@ -372,7 +372,7 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 	}
 	else if ( strncmp(reader->idx,"!=",2) == 0 ) {
 		token->marker=PL_MARKER_COMPARISON;
-		token->value.comparison=PL_COMPARISON_NOT_EQUALS;
+		token->value.submarker=PL_SUBMARKER_NOT_EQUALS;
 		reader->idx+=2;
 		DEBUG_MESSAGE("COMPARISON) ");
 	}
@@ -479,7 +479,7 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 					}
 					if ( reader->size == 0 ) {
 						token->marker=PL_MARKER_UNCLOSED_COMMENT_BLOCK;
-						DEBUG_MESSAGE("UNCLOSED_COMMENT_BLOCK\n");
+						DEBUG_MESSAGE("UNCLOSED_COMMENT_BLOCK ");
 						return;
 					}
 				}
@@ -494,8 +494,7 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 	}
 	else {
 		token->marker=PL_MARKER_UNKNOWN;
-		DEBUG_MESSAGE("UNKNOWN(0x%02x) ", (uint8_t)(reader->idx[0]));
-		DEBUG_MESSAGE("\n\n\n%s\n", reader->text);
+		DEBUG_MESSAGE("UNKNOWN(0x%02x) ", reader->idx[0]);
 		reader->idx++;
 	}
 }

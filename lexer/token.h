@@ -54,47 +54,35 @@ typedef enum {
 	PL_MARKER_OPTION,
 } plToken_marker;
 
-#define GOOD_MARKER(marker) (marker > PL_MARKER_EOF)
+#define GOOD_MARKER(marker) (marker >= PL_MARKER_EOF)
 
 typedef enum {
-	PL_LOGICAL_AND = 0,
-	PL_LOGICAL_OR,
-} plToken_logical;
-
-typedef enum {
-	PL_OPERATOR_PLUS = 0,
-	PL_OPERATOR_MINUS,
-	PL_OPERATOR_MULTIPLY,
-	PL_OPERATOR_DIVIDE,
-	PL_OPERATOR_MODULO,
-	PL_OPERATOR_XOR,
-	PL_OPERATOR_MASK,
-	PL_OPERATOR_OR,
-	PL_OPERATOR_LSHIFT,
-	PL_OPERATOR_RSHIFT,
-} plToken_operator;
-
-typedef enum {
-	PL_COMPARISON_EQUALS = 0,
-	PL_COMPARISON_NOT_EQUALS,
-	PL_COMPARISON_LESS_THAN,
-	PL_COMPARISON_LESS_THAN_EQ,
-	PL_COMPARISON_GREATER_THAN,
-	PL_COMPARISON_GREATER_THAN_EQ,
-} plToken_comparison;
-
-typedef enum {
-	PL_OPTION_FORCE_TYPE = 0,
-	PL_OPTION_MAP,
-} plToken_option;
+	PL_SUBMARKER_AND = 0,
+	PL_SUBMARKER_OR,
+	PL_SUBMARKER_PLUS,
+	PL_SUBMARKER_MINUS,
+	PL_SUBMARKER_MULTIPLY,
+	PL_SUBMARKER_DIVIDE,
+	PL_SUBMARKER_MODULO,
+	PL_SUBMARKER_XOR,
+	PL_SUBMARKER_MASK,
+	PL_SUBMARKER_BIT_OR,
+	PL_SUBMARKER_LSHIFT,
+	PL_SUBMARKER_RSHIFT,
+	PL_SUBMARKER_EQUALS,
+	PL_SUBMARKER_NOT_EQUALS,
+	PL_SUBMARKER_LESS_THAN,
+	PL_SUBMARKER_LESS_THAN_EQ,
+	PL_SUBMARKER_GREATER_THAN,
+	PL_SUBMARKER_GREATER_THAN_EQ,
+	PL_SUBMARKER_FORCE_TYPE,
+	PL_SUBMARKER_MAP,
+} plToken_submarker;
 
 typedef struct {
 	union {
 		char *name;
-		plToken_logical logical;
-		plToken_operator op;
-		plToken_comparison comparison;
-		plToken_option option;
+		plToken_submarker submarker;
 		plObject object;
 	} value;
 	const char *fileName;
