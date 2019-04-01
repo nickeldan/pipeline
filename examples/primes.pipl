@@ -35,17 +35,15 @@ source factor(n:Posint) {
 	if x > 1 {prod x;}
 }
 
-sink doTakeFirst(x) {
-	prod x;
-	end;
-}
-
 sink doCount(x) {
 	prod ?STORE+1;
 }
 
 pipe isPrime(n:Posint) {
-	factor(n) -> doTakeFirst:firstFactor;
+	factor(n) -> sink {x:
+		prod x;
+		end;
+	}:firstFactor;
 	firstFactor == n;
 }
 

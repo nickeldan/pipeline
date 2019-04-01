@@ -84,6 +84,7 @@ typedef struct {
 		char *name;
 		plToken_submarker submarker;
 		plObject object;
+		char character;
 	} value;
 	const char *fileName;
 	off_t lineNo;
@@ -103,5 +104,6 @@ typedef struct {
 bool initReader(plFileReader *reader, const char *path);
 void closeReader(plFileReader *reader);
 void grabNextToken(plFileReader *reader, plToken *token);
+const char *tokenName(const plToken *token);
 
 #endif // __PIPELINE_TOKEN_H__

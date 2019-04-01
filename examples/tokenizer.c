@@ -11,16 +11,24 @@ int main(int argc, char **argv) {
 
 	plFileReader reader;
 	plToken token;
+	off_t lineNo;
 
 	if ( !initReader(&reader,argv[1]) ) {
 		return 2;
 	}
+	lineNo=0;
 	do {
 		grabNextToken(&reader,&token);
 		if ( token.marker == PL_MARKER_NAME || token.marker == PL_MARKER_INVALID_LITERAL || token.marker == PL_MARKER_NAME_TOO_LONG ) {
 			free(token.value.name);
 		}
+		printf("%s ", tokenName(&token));
+		if ( reader.lineNo > lineNo ) {
+			printf("\n");
+			lineNo=reader.lineNo;
+		}
 	} while ( token.marker != PL_MARKER_EOF );
+	printf("\n");
 	closeReader(&reader);
 
 	return 0;
