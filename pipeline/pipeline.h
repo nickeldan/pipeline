@@ -12,7 +12,7 @@
 #define MIN(a,b) ( ( (a) < (b) )? (a) : (b) )
 #endif
 
-typedef unsigned char bool;
+typedef uint8_t bool;
 
 #ifndef TRUE
 #define TRUE 1
@@ -25,37 +25,37 @@ typedef unsigned char bool;
 typedef uint8_t plObj_type_t;
 
 #define PL_TYPE_NULL 0x01
-#define PL_TYPE_BOOL 0x02
-#define PL_TYPE_INT 0x04
-#define PL_TYPE_FLOAT 0x08
-#define PL_TYPE_ARRAY 0x10
+#define PL_TYPE_SENTINEL 0x02
+#define PL_TYPE_BOOL 0x04
+#define PL_TYPE_INT 0x08
+#define PL_TYPE_FLOAT 0x10
+#define PL_TYPE_GEN_ARRAY 0x20
+#define PL_TYPE_BYTE_ARRAY 0x40
 
+#define PL_PRED_VOID (PL_TYPE_NULL|PL_TYPE_SENTINEL)
 #define PL_PRED_NUM (PL_TYPE_INT|PL_TYPE_FLOAT)
+#define PL_PRED_ARRAY (PL_TYPE_GEN_ARRAY|PL_TYPE_BYTE_ARRAY)
 
-typedef enum {
-	PL_STATIC_FALSE = 0,
-	PL_STATIC_TRUE,
-} plStatic_t;
+typedef uint8_t plBool_t;
+
+#define PL_BOOL_TRUE TRUE
+#define PL_BOOL_FALSE FALSE
 
 typedef int64_t plInt_t;
 typedef double plFloat_t;
 
-#ifdef ARRAY_IMPLEMENTED
 union _plObj_value_t;
 
 typedef struct {
-	union _plObj_value *values;
-	size_t size, space;
+	union _plObj_value_t *values;
+	size_t length, space;
 } plArray_t;
-#endif // ARRAY_IMPLEMENTED
 
 typedef union _plObj_value_t {
 	plInt_t integer;
 	plFloat_t decimal;
-	plStatic_t staticValue;
-#ifdef ARRAY_IMPLEMENTED
+	plBool_t boolValue;
 	plArray_t array;
-#endif
 } plObj_value_t;
 
 typedef struct {

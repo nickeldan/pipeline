@@ -6,6 +6,9 @@ This is a multi-line comment block.
 
 // This is a single-line comment.
 
+export factor;
+export isPrime;
+
 import os;
 import math;
 
@@ -21,7 +24,7 @@ pred Posint(n) {n is Int and n > 0}
 
 source factor(n:Posint) {
 	x=n;
-	s=n -> math.sqrt;
+	n -> math.sqrt -> s;
 	verify s;
 	2,icount(3,s,2) -> local {i:
 		recompute=false;
@@ -30,7 +33,7 @@ source factor(n:Posint) {
 			x/=i;
 			recompute=true;
 		}
-		if recompute {s=x -> math.sqrt;}
+		if recompute {x -> math.sqrt -> s;}
 	}
 	if x > 1 {prod x;}
 }
@@ -40,10 +43,7 @@ sink doCount(x) {
 }
 
 pipe isPrime(n:Posint) {
-	factor(n) -> sink {x:
-		prod x;
-		end;
-	}:firstFactor;
+	factor(n) -> firstFactor;
 	firstFactor == n;
 }
 
@@ -53,9 +53,9 @@ pipe filter(x, y:Bool) {
 }
 
 sink main {
-	start=1 -> os.args -> toInt;
+	os.args[1] -> toInt -> start;
 	verify start;
-	finish=2 -> os.args -> toInt;
+	os.args[2] -> toInt -> finish;
 	verify finish;
 	if start > finish {end;}
 	icount(start,finish) -> @isPrime -> filter -> detour doCount(0):numPrimes -> doPrintLn;

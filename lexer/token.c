@@ -36,9 +36,10 @@ static const struct plToken_keyword keywords[]={
 	{"not",3,PL_MARKER_NOT},
 	{"and",3,PL_MARKER_LOGICAL},
 	{"or",2,PL_MARKER_LOGICAL},
-	{"null",4,PL_MARKER_LITERAL},
 	{"true",4,PL_MARKER_LITERAL},
 	{"false",5,PL_MARKER_LITERAL},
+	{"null",4,PL_MARKER_LITERAL},
+	{"sent",4,PL_MARKER_LITERAL},
 	{"if",2,PL_MARKER_IF},
 	{"eif",3,PL_MARKER_EIF},
 	{"else",4,PL_MARKER_ELSE},
@@ -48,19 +49,24 @@ static const struct plToken_keyword keywords[]={
 	{"local",5,PL_MARKER_LOCAL},
 	{"detour",6,PL_MARKER_DETOUR},
 	{"import",6,PL_MARKER_IMPORT},
+	{"export",6,PL_MARKER_EXPORT},
 	{"is",2,PL_MARKER_IS},
 };
 #define NUM_KEYWORDS (sizeof(keywords)/sizeof(struct plToken_keyword))
 
 bool initReader(plFileReader *reader, const char *path) {
-	memset(reader,0,sizeof(plFileReader));
 	reader->fd=open(path,O_RDONLY);
 	if ( reader->fd == -1 ) {
 		perror("open");
 		return FALSE;
 	}
+
 	reader->path=path;
+	reader->lineNo=1;
+	reader->size=0;
+	memset(reader->text,0,sizeof(PL_READER_BUFFER_SIZE));
 	reader->idx=reader->text;
+
 	return TRUE;
 }
 
@@ -73,7 +79,9 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 	char firstChar;
 
 	token->fileName=reader->path;
+
 	look_for_token:
+
 	remainingBuffer=reader->text+reader->size-reader->idx;
 	if ( remainingBuffer <= PL_WORD_MAX_LENGTH && !updateReader(reader,remainingBuffer) ) {
 		token->marker=PL_MARKER_READ_FAILURE;
@@ -84,12 +92,11 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 	firstChar=reader->idx[0];
 	if ( reader->size == 0 ) {
 		token->marker=PL_MARKER_EOF;
-		return;
 	}
 	else if ( isWhitespace(firstChar) ) {
 		token->marker=PL_MARKER_WHITESPACE;
 		read_more_for_whitespace:
-		for(reader->idx++; isWhitespace(reader->idx[0]); reader->idx++) {
+		for (; isWhitespace(reader->idx[0]); reader->idx++) {
 			if ( reader->idx[0] == '\n' ) {
 				reader->lineNo++;
 			}
@@ -97,9 +104,10 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 		if ( reader->idx == reader->text + reader->size ) {
 			if ( !updateReader(reader,0) ) {
 				token->marker=PL_MARKER_READ_FAILURE;
-				return;
 			}
-			goto read_more_for_whitespace;
+			else if ( reader->size > 0 ) {
+				goto read_more_for_whitespace;
+			}
 		}
 	}
 	else if ( isAlpha(firstChar) ) {
@@ -114,15 +122,18 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 				else if ( token->marker == PL_MARKER_LITERAL ) {
 					switch ( firstChar ) {
 						case 't':
-						token->value.object.value.staticValue=PL_STATIC_TRUE;
+						token->value.object.value.boolValue=PL_BOOL_TRUE;
 						token->value.object.type=PL_TYPE_BOOL;
 						break;
 						case 'f':
-						token->value.object.value.staticValue=PL_STATIC_FALSE;
+						token->value.object.value.boolValue=PL_BOOL_FALSE;
 						token->value.object.type=PL_TYPE_BOOL;
 						break;
-						default:
+						case 'n':
 						token->value.object.type=PL_TYPE_NULL;
+						break;
+						default:
+						token->value.object.type=PL_TYPE_SENTINEL;
 						break;
 					}
 				}
@@ -201,6 +212,18 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 			token->marker=PL_MARKER_PERIOD;
 			reader->idx++;
 		}
+	}
+	else if ( firstChar == '\'' ) {
+		token->marker=PL_MARKER_QUOTE;
+		reader->idx++;
+	}
+	else if ( firstChar == '"' ) {
+		token->marker=PL_MARKER_DOUBLE_QUOTE;
+		reader->idx++;
+	}
+	else if ( firstChar == '\\' ) {
+		token->marker=PL_MARKER_ESCAPE;
+		reader->idx++;
 	}
 	else if ( firstChar == '#' ) {
 		token->marker=PL_MARKER_OPTION;
@@ -441,96 +464,52 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 
 const char *tokenName(const plToken *token) {
 	switch ( token->marker ) {
-		case PL_MARKER_READ_FAILURE:
-		return "READ_FAILURE";
-		case PL_MARKER_INVALID_LITERAL:
-		return "INVALID_LITERAL";
-		case PL_MARKER_NAME_TOO_LONG:
-		return "NAME_TOO_LONG";
-		case PL_MARKER_EOF:
-		return "EOF";
-		case PL_MARKER_SOURCE:
-		return "SOURCE":
-		case PL_MARKER_PIPE:
-		return "PIPE";
-		case PL_MARKER_SINK:
-		return "SINK";
-		case PL_MARKER_PRED:
-		return "PRED";
-		case PL_MARKER_IMPORT:
-		return "IMPORT";
-		case PL_MARKER_PROD:
-		return "PROD";
-		case PL_MARKER_DROP:
-		return "DROP";
-		case PL_MARKER_END:
-		return "END";
-		case PL_MARKER_LOCAL:
-		return "LOCAL";
-		case PL_MARKER_DETOUR:
-		return "DETOUR";
-		case PL_MARKER_VERIFY:
-		return "VERIFY";
-		case PL_MARKER_WHILE:
-		return "WHILE";
-		case PL_MARKER_BREAK:
-		return "BREAK";
-		case PL_MARKER_CONTINUE:
-		return "CONTINUE";
-		case PL_MARKER_IF:
-		return "IF";
-		case PL_MARKER_EIF:
-		return "EIF";
-		case PL_MARKER_ELSE:
-		return "ELSE";
-		case PL_MARKER_NOT:
-		return "NOT";
-		case PL_MARKER_IS:
-		return "IS";
-		case PL_MARKER_LOGICAL:
-		return "LOGICAL";
-		case PL_MARKER_OPERATOR:
-		return "OPERATOR";
-		case PL_MARKER_COMPARISON:
-		return "COMPARISON";
-		case PL_MARKER_ASSIGNMENT:
-		return "ASSIGNMENT";
-		case PL_MARKER_NAME:
-		return "NAME";
-		case PL_MARKER_LITERAL:
-		return "LITERAL";
-		case PL_MARKER_BLANK:
-		return "BLANK";
-		case PL_MARKER_WHITESPACE:
-		return "WHITESPACE";
-		case PL_MARKER_SEMICOLON:
-		return "SEMICOLON";
-		case PL_MARKER_COLON:
-		return "COLON";
-		case PL_MARKER_PERIOD:
-		return "PERIOD";
-		case PL_MARKER_COMMA:
-		return "COMMA";
-		case PL_MARKER_QUESTION:
-		return "QUESTION";
-		case PL_MARKER_OPEN_PARENS:
-		return "OPEN_PARENS";
-		case PL_MARKER_CLOSE_PARENS:
-		return "CLOSE_PARENS";
-		case PL_MARKER_OPEN_BRACE:
-		return "OPEN_BRACE";
-		case PL_MARKER_CLOSE_BRACE:
-		return "CLOSE_BRACE";
-		case PL_MARKER_OPEN_BRACKET:
-		return "OPEN_BRACKET";
-		case PL_MARKER_CLOSE_BRACKET:
-		return "CLOSE_BRACKET";
-		case PL_MARKER_ARROW:
-		return "ARROW";
-		case PL_MARKER_OPTION:
-		return "OPTION":
-		default:
-		return "UNKNOWN";
+		case PL_MARKER_READ_FAILURE: return "READ_FAILURE";
+		case PL_MARKER_INVALID_LITERAL: return "INVALID_LITERAL";
+		case PL_MARKER_NAME_TOO_LONG: return "NAME_TOO_LONG";
+		case PL_MARKER_EOF: return "EOF";
+		case PL_MARKER_SOURCE: return "SOURCE";
+		case PL_MARKER_PIPE: return "PIPE";
+		case PL_MARKER_SINK: return "SINK";
+		case PL_MARKER_PRED: return "PRED";
+		case PL_MARKER_EXPORT: return "EXPORT";
+		case PL_MARKER_IMPORT: return "IMPORT";
+		case PL_MARKER_PROD: return "PROD";
+		case PL_MARKER_DROP: return "DROP";
+		case PL_MARKER_END: return "END";
+		case PL_MARKER_LOCAL: return "LOCAL";
+		case PL_MARKER_DETOUR: return "DETOUR";
+		case PL_MARKER_VERIFY: return "VERIFY";
+		case PL_MARKER_WHILE: return "WHILE";
+		case PL_MARKER_BREAK: return "BREAK";
+		case PL_MARKER_CONTINUE: return "CONTINUE";
+		case PL_MARKER_IF: return "IF";
+		case PL_MARKER_EIF: return "EIF";
+		case PL_MARKER_ELSE: return "ELSE";
+		case PL_MARKER_NOT: return "NOT";
+		case PL_MARKER_IS: return "IS";
+		case PL_MARKER_LOGICAL: return "LOGICAL";
+		case PL_MARKER_OPERATOR: return "OPERATOR";
+		case PL_MARKER_COMPARISON: return "COMPARISON";
+		case PL_MARKER_ASSIGNMENT: return "ASSIGNMENT";
+		case PL_MARKER_NAME: return "NAME";
+		case PL_MARKER_LITERAL: return "LITERAL";
+		case PL_MARKER_BLANK: return "BLANK";
+		case PL_MARKER_WHITESPACE: return "WHITESPACE";
+		case PL_MARKER_SEMICOLON: return "SEMICOLON";
+		case PL_MARKER_COLON: return "COLON";
+		case PL_MARKER_PERIOD: return "PERIOD";
+		case PL_MARKER_COMMA: return "COMMA";
+		case PL_MARKER_QUESTION: return "QUESTION";
+		case PL_MARKER_OPEN_PARENS: return "OPEN_PARENS";
+		case PL_MARKER_CLOSE_PARENS: return "CLOSE_PARENS";
+		case PL_MARKER_OPEN_BRACE: return "OPEN_BRACE";
+		case PL_MARKER_CLOSE_BRACE: return "CLOSE_BRACE";
+		case PL_MARKER_OPEN_BRACKET: return "OPEN_BRACKET";
+		case PL_MARKER_CLOSE_BRACKET: return "CLOSE_BRACKET";
+		case PL_MARKER_ARROW: return "ARROW";
+		case PL_MARKER_OPTION: return "OPTION";
+		default: return "UNKNOWN";
 	}
 }
 
