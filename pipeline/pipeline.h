@@ -31,10 +31,13 @@ typedef uint8_t plObj_type_t;
 #define PL_TYPE_FLOAT 0x10
 #define PL_TYPE_GEN_ARRAY 0x20
 #define PL_TYPE_BYTE_ARRAY 0x40
+#define PL_TYPE_STRUCT 0x80
+
+typedef uint32_t plStruct_id_t;
 
 #define PL_PRED_VOID (PL_TYPE_NULL|PL_TYPE_SENTINEL)
 #define PL_PRED_NUM (PL_TYPE_INT|PL_TYPE_FLOAT)
-#define PL_PRED_ARRAY (PL_TYPE_GEN_ARRAY|PL_TYPE_BYTE_ARRAY)
+#define PL_PRED_ARRAY (PL_TYPE_GEN_ARRAY|PL_TYPE_BYTE_ARRAY|PL_TYPE_STRUCT)
 
 typedef uint8_t plBool_t;
 
@@ -48,7 +51,7 @@ union _plObj_value_t;
 
 typedef struct {
 	union _plObj_value_t *values;
-	size_t length, space;
+	uint32_t length, space;
 } plArray_t;
 
 typedef union _plObj_value_t {
@@ -60,6 +63,7 @@ typedef union _plObj_value_t {
 
 typedef struct {
 	plObj_value_t value;
+	plStruct_id_t structId;
 	plObj_type_t type;
 } plObject;
 

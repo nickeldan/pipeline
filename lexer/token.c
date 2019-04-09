@@ -29,6 +29,7 @@ static const struct plToken_keyword keywords[]={
 	{"pipe",4,PL_MARKER_SOURCE},
 	{"sink",4,PL_MARKER_SINK},
 	{"pred",4,PL_MARKER_PRED},
+	{"struct",6,PL_MARKER_STRUCT},
 	{"prod",4,PL_MARKER_PROD},
 	{"drop",4,PL_MARKER_DROP},
 	{"end",3,PL_MARKER_END},
