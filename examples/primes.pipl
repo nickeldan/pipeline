@@ -12,7 +12,7 @@ export isPrime;
 import os;
 import math;
 
-source icount(start:Num, finish:Num, step:Num = 1) {
+source icount(start:Num, finish:Num, step:Num = 1) -> Num {
 	n=start;
 	while n <= finish {
 		prod n;
@@ -22,11 +22,10 @@ source icount(start:Num, finish:Num, step:Num = 1) {
 
 pred Posint(n) {n is Int and n > 0}
 
-source factor(n:Posint) {
-	x=n;
+source factor(n:Posint) -> Posint {
+	n -> x;
 	n -> math.sqrt -> s;
-	verify s;
-	2,icount(3,s,2) -> local {i:
+	2,icount(3,s,2) -> local (i:Int) {
 		recompute=false;
 		while x%i == 0 {
 			prod i;
@@ -42,23 +41,23 @@ sink doCount(x) {
 	prod ?STORE+1;
 }
 
-pipe isPrime(n:Posint) {
+pipe isPrime(n:Posint) -> Bool {
 	factor(n) -> firstFactor;
-	firstFactor == n;
+	prod firstFactor == n;
 }
 
-pipe filter(x, y:Bool) {
+pipe filter(x, y:Bool) -> _ {
 	if not y {drop;}
-	x;
+	prod x;
 }
 
 sink main {
-	os.args[1] -> toInt -> start;
-	verify start;
-	os.args[2] -> toInt -> finish;
-	verify finish;
+	1 -> os.argv -> toInt -> start;
+	assert start;
+	2 -> os.argv -> toInt -> finish;
+	assert finish;
 	if start > finish {end;}
-	icount(start,finish) -> @isPrime -> filter -> detour doCount(0):numPrimes -> doPrintLn;
-	numPrimes -> doPrintLn;
+	icount(start,finish) -> isPrime.map -> filter -> doCount.detour(0):numPrimes -> doPrintLn;
+	"There were ", numPrimes, " primes found.\n" -> doPrint;
 	prod 0;
 }

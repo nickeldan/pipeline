@@ -5,12 +5,14 @@
 
 #include "../pipeline/pipeline.h"
 
-typedef enum {
+enum plTokenMarker {
 	PL_MARKER_READ_FAILURE = 0,
-	PL_MARKER_UNCLOSED_COMMENT_BLOCK,
+	PL_MARKER_MALLOC_FAILURE,
 	PL_MARKER_INVALID_LITERAL,
 	PL_MARKER_NAME_TOO_LONG,
 	PL_MARKER_UNKNOWN,
+	PL_MARKER_UNCLOSED_COMMENT_BLOCK,
+	PL_MARKER_UNTERMINATED_STRING,
 	PL_MARKER_EOF,
 	PL_MARKER_SOURCE,
 	PL_MARKER_PIPE,
@@ -23,8 +25,7 @@ typedef enum {
 	PL_MARKER_DROP,
 	PL_MARKER_END,
 	PL_MARKER_LOCAL,
-	PL_MARKER_DETOUR,
-	PL_MARKER_VERIFY,
+	PL_MARKER_ASSERT,
 	PL_MARKER_WHILE,
 	PL_MARKER_BREAK,
 	PL_MARKER_CONTINUE,
@@ -39,14 +40,14 @@ typedef enum {
 	PL_MARKER_ASSIGNMENT,
 	PL_MARKER_NAME,
 	PL_MARKER_LITERAL,
+	PL_MARKER_TRUE,
+	PL_MARKER_FALSE,
+	PL_MARKER_NULL,
 	PL_MARKER_BLANK,
 	PL_MARKER_WHITESPACE,
 	PL_MARKER_SEMICOLON,
 	PL_MARKER_COLON,
 	PL_MARKER_PERIOD,
-	PL_MARKER_QUOTE,
-	PL_MARKER_DOUBLE_QUOTE,
-	PL_MARKER_ESCAPE,
 	PL_MARKER_COMMA,
 	PL_MARKER_QUESTION,
 	PL_MARKER_OPEN_PARENS,
@@ -56,12 +57,11 @@ typedef enum {
 	PL_MARKER_OPEN_BRACKET,
 	PL_MARKER_CLOSE_BRACKET,
 	PL_MARKER_ARROW,
-	PL_MARKER_OPTION,
-} plToken_marker;
+};
 
-#define GOOD_MARKER(marker) (marker >= PL_MARKER_EOF)
+#define TERMINAL_MARKER(marker) ((marker) <= PL_MARKER_EOF)
 
-typedef enum {
+enum plTokenSubmarker {
 	PL_SUBMARKER_AND = 0,
 	PL_SUBMARKER_OR,
 	PL_SUBMARKER_PLUS,
@@ -80,29 +80,22 @@ typedef enum {
 	PL_SUBMARKER_LESS_THAN_EQ,
 	PL_SUBMARKER_GREATER_THAN,
 	PL_SUBMARKER_GREATER_THAN_EQ,
-	PL_SUBMARKER_FORCE_TYPE,
-	PL_SUBMARKER_MAP,
-} plToken_submarker;
+};
 
 typedef struct {
-	union {
-		char *name;
-		plToken_submarker submarker;
-		plObject object;
-		char character;
-	} value;
-	const char *fileName;
-	off_t lineNo;
-	plToken_marker marker;
+	void *data;
+	uint32_t lineNo;
+	uint8_t marker;
+	uint8_t submarker;
 } plToken;
 
 #define PL_READER_BUFFER_SIZE 200
 
 typedef struct {
-	const char *path;
 	char *idx;
-	off_t lineNo;
 	int fd, size;
+	uint32_t lineNo;
+	uint8_t lastMarker;
 	char text[PL_READER_BUFFER_SIZE];
 } plFileReader;
 

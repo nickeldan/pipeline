@@ -2,13 +2,18 @@
 
 CC := gcc -std=c99
 
-all: tokenizer sizes
+PRIMARY_HEADER_FILES := ../pipeline/pipeline.h ../pipeline/util.h
+PRIMARY_SOURCE_FILES := ../pipeline/pipeline.c
 
-tokenizer: tokenizer.c ../pipeline/pipeline.h ../lexer/token.h ../lexer/token.c
-	$(CC) $< ../lexer/token.c -o $@
+ALL_FILES := tokenizer sizes
 
-sizes: sizes.c ../pipeline/pipeline.h
-	$(CC) $< -o $@
+all: $(ALL_FILES)
+
+tokenizer: tokenizer.c ../lexer/token.c ../lexer/token.h $(PRIMARY_SOURCE_FILES) $(PRIMARY_HEADER_FILES)
+	$(CC) $< ../lexer/token.c $(PRIMARY_SOURCE_FILES) -o $@
+
+sizes: sizes.c $(PRIMARY_SOURCE_FILES) $(PRIMARY_HEADER_FILES) ../lexer/token.c ../lexer/token.h
+	$(CC) $< $(PRIMARY_SOURCE_FILES) -o $@
 
 clean:
-	rm -f tokenizer sizes
+	rm -f $(ALL_FILES)

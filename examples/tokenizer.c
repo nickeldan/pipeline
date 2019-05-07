@@ -11,20 +11,23 @@ int main(int argc, char **argv) {
 
 	plFileReader reader;
 	plToken token;
-	plToken_marker lastMarker;
-	off_t lineNo;
+	enum plTokenMarker lastMarker=PL_MARKER_WHITESPACE;
+	uint32_t lineNo;
 
 	if ( !initReader(&reader,argv[1]) ) {
 		return 2;
 	}
 
 	lineNo=0;
-	lastMarker=PL_MARKER_WHITESPACE;
 
 	do {
 		grabNextToken(&reader,&token);
-		if ( token.marker == PL_MARKER_NAME || token.marker == PL_MARKER_INVALID_LITERAL || token.marker == PL_MARKER_NAME_TOO_LONG ) {
-			free(token.value.name);
+
+		if ( token.marker == PL_MARKER_NAME || token.marker == PL_MARKER_LITERAL ) {
+			free(token.data);
+		}
+		else if ( token.marker == PL_MARKER_LITERAL ) {
+			plFreeObject((plObject*)token.data);
 		}
 		else if ( lastMarker == PL_MARKER_WHITESPACE && token.marker == PL_MARKER_WHITESPACE ) {
 			continue;
@@ -36,10 +39,12 @@ int main(int argc, char **argv) {
 			}
 			lineNo=token.lineNo;
 		}
+
 		printf("%s ", tokenName(&token));
 
 		lastMarker=token.marker;
-	} while ( token.marker != PL_MARKER_EOF );
+	} while ( !TERMINAL_MARKER(reader.lastMarker) );
+
 	printf("\n");
 	closeReader(&reader);
 

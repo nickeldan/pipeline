@@ -2,69 +2,74 @@
 #define __PIPELINE_PIPELINE_H__
 
 #include <stdint.h>
-#include <stddef.h>
 
-#ifndef MAX
-#define MAX(a,b) ( ( (a) > (b) )? (a) : (b) )
-#endif
+#include "util.h"
 
-#ifndef MIN
-#define MIN(a,b) ( ( (a) < (b) )? (a) : (b) )
-#endif
-
-typedef uint8_t bool;
-
-#ifndef TRUE
-#define TRUE 1
-#endif
-
-#ifndef FALSE
-#define FALSE 0
-#endif
-
-typedef uint8_t plObj_type_t;
+typedef uint8_t plObjectType_t;
 
 #define PL_TYPE_NULL 0x01
-#define PL_TYPE_SENTINEL 0x02
-#define PL_TYPE_BOOL 0x04
+#define PL_TYPE_TRUE 0x02
+#define PL_TYPE_FALSE 0x04
 #define PL_TYPE_INT 0x08
 #define PL_TYPE_FLOAT 0x10
-#define PL_TYPE_GEN_ARRAY 0x20
-#define PL_TYPE_BYTE_ARRAY 0x40
+#define PL_TYPE_BYTE_ARRAY 0x20
+#define PL_TYPE_ARRAY 0x40
 #define PL_TYPE_STRUCT 0x80
 
-typedef uint32_t plStruct_id_t;
-
-#define PL_PRED_VOID (PL_TYPE_NULL|PL_TYPE_SENTINEL)
+#define PL_PRED_BOOL (PL_TYPE_TRUE|PL_TYPE_FALSE)
 #define PL_PRED_NUM (PL_TYPE_INT|PL_TYPE_FLOAT)
-#define PL_PRED_ARRAY (PL_TYPE_GEN_ARRAY|PL_TYPE_BYTE_ARRAY|PL_TYPE_STRUCT)
+#define PL_PRED_ARRAY (PL_TYPE_BYTE_ARRAY|PL_TYPE_ARRAY|PL_TYPE_STRUCT)
 
-typedef uint8_t plBool_t;
+#define PL_OBJECT_HEADER \
+	plObjectType_t type;
 
-#define PL_BOOL_TRUE TRUE
-#define PL_BOOL_FALSE FALSE
+typedef struct {
+	PL_OBJECT_HEADER
+} plObject;
 
 typedef int64_t plInt_t;
 typedef double plFloat_t;
 
-union _plObj_value_t;
+typedef struct {
+	PL_OBJECT_HEADER
+	union {
+		plInt_t integer;
+		plFloat_t decimal;
+	} value;
+} plObjectNumber;
 
 typedef struct {
-	union _plObj_value_t *values;
-	uint32_t length, space;
-} plArray_t;
-
-typedef union _plObj_value_t {
-	plInt_t integer;
-	plFloat_t decimal;
-	plBool_t boolValue;
-	plArray_t array;
-} plObj_value_t;
+	PL_OBJECT_HEADER
+	void *opaque;
+	uint32_t size;
+} plObjectArrayBase;
 
 typedef struct {
-	plObj_value_t value;
-	plStruct_id_t structId;
-	plObj_type_t type;
-} plObject;
+	PL_OBJECT_HEADER
+	uint8_t *bytes;
+	uint32_t size, length;
+} plObjectByteArray;
+
+#define PL_OBJECT_ARRAY_HEADER \
+	plObject **values; \
+	uint32_t size;
+
+typedef struct {
+	PL_OBJECT_HEADER
+	PL_OBJECT_ARRAY_HEADER
+	uint32_t length;
+} plObjectArray;
+
+typedef uint16_t plModuleId_t;
+typedef uint16_t plStructId_t;
+
+typedef struct {
+	PL_OBJECT_HEADER
+	PL_OBJECT_ARRAY_HEADER
+	plModuleId_t moduleId;
+	plStructId_t structId;
+} plObjectStruct;
+
+void plFreeObject(plObject *object);
 
 #endif // __PIPELINE_PIPELINE_H__
