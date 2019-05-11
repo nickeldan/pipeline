@@ -7,6 +7,7 @@
 #include <errno.h>
 
 #include "token.h"
+#include "../pipeline/object.h"
 
 struct plToken_keyword {
 	const char *name;
@@ -114,6 +115,10 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 			else if ( reader->size > 0 ) {
 				goto read_more_for_whitespace;
 			}
+		}
+
+		if ( token->marker == PL_MARKER_WHITESPACE && reader->lastMarker == PL_MARKER_WHITESPACE ) {
+			goto look_for_token;
 		}
 	}
 	else if ( isAlpha(firstChar) ) {
@@ -609,6 +614,17 @@ void grabNextToken(plFileReader *reader, plToken *token) {
 	done:
 
 	reader->lastMarker=token->marker;
+}
+
+void clearToken(plToken *token) {
+	if ( token->marker == PL_MARKER_NAME ) {
+		free(token->data);
+	}
+	else if ( token->marker == PL_MARKER_LITERAL ) {
+		plFreeObject((plObject*)token->data);
+	}
+
+	memset(token,0,sizeof(plToken));
 }
 
 const char *tokenName(const plToken *token) {

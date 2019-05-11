@@ -1,9 +1,10 @@
 #ifndef __PIPELINE_TOKEN_H__
 #define __PIPELINE_TOKEN_H__
 
+#include <stdint.h>
 #include <sys/types.h>
 
-#include "../pipeline/pipeline.h"
+#include "../util.h"
 
 enum plTokenMarker {
 	PL_MARKER_READ_FAILURE = 0,
@@ -102,6 +103,7 @@ typedef struct {
 bool initReader(plFileReader *reader, const char *path);
 void closeReader(plFileReader *reader);
 void grabNextToken(plFileReader *reader, plToken *token);
+void clearToken(plToken *token);
 const char *tokenName(const plToken *token);
 
 #endif // __PIPELINE_TOKEN_H__

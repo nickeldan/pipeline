@@ -13,7 +13,7 @@ import os;
 import math;
 
 source icount(start:Num, finish:Num, step:Num = 1) -> Num {
-	n=start;
+	start -> n;
 	while n <= finish {
 		prod n;
 		n+=step;
@@ -46,7 +46,7 @@ pipe isPrime(n:Posint) -> Bool {
 	prod firstFactor == n;
 }
 
-pipe filter(x, y:Bool) -> _ {
+pipe filter(x, y:Bool) {
 	if not y {drop;}
 	prod x;
 }

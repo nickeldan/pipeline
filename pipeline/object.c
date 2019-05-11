@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pipeline.h"
+#include "object.h"
 
 void plFreeObject(plObject *object) {
 	if ( object->type&PL_PRED_ARRAY ) {
