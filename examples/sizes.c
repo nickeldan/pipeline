@@ -1,5 +1,5 @@
 #include "../pipeline/pipeline.h"
-#include "../lexer/token.h"
+#include "../parser/token.h"
 
 #include <stdio.h>
 
