@@ -19,7 +19,7 @@ void free_object(plObject_t *object) {
 			}
 
 			for (size_t k=0; k<length; k++) {
-				pl_free_object(items[k]);
+				free_object(items[k]);
 			}
 		}
 

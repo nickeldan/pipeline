@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
 			lineNo=token.lineNo;
 		}
 
-		printf("%s ", marker_name(token.marker)));
+		printf("%s ", marker_name(token.marker));
 
 		clear_token(&token);
 	} while ( !TERMINAL_MARKER(reader.lastMarker) );

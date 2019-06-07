@@ -2,7 +2,7 @@
 
 CC := gcc -std=c99
 
-PRIMARY_HEADER_FILES := ../pipeline/object.h ../util.h
+PRIMARY_HEADER_FILES := ../pipeline/object.h
 PRIMARY_SOURCE_FILES := ../pipeline/object.c
 
 ALL_FILES := tokenizer sizes
