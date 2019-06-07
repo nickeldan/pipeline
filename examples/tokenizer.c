@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 int main(int argc, char **argv) {
-	plFileReader reader;
+	plFileReader_t reader;
 	uint32_t lineNo;
 
 	if ( argc < 2 ) {
@@ -12,16 +12,16 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	if ( !initReader(&reader,argv[1]) ) {
+	if ( !init_reader(&reader,argv[1]) ) {
 		return 2;
 	}
 
 	lineNo=0;
 
 	do {
-		plToken token;
+		plToken_t token;
 
-		grabNextToken(&reader,&token);
+		read_next_token(&reader,&token);
 
 		if ( token.lineNo > lineNo ) {
 			if ( lineNo != 0 ) {
@@ -30,13 +30,13 @@ int main(int argc, char **argv) {
 			lineNo=token.lineNo;
 		}
 
-		printf("%s ", tokenName(&token));
+		printf("%s ", marker_name(token.marker)));
 
-		clearToken(&token);
+		clear_token(&token);
 	} while ( !TERMINAL_MARKER(reader.lastMarker) );
 
 	printf("\n");
-	closeReader(&reader);
+	close_reader(&reader);
 
 	return 0;
 }

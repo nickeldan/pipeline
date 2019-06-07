@@ -4,6 +4,6 @@
 #include "error.h"
 #include "module.h"
 
-plErrorCode parseSourceCode(const char *path, plModule *module);
+plErrorCode parse_source_code(const char *path, plModule_t *module);
 
 #endif // __PIPELINE_PARSER_H__

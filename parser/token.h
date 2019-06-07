@@ -3,8 +3,7 @@
 
 #include <stdint.h>
 #include <sys/types.h>
-
-#include "../util.h"
+#include <stdbool.h>
 
 enum plTokenMarker {
 	PL_MARKER_READ_FAILURE = 0,
@@ -15,18 +14,22 @@ enum plTokenMarker {
 	PL_MARKER_UNCLOSED_COMMENT_BLOCK,
 	PL_MARKER_UNTERMINATED_STRING,
 	PL_MARKER_EOF,
+	PL_MARKER_GLOBAL,
+	PL_MARKER_COMMAND,
+	PL_MARKER_EXPRESSION,
 	PL_MARKER_SOURCE,
 	PL_MARKER_PIPE,
 	PL_MARKER_SINK,
-	PL_MARKER_PRED,
 	PL_MARKER_STRUCT,
+	PL_MARKER_PRED,
+	PL_MARKER_MODULE,
 	PL_MARKER_EXPORT,
 	PL_MARKER_IMPORT,
 	PL_MARKER_PROD,
 	PL_MARKER_DROP,
 	PL_MARKER_END,
 	PL_MARKER_LOCAL,
-	PL_MARKER_ASSERT,
+	PL_MARKER_VERIFY,
 	PL_MARKER_WHILE,
 	PL_MARKER_BREAK,
 	PL_MARKER_CONTINUE,
@@ -83,12 +86,13 @@ enum plTokenSubmarker {
 	PL_SUBMARKER_GREATER_THAN_EQ,
 };
 
+typedef uint8_t plMarker_t;
+
 typedef struct {
 	void *data;
 	uint32_t lineNo;
-	uint8_t marker;
-	uint8_t submarker;
-} plToken;
+	plMarker_t marker, submarker;
+} plToken_t;
 
 #define PL_READER_BUFFER_SIZE 200
 
@@ -98,12 +102,12 @@ typedef struct {
 	uint32_t lineNo;
 	uint8_t lastMarker;
 	char text[PL_READER_BUFFER_SIZE];
-} plFileReader;
+} plFileReader_t;
 
-bool initReader(plFileReader *reader, const char *path);
-void closeReader(plFileReader *reader);
-void grabNextToken(plFileReader *reader, plToken *token);
-void clearToken(plToken *token);
-const char *tokenName(const plToken *token);
+bool init_reader(plFileReader_t *reader, const char *path);
+void close_reader(plFileReader_t *reader);
+void read_next_token(plFileReader_t *reader, plToken_t *token);
+void clear_token(plToken_t *token);
+const char *marker_name(plMarker_t marker);
 
 #endif // __PIPELINE_TOKEN_H__

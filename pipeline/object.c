@@ -3,23 +3,23 @@
 
 #include "object.h"
 
-void plFreeObject(plObject *object) {
+void free_object(plObject_t *object) {
 	if ( object->type&PL_PRED_ARRAY ) {
-		plObjectArrayBase *array=(plObjectArrayBase*)object;
+		plObjectArrayPtr array=(plObjectArrayPtr)object;
 
 		if ( object->type != PL_TYPE_BYTE_ARRAY ) {
-			plObject **items=array->opaque;
+			plObject_t **items=array->opaque;
 			size_t length;
 
 			if ( object->type == PL_TYPE_ARRAY ) {
-				length=((plObjectArray*)object)->length;
+				length=((plObjectArray_t*)object)->length;
 			}
 			else {
 				length=array->size;
 			}
 
 			for (size_t k=0; k<length; k++) {
-				plFreeObject(items[k]);
+				pl_free_object(items[k]);
 			}
 		}
 

@@ -1,66 +1,68 @@
-#include <stdib.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include "parser.h"
-#include "../pipeline/util.h"
-#include "../lexer/token.h"
+#include "token.h"
 
 typedef struct {
-	plToken *tokens;
-	size_t length, size;
-} plTokenArray;
-
-#define PL_DYNAMIC_TOKEN_ARRAY_MIN_SIZE 100
-
-enum plParseFrameMarker {
-	PL_PARSE_FRAME_SINK=0,
-	PL_PARSE_FRAME_PIPE,
-	PL_PARSE_FRAME_SINK,
-	PL_PARSE_FRAME_LOCAL,
-	PL_PARSE_FRAME_PRED,
-	PL_PARSE_FRAME_STRUCT,
-	PL_PARSE_FRAME_WHILE,
-	PL_PARSE_FRAME_IF,
-	PL_PARSE_FRAME_EXPRESSION,
-};
-
-typedef struct {
-	void *data;
-	uint8_t marker;
-} plParseFrame;
-
-typedef struct {
-	plParseFrame *frames;
+	plToken_t *tokens;
 	size_t length, size, offset;
-} plParseStack;
+} plTokenArray_t;
+
+#define CURRENT_TOKEN(array) ((array)->tokens+(array)->offset)
+
+#define PL_TOKEN_ARRAY_MIN_SIZE 100
+
+typedef struct {
+	plParseFrame_t *frames;
+	size_t length, size;
+	plMarker_t currentContext;
+} plParseStack_t;
+
+#define CURRENT_FRAME(stack) ((stack)->frames+((stack)->length-1))
+
+typedef struct {
+	plModule_t *module;
+	plParseStack_t *stack;
+	plTokenArray_t *array;
+} plParseCtx_t;
 
 #define PL_PARSE_STACK_MIN_SIZE 30
 
-static bool addTokenToArray(plTokenArray *array, const plToken *token);
-static void clearArray(plTokenArray *array);
-static bool pushToStack(plParseStack *stack, uint8_t marker);
-static void popFromStack(plParseStack *stack);
-static void clearStack(plParseStack *stack);
-static plErrorCode recursivelyParseTokens(plTokenArray *array, size_t *offset, plParseStack *stack, plModule *module);
+static bool add_token_to_array(plTokenArray_t *array, const plToken_t *token);
+static void clear_token_array(plTokenArray_t *array);
+static bool push_to_parse_stack(plParseStack_t *stack, plMarker_t marker);
+static void pop_from_parse_stack(plParseStack_t *stack);
+static void clear_parse_stack(plParseStack_t *stack);
+static void clear_parse_frame(plParseFrame_t *frame);
+static plError_t recursively_parse_tokens(plParseCtx_t *ctx);
+static plMarker_t print_parse_error(const plParseCtx_t *ctx, const char *format, ...);
+static plToken_t *next_token(plParseCtx_t *ctx, bool ignoreWhitespace);
+static plError_t parse_argument_list(plParseCtx_t *ctx, plNameReference_t **arguments);
+static bool resolve_name(plParseCtx_t *ctx, plNameReference_t *reference);
+static plError_t parse_literal(plParseCtx_t *ctx, plObject_t **object);
+static bool literal_matches_reference(const plObject_t *object, const plNameReference_t *reference);
+static plError_t parse_source_header(plParseCtx_t *ctx);
 
-plErrorCode parseFile(const char *path, plModule *module) {
-	plErrorCode ret=PL_ERROR_OK;
-	plFileReader reader;
-	plTokenArray array;
-	plParseStack stack;
-	size_t offset;
+plError_t parse_source_code(const char *path, plModule_t *module) {
+	plError_t ret=PL_ERROR_OK;
+	plFileReader_t reader;
+	plTokenArray_t array;
+	plParseStack_t stack;
+	plParseCtx_t ctx;
 
-	if ( !initReader(&reader,path) ) {
+	if ( !init_reader(&reader,path) ) {
 		return PL_ERROR_FILE_ACCESS;
 	}
 
-	memset(&array,0,sizeof(plTokenArray));
+	memset(&array,0,sizeof(plTokenArray_t));
 
-	while ( TRUE ) {
-		plToken token;
+	while ( true ) {
+		plToken_t token;
 
-		grabNextToken(&reader,&token);
+		read_next_token(&reader,&token);
 
 		if ( token.marker == PL_MARKER_EOF ) {
 			break;
@@ -74,81 +76,445 @@ plErrorCode parseFile(const char *path, plModule *module) {
 			break;
 		}
 		else if ( TERMINAL_MARKER(token.marker) ) {
-			printf("%s: line %u\n", path, token.lineNo);
-			printf("Lexical error: %s\n", tokenName(&token));
+			fprintf(stderr,"%s: line %u\n", path, token.lineNo);
+			fprintf(stderr,"Lexical error: %s\n", marker_name(token.marker));
 
 			ret=PL_ERROR_LEX;
 			break;
 		}
 
-		if ( !addTokenToArray(&array,&token) ) {
-			clearToken(&token);
+		if ( !add_token_to_array(&array,&token) ) {
+			clear_token(&token);
 
 			ret=PL_ERROR_MEMORY;
 			break;
 		}
 	}
 
-	closeReader(&reader);
+	close_reader(&reader);
 
 	if ( ret != PL_ERROR_OK ) {
-		clearArray(&array);
+		clear_token_array(&array);
 
 		return ret;
 	}
 
-	offset=0;
-	memset(&stack,0,sizeof(plParseStack));
+	if ( !set_module_path(module,path) ) {
+		clear_token_array(&array);
 
-	ret=recursivelyParseTokens(&array,&offset,&stack,module);
-	if ( ret != PL_ERROR_OK ) {
-		clearArray(&array);
-
-		return ret;
+		return PL_ERROR_MEMORY;
 	}
 
-	
+	memset(&stack,0,sizeof(plParseStack_t));
+	stack.currentContext=PL_MARKER_GLOBAL;
+
+	ctx.module=module;
+	ctx.stack=&stack;
+	ctx.array=&array;
+
+	ret=recursively_parse_tokens(&ctx);
+
+	clear_token_array(&array);
+	clear_parse_stack(&stack);
+
+	return ret;
 }
 
-static bool addTokenToArray(plTokenArray *array, const plToken *token) {
+static bool add_token_to_array(plTokenArray_t *array, const plToken_t *token) {
 	if ( array->size == 0 ) {
-		array->tokens=malloc(sizeof(plToken)*PL_DYNAMIC_TOKEN_ARRAY_MIN_SIZE);
+		array->tokens=malloc(sizeof(plToken_t)*PL_TOKEN_ARRAY_MIN_SIZE);
 		if ( !array->tokens ) {
-			return FALSE;
+			return false;
 		}
 	}
 	else if ( array->length == array->size ) {
 		size_t newSize;
-		plToken *success;
+		plToken_t *success;
 
 		newSize=array->size*5/4;
-		success=realloc(array->token,sizeof(plToken)*newSize);
+		success=realloc(array->tokens,sizeof(plToken_t)*newSize);
 		if ( !success ) {
-			return FALSE;
+			return false;
 		}
 
 		array->tokens=success;
 		array->size=newSize;
 	}
 
-	memcpy(array->tokens+array->length,token,sizeof(plToken));
+	memcpy(array->tokens+array->length,token,sizeof(plToken_t));
 	array->length++;
 
-	return TRUE;
+	return false;
 }
 
-static void clearArray(plTokenArray *array) {
+static void clear_token_array(plTokenArray_t *array) {
 	if ( array->tokens ) {
 		for (size_t k=0; k<array->length; k++) {
-			clearToken(array->tokens+k);
+			clear_token(array->tokens+k);
 		}
 
 		free(array->tokens);
 
-		memset(array,0,sizeof(plTokenArray));
+		memset(array,0,sizeof(plTokenArray_t));
 	}
 }
 
-static plErrorCode recursivelyParseTokens(plTokenArray *array, size_t *offset, plParseStack *stack, plModule *module) {
+static bool push_to_parse_stack(plParseStack_t *stack, plMarker_t marker) {
+	if ( stack->size == 0 ) {
+		stack->frames=malloc(sizeof(plParseFrame_t)*PL_PARSE_STACK_MIN_SIZE);
+		if ( !stack->frames ) {
+			return false;
+		}
+	}
+	else if ( stack->length == stack->size ) {
+		size_t newSize;
+		plParseFrame_t *success;
 
+		newSize=stack->size*5/4;
+		success=realloc(stack->frames,sizeof(plParseFrame_t)*newSize);
+		if ( !success ) {
+			return false;
+		}
+
+		stack->frames=success;
+		stack->size=newSize;
+	}
+
+	stack->frames[stack->length].data=NULL;
+	stack->frames[stack->length].marker=marker;
+	stack->length++;
+
+	return true;
+}
+
+static void pop_from_parse_stack(plParseStack_t *stack) {
+	if ( stack->length == 0 ) {
+		return;
+	}
+
+	clear_parse_frame(stack->frames+(stack->length-1));
+	stack->length--;
+}
+
+static void clear_parse_stack(plParseStack_t *stack) {
+	if ( stack->frames ) {
+		for (size_t k=0; k<stack->length; k++) {
+			clear_parse_frame(stack->frames+k);
+		}
+
+		free(stack->frames);
+	}
+
+	memset(stack,0,sizeof(plParseStack_t));
+}
+
+static void clear_parse_frame(plParseFrame_t *frame) {
+
+}
+
+static plError_t recursively_parse_tokens(plParseCtx_t *ctx) {
+	while ( true ) {
+		plError_t ret;
+		plToken_t *token;
+		plMarker_t frameMarker;
+
+		token=CURRENT_TOKEN(ctx->array);
+		if ( token->marker == PL_MARKER_WHITESPACE ) {
+			token++;
+		}
+
+		switch ( token->marker ) {
+			case PL_MARKER_SOURCE:
+			case PL_MARKER_PIPE:
+			case PL_MARKER_SINK:
+			case PL_MARKER_LOCAL:
+			case PL_MARKER_STRUCT:
+			ctx->stack->currentContext=token->marker;
+			case PL_MARKER_WHILE:
+			case PL_MARKER_IF:
+			frameMarker=token->marker;
+			break;
+			case PL_MARKER_EOF:
+			if ( ctx->stack->currentContext == PL_MARKER_GLOBAL ) {
+				return PL_ERROR_OK;
+			}
+			return print_parse_error(ctx,"Unexpected end of file found while in %s context.\n", marker_name(PL_MARKER_GLOBAL));
+			case PL_MARKER_EIF:
+			case PL_MARKER_ELSE:
+			return print_parse_error(ctx,"%s found without corresponding %s.\n", marker_name(token->marker), marker_name(PL_MARKER_IF));
+			default:
+			frameMarker=PL_MARKER_COMMAND;
+			break;
+		}
+
+		if ( ctx->stack->currentContext == PL_MARKER_GLOBAL && ( frameMarker == PL_MARKER_WHILE || frameMarker == PL_MARKER_IF ) ) {
+			return print_parse_error(ctx,"Illegal %s found in %s context.\n", marker_name(frameMarker), marker_name(PL_MARKER_GLOBAL));
+		}
+
+		if ( !push_to_parse_stack(stack,frameMarker) ) {
+			return PL_ERROR_MEMORY;
+		}
+
+		if ( frameMarker != PL_MARKER_COMMAND ) {
+			array->offset++;
+			token=next_token(ctx,false);
+			if ( token->marker == PL_MARKER_EOF ) {
+				return PL_ERROR_GRAMMAR;
+			}
+
+			if ( token->marker != PL_MARKER_WHITESPACE ) {
+				return print_parse_error(ctx,"Expected whitespace following %s.\n", marker_name(frameMarker));
+			}
+
+			if ( frameMarker == PL_MARKER_SOURCE ) {
+				ret=parse_source_header(ctx);
+			}
+			else if ( frameMarker == PL_MARKER_PIPE ) {
+				ret=parse_pipe_header(ctx);
+			}
+			else if ( frameMarker == PL_MARKER_SINK ) {
+				ret=parse_sink_header(ctx);
+			}
+			else if ( frameMarker == PL_MARKER_STRUCT ) {
+				ret=parse_struct(ctx);
+			}
+			else if ( frameMarker == PL_MARKER_WHILE || frameMarker == PL_MARKER_IF ) {
+				ret=parse_if_while_header(ctx);
+			}
+
+			if ( ret != PL_ERROR_OK ) {
+				return ret;
+			}
+		}
+	}
+}
+
+static plMarker_t print_parse_error(const plParseCtx_t *ctx, const char *format, ...) {
+	va_list args;
+
+	fprintf(stderr,"%s: line %lu\n", module_path(ctx->module), ctx->array[ctx->array->length-1].lineNo);
+	fprintf(stderr,"Error: ");
+	va_start(args,format);
+	vfprintf(stderr,format,args);
+
+	return PL_ERROR_GRAMMAR;
+}
+
+static plToken_t *next_token(plParseCtx_t *ctx, bool ignoreWhiteSpace) {
+	plToken_t *token;
+
+	ctx->array->offset++;
+	token=CURRENT_TOKEN(ctx->array);
+	if ( ignoreWhitespace && token->marker == PL_MARKER_WHITESPACE ) {
+		ctx->array->offset++;
+		token=CURRENT_TOKEN(ctx->array);
+	}
+	if ( token->marker == PL_MARKER_EOF ) {
+		print_parse_error(ctx,"Unexpected end of file found while parsing a %s.\n", marker_name(ctx->stack->currentContext));
+	}
+
+	return token;
+}
+
+static plError_t parse_argument_list(plParseCtx_t *ctx, plNameReference_t **arguments) {
+	plError_t ret=PL_ERROR_GRAMMAR;
+	plNameReference_t *lastArgument;
+
+	*arguments=lastArgument=NULL;
+
+	while ( true ) {
+		char *name;
+		plNameReference_t *reference;
+
+		token=next_token(ctx,true);
+		if ( token->marker == PL_MARKER_EOF ) {
+			goto error;
+		}
+
+		if ( token->marker != PL_MARKER_NAME ) {
+			print_parse_error(ctx,"Expected variable name in argument list.\n");
+			goto error;
+		}
+		name=(char*)token->data;
+		if ( resolve_name(ctx,NULL) ) {
+			print_parse_error(ctx,"The name %s is already in scope.\n", name);
+			goto error;
+		}
+
+		reference=malloc(sizeof(plNameReference_t));
+		if ( !reference ) {
+			ret=PL_ERROR_MEMORY;
+			goto error;
+		}
+		reference->marker=PL_MARKER_NAME;
+
+		token=next_token(ctx,true);
+		if ( token->marker == PL_MARKER_EOF ) {
+			free(reference);
+			goto error;
+		}
+		if ( token->marker == PL_MARKER_COLON ) {
+			plNameReference_t predicateReference;
+
+			if ( next_token(ctx,true)->marker == PL_MARKER_EOF ) {
+				free(reference);
+				goto error;
+			}
+
+			if ( !resolve_name(ctx,&predicateReference) ) {
+				free(reference);
+				goto error;
+			}
+
+			if ( predicateReference.marker != PL_MARKER_PRED ) {
+				print_parse_error(ctx,"Expected %s in argument list.\n", marker_name(PL_MARKER_PRED));
+				free(reference);
+				goto error;
+			}
+
+			reference->name=strdup(predicateReference.name);
+			reference->type=predicateReference.type;
+			reference->moduleId=predicateReference.moduleId;
+			reference->structId=predicateReference.structId;
+		}
+		else {
+			reference->name=strdup(name);
+			reference->type=PL_PRED_ANY;
+			reference->moduleId=PL_BUILTIN_MODULE;
+			reference->structId=PL_NOT_STRUCT;
+		}
+
+		if ( !reference->name ) {
+			free(reference);
+			ret=PL_ERROR_MEMORY;
+			goto error;
+		}
+
+		reference->next=NULL;
+
+		if ( lastArgument ) {
+			lastArgument->next=reference;
+			lastArgument=reference;
+		}
+		else {
+			*arguments=lastArgument=reference;
+		}
+
+		token=next_token(ctx,true);
+		if ( token->marker == PL_MARKER_EOF) {
+			goto error;
+		}
+
+		if ( token->marker == PL_MARKER_ASSIGNMENT ) {
+			plError_t ret;
+
+			if ( ctx->stack->currentContext == PL_MARKER_SINK ) {
+				print_parse_error(ctx,"Default values are not allowed for a %s.\n", marker_name(PL_MARKER_SINK));
+				goto error;
+			}
+
+			token=next_token(ctx,true);
+			if ( token->marker == PL_MARKER_EOF ) {
+				goto error;
+			}
+
+			ret=parse_literal(ctx,&reference->data);
+			if ( ret != PL_ERROR_OK ) {
+				goto error;
+			}
+
+			if ( !literal_matches_reference((plObject_t*)&reference->data,reference) ) {
+				free_object((plObject_t*)&reference->data);
+				reference->data=NULL;
+				goto error;
+			}
+
+			token=next_token(ctx,true);
+			if ( token->marker == PL_MARKER_EOF ) {
+				goto error;
+			}
+		}
+
+		if ( token->marker == PL_MARKER_COMMA ) {
+			continue;
+		}
+		else if ( token->marker == PL_MARKER_CLOSE_PARENS ) {
+			break;
+		}
+		else {
+			print_parse_error(ctx,"Unexpected %s in argument list.\n", marker_name(token->marker));
+			goto error;
+		}
+	}
+
+	return PL_ERROR_OK;
+
+	error:
+
+	while ( *arguments ) {
+		plNameReference_t *temp;
+
+		temp=*arguments;
+		*arguments=(*arguments)->next;
+		clear_name_reference(temp);
+	}
+
+	return ret;
+}
+
+static bool resolve_name(plParseCtx_t *ctx, plNameReference_t *reference) {
+
+}
+
+static plError_t parse_literal(plParseCtx_t *ctx, plObject_t **object) {
+
+}
+
+static bool literal_matches_reference(const plObject_t *object, const plNameReference_t *reference) {
+
+}
+
+static plError_t parse_source_header(plParseCtx_t *ctx) {
+	plFunctionCtx_t *functionCtx=NULL;
+	plNameReference_t *lastArgument=NULL;
+	plToken_t *token;
+
+	token=next_token(ctx,false);
+	if ( token->marker == PL_MARKER_EOF ) {
+		return PL_ERROR_GRAMMAR;
+	}
+
+	if ( token->marker != PL_MARKER_NAME ) {
+		return print_parse_error(ctx,"Expected name following %s declaration.\n", marker_name(PL_MARKER_SOURCE));
+	}
+
+	if ( resolve_name(ctx,NULL) ) {
+		return print_parse_error(ctx,"The name %s is already in scope.\n", (char*)token->data);
+	}
+
+	functionCtx=calloc(1,sizeof(plFunctionCtx_t));
+	if ( !functionCtx ) {
+		return PL_ERROR_MEMORY;
+	}
+
+	functionCtx->name=strdup(token->data);
+	if ( !functionCtx->name ) {
+		free(functionCtx);
+		return PL_ERROR_MEMORY;
+	}
+
+	token=next_token(ctx,true);
+	if ( token->marker == PL_MARKER_EOF ) {
+		goto error;
+	}
+
+	if ( token->marker == PL_MARKER_OPEN_PARENS ) {
+	}
+
+	return PL_ERROR_OK;
+
+	error:
+
+	clear_function_ctx(functionCtx);
+	return PL_ERROR_GRAMMAR;
 }

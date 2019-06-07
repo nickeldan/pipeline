@@ -8,6 +8,6 @@ typedef enum {
 	PL_ERROR_MEMORY,
 	PL_ERROR_LEX,
 	PL_ERROR_GRAMMAR,
-} plErrorCode;
+} plError_t;
 
 #endif // __PIPELINE_ERROR_H__

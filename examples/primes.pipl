@@ -20,11 +20,10 @@ source icount(start:Num, finish:Num, step:Num = 1) -> Num {
 	}
 }
 
-pred Posint(n) {n is Int and n > 0}
-
-source factor(n:Posint) -> Posint {
+source factor(n:Int) -> Int {
 	n -> x;
 	n -> math.sqrt -> s;
+	verify s;
 	2,icount(3,s,2) -> local (i:Int) {
 		recompute=false;
 		while x%i == 0 {
@@ -41,8 +40,8 @@ sink doCount(x) {
 	prod ?STORE+1;
 }
 
-pipe isPrime(n:Posint) -> Bool {
-	factor(n) -> firstFactor;
+pipe isPrime(n:Int) -> Bool {
+	n -> factor -> firstFactor;
 	prod firstFactor == n;
 }
 
@@ -53,11 +52,11 @@ pipe filter(x, y:Bool) {
 
 sink main {
 	1 -> os.argv -> toInt -> start;
-	assert start;
+	verify start;
 	2 -> os.argv -> toInt -> finish;
-	assert finish;
+	verify finish;
 	if start > finish {end;}
-	icount(start,finish) -> isPrime.map -> filter -> doCount.detour(0):numPrimes -> doPrintLn;
+	start,finish -> icount -> isPrime.map -> filter -> doCount.detour(0):numPrimes -> doPrintLn;
 	"There were ", numPrimes, " primes found.\n" -> doPrint;
 	prod 0;
 }
