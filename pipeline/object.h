@@ -56,7 +56,7 @@ typedef struct {
 	plArraySize_t length;
 } plObjectArray_t;
 
-typedef uint16_t plModuleId_t;
+typedef uint64_t plModuleId_t;
 typedef uint16_t plStructId_t;
 
 #define PL_BUILTIN_MODULE 0
@@ -65,8 +65,8 @@ typedef uint16_t plStructId_t;
 typedef struct {
 	PL_OBJECT_HEADER
 	PL_OBJECT_ARRAY_HEADER
-	plModuleId_t moduleId;
 	plStructId_t structId;
+	plModuleId_t moduleId;
 } plObjectStruct_t;
 
 typedef struct {

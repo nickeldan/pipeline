@@ -36,7 +36,7 @@ source factor(n:Int) -> Int {
 	if x > 1 {prod x;}
 }
 
-sink doCount(x) {
+sink doCount(...) {
 	prod ?STORE+1;
 }
 
@@ -45,9 +45,9 @@ pipe isPrime(n:Int) -> Bool {
 	prod firstFactor == n;
 }
 
-pipe filter(x, y:Bool) {
+pipe filter(..., y:Bool) -> ... {
 	if not y {drop;}
-	prod x;
+	prod ?ARGS;
 }
 
 sink main {
