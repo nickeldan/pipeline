@@ -55,7 +55,6 @@ static const struct plToken_keyword_t keywords[]={
 	{"import",6,PL_MARKER_IMPORT},
 	{"export",6,PL_MARKER_EXPORT},
 	{"is",2,PL_MARKER_IS},
-	{"...",3,PL_MARKER_ELLIPSIS},
 };
 #define NUM_KEYWORDS (sizeof(keywords)/sizeof(struct plToken_keyword_t))
 
@@ -184,9 +183,9 @@ void read_next_token(plFileReader_t *reader, plToken_t *token) {
 		token->marker=PL_MARKER_CLOSE_BRACKET;
 		reader->idx++;
 	}
-	else if ( firstChar == '?' ) {
-		token->marker=PL_MARKER_QUESTION;
-		reader->idx++;
+	else if ( strncmp(reader->idx,"...",3) == 0 ) {
+		token->marker=PL_MARKER_ELLIPSIS;
+		reader->idx+=3;
 	}
 	else if ( firstChar == '.' ) {
 		if ( isdigit(reader->idx[1]) ) {
@@ -228,6 +227,19 @@ void read_next_token(plFileReader_t *reader, plToken_t *token) {
 			reader->idx++;
 		}
 	}
+	else if ( firstChar == '?' ) {
+		if ( strncmp(reader->idx+1,"STORE",5) == 0 && !isalpha(reader->idx[6]) ) {
+			token->marker=PL_MARKER_CONTEXT_STORE;
+			reader->idx+=6;
+		}
+		else if ( strncmp(reader->idx+1,"ARGS",4) == 0 && !isalpha(reader->idx[5]) ) {
+			token->marker=PL_MARKER_CONTEXT_ARGS;
+			reader->idx+=5;
+		}
+		else {
+			token->marker=PL_MARKER_UNKNOWN;
+		}
+	}
 	else if ( firstChar == '\'' || firstChar == '"' ) {
 		uint8_t *bytes=NULL;
 		size_t length=0;
@@ -261,7 +273,6 @@ void read_next_token(plFileReader_t *reader, plToken_t *token) {
 				if ( length > 0 ) {
 					free(bytes);
 				}
-				token->marker=PL_MARKER_READ_FAILURE;
 				goto done;
 			}
 
@@ -629,14 +640,16 @@ void read_next_token(plFileReader_t *reader, plToken_t *token) {
 }
 
 void clear_token(plToken_t *token) {
-	if ( token->marker == PL_MARKER_NAME ) {
-		free(token->data);
-	}
-	else if ( token->marker == PL_MARKER_LITERAL ) {
-		free_object((plObject_t*)token->data);
-	}
+	if ( token->data ) {
+		if ( token->marker == PL_MARKER_LITERAL ) {
+			free_object((plObject_t*)token->data);
+		}
+		else {
+			free(token->data);
+		}
 
-	memset(token,0,sizeof(plToken_t));
+		token->data=NULL;
+	}
 }
 
 const char *marker_name(plMarker_t marker) {
@@ -694,7 +707,6 @@ const char *marker_name(plMarker_t marker) {
 		case PL_MARKER_COLON: return "COLON";
 		case PL_MARKER_PERIOD: return "PERIOD";
 		case PL_MARKER_COMMA: return "COMMA";
-		case PL_MARKER_QUESTION: return "QUESTION";
 		case PL_MARKER_OPEN_PARENS: return "OPEN_PARENS";
 		case PL_MARKER_CLOSE_PARENS: return "CLOSE_PARENS";
 		case PL_MARKER_OPEN_BRACE: return "OPEN_BRACE";
@@ -702,6 +714,8 @@ const char *marker_name(plMarker_t marker) {
 		case PL_MARKER_OPEN_BRACKET: return "OPEN_BRACKET";
 		case PL_MARKER_CLOSE_BRACKET: return "CLOSE_BRACKET";
 		case PL_MARKER_ARROW: return "ARROW";
+		case PL_MARKER_CONTEXT_STORE: return "CONTEXT_STORE";
+		case PL_MARKER_CONTEXT_ARGS: return "CONTEXT_ARGS";
 		default: return "";
 	}
 }
