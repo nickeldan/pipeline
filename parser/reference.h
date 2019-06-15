@@ -1,5 +1,5 @@
-#ifndef __PIPELINE_FRAMES_H__
-#define __PIPELINE_FRAMES_H__
+#ifndef __PIPELINE_REFERENCE_H__
+#define __PIPELINE_REFERENCE_H__
 
 #include "token.h"
 #include "../pipeline/object.h"
@@ -22,6 +22,5 @@ typedef struct {
 
 void clear_name_reference(plNameReference_t *reference);
 void clear_function_ctx(plFunctionCtx_t *ctx);
-void clear_anon_function_ctx(plAnonFunctionCtx_t *ctx);
 
-#endif // __PIPELINE_FRAMES_H__
+#endif // __PIPELINE_REFERENCE_H__

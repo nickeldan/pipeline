@@ -46,7 +46,7 @@ static void clear_parse_stack(plParseStack_t *stack);
 static void clear_parse_frame(plParseFrame_t *frame);
 static plError_t recursively_parse_tokens(plParseCtx_t *ctx);
 static plMarker_t print_parse_error(const plParseCtx_t *ctx, const char *format, ...);
-static plToken_t *next_token(plParseCtx_t *ctx, bool ignoreWhitespace);
+static plToken_t *next_token(plParseCtx_t *ctx);
 static plError_t parse_argument_list(plParseCtx_t *ctx, plNameReference_t **arguments);
 static plError_t parse_output_type(plParseCtx_t *ctx, plNameReference_t **output);
 static bool name_in_scope(const char *name, plParseCtx_t *ctx);
@@ -283,13 +283,9 @@ static plError_t recursively_parse_tokens(plParseCtx_t *ctx) {
 
 		if ( frameMarker != PL_MARKER_COMMAND ) {
 			array->offset++;
-			token=next_token(ctx,false);
+			token=next_token(ctx);
 			if ( token->marker == PL_MARKER_EOF ) {
 				return PL_ERROR_GRAMMAR;
-			}
-
-			if ( token->marker != PL_MARKER_WHITESPACE ) {
-				return print_parse_error(ctx,"Expected whitespace following %s.\n", marker_name(frameMarker));
 			}
 
 			if ( frameMarker == PL_MARKER_SOURCE ) {
@@ -335,15 +331,11 @@ static plMarker_t print_parse_error(const plParseCtx_t *ctx, const char *format,
 	return PL_ERROR_GRAMMAR;
 }
 
-static plToken_t *next_token(plParseCtx_t *ctx, bool ignoreWhitespace) {
+static plToken_t *next_token(plParseCtx_t *ctx) {
 	plToken_t *token;
 
 	ctx->array->offset++;
 	token=CURRENT_TOKEN(ctx->array);
-	if ( ignoreWhitespace && token->marker == PL_MARKER_WHITESPACE ) {
-		ctx->array->offset++;
-		token=CURRENT_TOKEN(ctx->array);
-	}
 	if ( token->marker == PL_MARKER_EOF ) {
 		print_parse_error(ctx,"Unexpected end of file found while parsing a %s.\n", marker_name(ctx->stack->currentContext));
 	}
@@ -369,7 +361,7 @@ static plError_t parse_argument_list(plParseCtx_t *ctx, plNameReference_t **argu
 			goto error;
 		}
 
-		token=next_token(ctx,true);
+		token=next_token(ctx);
 		if ( token->marker == PL_MARKER_EOF ) {
 			free(reference);
 			goto error;
@@ -388,12 +380,12 @@ static plError_t parse_argument_list(plParseCtx_t *ctx, plNameReference_t **argu
 				lastArgument->next=reference;
 				lastArgument=reference;
 
-				if ( next_token(ctx,true)->marker != PL_MARKER_CLOSE_PARENS ) {
+				if ( next_token(ctx)->marker != PL_MARKER_CLOSE_PARENS ) {
 					print_parse_error(ctx,"Expected %s following %s.\n", marker_name(PL_MARKER_CLOSE_PARENS), marker_name(PL_MARKER_ELLIPSIS));
 					goto error;
 				}
 
-				if ( next_token(ctx,true)->marker == PL_MARKER_EOF ) {
+				if ( next_token(ctx)->marker == PL_MARKER_EOF ) {
 					goto error;
 				}
 
@@ -418,7 +410,7 @@ static plError_t parse_argument_list(plParseCtx_t *ctx, plNameReference_t **argu
 
 			reference->marker=PL_MARKER_NAME;
 
-			token=next_token(ctx,true);
+			token=next_token(ctx);
 			if ( token->marker == PL_MARKER_EOF ) {
 				free(reference);
 				goto error;
@@ -426,7 +418,7 @@ static plError_t parse_argument_list(plParseCtx_t *ctx, plNameReference_t **argu
 			if ( token->marker == PL_MARKER_COLON ) {
 				plNameReference_t predicateReference;
 
-				if ( next_token(ctx,true)->marker == PL_MARKER_EOF ) {
+				if ( next_token(ctx)->marker == PL_MARKER_EOF ) {
 					free(reference);
 					goto error;
 				}
@@ -470,7 +462,7 @@ static plError_t parse_argument_list(plParseCtx_t *ctx, plNameReference_t **argu
 		}
 		lastArgument=reference;
 
-		token=next_token(ctx,true);
+		token=next_token(ctx);
 		if ( token->marker == PL_MARKER_EOF) {
 			goto error;
 		}
@@ -488,7 +480,7 @@ static plError_t parse_argument_list(plParseCtx_t *ctx, plNameReference_t **argu
 				goto error;
 			}
 
-			token=next_token(ctx,true);
+			token=next_token(ctx);
 			if ( token->marker == PL_MARKER_EOF ) {
 				goto error;
 			}
@@ -504,7 +496,7 @@ static plError_t parse_argument_list(plParseCtx_t *ctx, plNameReference_t **argu
 				goto error;
 			}
 
-			token=next_token(ctx,true);
+			token=next_token(ctx);
 			if ( token->marker == PL_MARKER_EOF ) {
 				goto error;
 			}
@@ -514,7 +506,7 @@ static plError_t parse_argument_list(plParseCtx_t *ctx, plNameReference_t **argu
 			continue;
 		}
 		else if ( token->marker == PL_MARKER_CLOSE_PARENS ) {
-			if ( next_token(ctx,true)->marker == PL_MARKER_EOF ) {
+			if ( next_token(ctx)->marker == PL_MARKER_EOF ) {
 				goto error;
 			}
 			break;
@@ -551,7 +543,7 @@ static plError_t parse_output_type(plParseCtx_t *ctx, plNameReference_t **output
 		plMarker_t marker;
 		plNameReference_t *reference;
 
-		marker=next_token(ctx,true)->marker;
+		marker=next_token(ctx)->marker;
 		if ( marker == PL_MARKER_EOF ) {
 			goto error;
 		}
@@ -575,7 +567,7 @@ static plError_t parse_output_type(plParseCtx_t *ctx, plNameReference_t **output
 				lastOutput->next=reference;
 				lastOutput=reference;
 
-				if ( next_token(ctx,true)->marker != PL_MARKER_OPEN_BRACE ) {
+				if ( next_token(ctx)->marker != PL_MARKER_OPEN_BRACE ) {
 					print_parse_error(ctx,"Expected %s following %s.\n", marker_name(PL_MARKER_OPEN_BRACE), marker_name(PL_MARKER_ELLIPSIS));
 					goto error;
 				}
@@ -607,12 +599,12 @@ static plError_t parse_output_type(plParseCtx_t *ctx, plNameReference_t **output
 		}
 		lastOutput=reference;
 
-		marker=next_token(ctx,true)->marker;
+		marker=next_token(ctx)->marker;
 		if ( marker == PL_MARKER_EOF ) {
 			goto error;
 		}
 		else if ( marker == PL_MARKER_OPEN_BRACE ) {
-			if ( next_token(ctx,true)->marker == PL_MARKER_EOF ) {
+			if ( next_token(ctx)->marker == PL_MARKER_EOF ) {
 				goto error;
 			}
 			break;
@@ -660,7 +652,7 @@ static plError_t parse_source_header(plParseCtx_t *ctx) {
 	plNameReference_t *lastArgument=NULL;
 	plToken_t *token;
 
-	token=next_token(ctx,false);
+	token=next_token(ctx);
 	if ( token->marker == PL_MARKER_EOF ) {
 		return PL_ERROR_GRAMMAR;
 	}
@@ -687,7 +679,7 @@ static plError_t parse_source_header(plParseCtx_t *ctx) {
 			goto error;
 		}
 
-		token=next_token(ctx,true);
+		token=next_token(ctx);
 		if ( token->marker == PL_MARKER_EOF ) {
 			goto error;
 		}
@@ -721,7 +713,7 @@ static plError_t parse_source_header(plParseCtx_t *ctx) {
 		goto error;
 	}
 
-	if ( next_token(ctx,true)->marker == PL_MARKER_EOF ) {
+	if ( next_token(ctx)->marker == PL_MARKER_EOF ) {
 		goto error;
 	}
 

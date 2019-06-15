@@ -25,11 +25,11 @@ source factor(n:Int) -> Int {
 	n -> math.sqrt -> s;
 	verify s;
 	2,icount(3,s,2) -> local (i:Int) {
-		recompute=false;
+		false -> recompute;
 		while x%i == 0 {
 			prod i;
 			x/=i;
-			recompute=true;
+			true -> recompute;
 		}
 		if recompute {x -> math.sqrt -> s;}
 	}
@@ -40,9 +40,13 @@ sink doCount(...) {
 	prod ?STORE+1;
 }
 
+sink doTake(x) {
+	prod x;
+	end;
+}
+
 pipe isPrime(n:Int) -> Bool {
-	n -> factor -> firstFactor;
-	prod firstFactor == n;
+	prod (n -> factor -> doTake) == n;
 }
 
 pipe filter(..., y:Bool) -> ... {
@@ -50,7 +54,7 @@ pipe filter(..., y:Bool) -> ... {
 	prod ?ARGS;
 }
 
-sink main {
+sink main(...) {
 	1 -> os.argv -> toInt -> start;
 	verify start;
 	2 -> os.argv -> toInt -> finish;

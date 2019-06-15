@@ -54,7 +54,6 @@ enum plTokenMarker {
 	PL_MARKER_NULL,
 	PL_MARKER_BLANK,
 	PL_MARKER_ELLIPSIS,
-	PL_MARKER_WHITESPACE,
 	PL_MARKER_SEMICOLON,
 	PL_MARKER_COLON,
 	PL_MARKER_PERIOD,
@@ -107,7 +106,7 @@ typedef struct {
 	char *idx;
 	int fd, size;
 	uint32_t lineNo;
-	uint8_t lastMarker;
+	plMarker_t lastMarker;
 	char text[PL_READER_BUFFER_SIZE];
 } plFileReader_t;
 

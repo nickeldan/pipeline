@@ -48,6 +48,7 @@ static const struct plToken_keyword_t keywords[]={
 	{"Bool",4,PL_MARKER_BOOL},
 	{"Bytes",5,PL_MARKER_BYTES},
 	{"Array",5,PL_MARKER_ARRAY},
+	{"struct",6,PL_MARKER_STRUCT},
 	{"cont",4,PL_MARKER_CONTINUE},
 	{"break",5,PL_MARKER_BREAK},
 	{"verify",6,PL_MARKER_VERIFY},
@@ -67,7 +68,7 @@ bool init_reader(plFileReader_t *reader, const char *path) {
 
 	reader->lineNo=1;
 	reader->size=0;
-	reader->lastMarker=PL_MARKER_WHITESPACE;
+	reader->lastMarker=PL_MARKER_SEMICOLON;
 	memset(reader->text,0,sizeof(PL_READER_BUFFER_SIZE));
 	reader->idx=reader->text;
 
@@ -104,26 +105,12 @@ void read_next_token(plFileReader_t *reader, plToken_t *token) {
 		token->marker=PL_MARKER_EOF;
 	}
 	else if ( is_whitespace(firstChar) ) {
-		token->marker=PL_MARKER_WHITESPACE;
-		read_more_for_whitespace:
 		for (; is_whitespace(reader->idx[0]); reader->idx++) {
 			if ( reader->idx[0] == '\n' ) {
 				reader->lineNo++;
 			}
 		}
-		if ( reader->idx == reader->text + reader->size ) {
-			if ( !update_reader(reader,0) ) {
-				token->marker=PL_MARKER_READ_FAILURE;
-				goto done;
-			}
-			else if ( reader->size > 0 ) {
-				goto read_more_for_whitespace;
-			}
-		}
-
-		if ( reader->lastMarker == PL_MARKER_WHITESPACE ) {
-			goto look_for_token;
-		}
+		goto look_for_token;
 	}
 	else if ( isalpha(firstChar) ) {
 		int idx2;
@@ -228,11 +215,11 @@ void read_next_token(plFileReader_t *reader, plToken_t *token) {
 		}
 	}
 	else if ( firstChar == '?' ) {
-		if ( strncmp(reader->idx+1,"STORE",5) == 0 && !isalpha(reader->idx[6]) ) {
+		if ( strncmp(reader->idx+1,"STORE",5) == 0 && !is_var_char(reader->idx[6]) ) {
 			token->marker=PL_MARKER_CONTEXT_STORE;
 			reader->idx+=6;
 		}
-		else if ( strncmp(reader->idx+1,"ARGS",4) == 0 && !isalpha(reader->idx[5]) ) {
+		else if ( strncmp(reader->idx+1,"ARGS",4) == 0 && !is_var_char(reader->idx[5]) ) {
 			token->marker=PL_MARKER_CONTEXT_ARGS;
 			reader->idx+=5;
 		}
@@ -248,6 +235,10 @@ void read_next_token(plFileReader_t *reader, plToken_t *token) {
 		size_t size;
 
 		stream=open_memstream((char**)&bytes,&length);
+		if ( !stream ) {
+			token->marker=PL_MARKER_MALLOC_FAILURE;
+			goto done;
+		}
 
 		reader->idx++;
 
@@ -503,6 +494,8 @@ void read_next_token(plFileReader_t *reader, plToken_t *token) {
 		char c;
 		plObjectNumber_t *object;
 
+		token->marker=PL_MARKER_LITERAL;
+
 		object=malloc(sizeof(plObjectNumber_t));
 		if ( !object ) {
 			token->marker=PL_MARKER_MALLOC_FAILURE;
@@ -587,7 +580,7 @@ void read_next_token(plFileReader_t *reader, plToken_t *token) {
 	else if ( firstChar == '/' ) {
 		if ( reader->idx[1] == '/' ) {
 			read_more_for_single_line_comment:
-			for(; reader->idx[0] != '\n'; reader->idx++);
+			for(reader->idx+=2; reader->idx[0] != '\n' && reader->idx[0] != '\0'; reader->idx++);
 			if ( reader->idx == reader->text + reader->size ) {
 				if ( !update_reader(reader,0) ) {
 					token->marker=PL_MARKER_READ_FAILURE;
@@ -595,7 +588,7 @@ void read_next_token(plFileReader_t *reader, plToken_t *token) {
 				}
 
 				if ( reader->size == 0 ) {
-					token->marker=PL_MARKER_WHITESPACE;
+					token->marker=PL_MARKER_EOF;
 				}
 				else {
 					goto read_more_for_single_line_comment;
@@ -702,7 +695,6 @@ const char *marker_name(plMarker_t marker) {
 		case PL_MARKER_ARRAY: return "ARRAY";
 		case PL_MARKER_BLANK: return "BLANK";
 		case PL_MARKER_ELLIPSIS: return "ELLIPSIS";
-		case PL_MARKER_WHITESPACE: return "WHITESPACE";
 		case PL_MARKER_SEMICOLON: return "SEMICOLON";
 		case PL_MARKER_COLON: return "COLON";
 		case PL_MARKER_PERIOD: return "PERIOD";
