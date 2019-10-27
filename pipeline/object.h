@@ -5,19 +5,25 @@
 
 typedef uint8_t plObjectType_t;
 
-#define PL_TYPE_NULL 0x01
-#define PL_TYPE_TRUE 0x02
-#define PL_TYPE_FALSE 0x04
-#define PL_TYPE_INT 0x08
-#define PL_TYPE_FLOAT 0x10
-#define PL_TYPE_BYTE_ARRAY 0x20
-#define PL_TYPE_ARRAY 0x40
-#define PL_TYPE_STRUCT 0x80
+#define PL_TYPE_FLAG_DYNAMIC 0x80
+#define PL_TYPE_FLAG_ARRAY 0x40
 
-#define PL_PRED_BOOL (PL_TYPE_TRUE|PL_TYPE_FALSE)
-#define PL_PRED_NUM (PL_TYPE_INT|PL_TYPE_FLOAT)
-#define PL_PRED_ARRAY (PL_TYPE_BYTE_ARRAY|PL_TYPE_ARRAY|PL_TYPE_STRUCT)
 #define PL_PRED_ANY 0xff
+#define PL_TYPE_NULL 0x00
+
+#define PL_PRED_BOOL 0x20
+#define PL_TYPE_FALSE PL_PRED_BOOL
+#define PL_TYPE_TRUE (PL_PRED_BOOL|0x10)
+
+#define PL_PRED_NUM (PL_TYPE_FLAG_DYNAMIC|0x20)
+#define PL_TYPE_INT PL_PRED_NUM
+#define PL_TYPE_FLOAT (PL_PRED_NUM|0x10)
+
+#define PL_PRED_ARRAY (PL_TYPE_FLAG_DYNAMIC|PL_TYPE_FLAG_ARRAY)
+#define PL_TYPE_BYTE_ARRAY PL_PRED_ARRAY
+#define PL_PRED_OBJECT_ARRAY (PL_PRED_ARRAY|0x20)
+#define PL_TYPE_ARRAY PL_PRED_OBJECT_ARRAY
+#define PL_TYPE_STRUCT (PL_PRED_OBJECT_ARRAY|0x10)
 
 #define PL_OBJECT_HEADER \
 	plObjectType_t type;
@@ -57,9 +63,8 @@ typedef struct {
 } plObjectArray_t;
 
 typedef uint64_t plModuleId_t;
-typedef uint16_t plStructId_t;
-
 #define PL_BUILTIN_MODULE 0
+typedef uint16_t plStructId_t;
 #define PL_NOT_STRUCT 0
 
 typedef struct {

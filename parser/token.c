@@ -42,20 +42,20 @@ static const struct plToken_keyword_t keywords[]={
 	{"if",2,PL_MARKER_IF},
 	{"eif",3,PL_MARKER_EIF},
 	{"else",4,PL_MARKER_ELSE},
+	{"Any",3,PL_MARKER_ANY},
 	{"Int",3,PL_MARKER_INT},
 	{"Float",5,PL_MARKER_FLOAT},
 	{"Num",3,PL_MARKER_NUM},
 	{"Bool",4,PL_MARKER_BOOL},
 	{"Bytes",5,PL_MARKER_BYTES},
 	{"Array",5,PL_MARKER_ARRAY},
-	{"struct",6,PL_MARKER_STRUCT},
 	{"cont",4,PL_MARKER_CONTINUE},
 	{"break",5,PL_MARKER_BREAK},
 	{"verify",6,PL_MARKER_VERIFY},
 	{"local",5,PL_MARKER_LOCAL},
+	{"is",2,PL_MARKER_IS},
 	{"import",6,PL_MARKER_IMPORT},
 	{"export",6,PL_MARKER_EXPORT},
-	{"is",2,PL_MARKER_IS},
 };
 #define NUM_KEYWORDS (sizeof(keywords)/sizeof(struct plToken_keyword_t))
 
@@ -76,7 +76,10 @@ bool init_reader(plFileReader_t *reader, const char *path) {
 }
 
 void close_reader(plFileReader_t *reader) {
-	close(reader->fd);
+	if ( reader->fd >= 0 ) {
+		close(reader->fd);
+		reader->fd=-1;
+	}
 }
 
 void read_next_token(plFileReader_t *reader, plToken_t *token) {
@@ -105,7 +108,7 @@ void read_next_token(plFileReader_t *reader, plToken_t *token) {
 		token->marker=PL_MARKER_EOF;
 	}
 	else if ( is_whitespace(firstChar) ) {
-		for (; is_whitespace(reader->idx[0]); reader->idx++) {
+		for (reader->idx++; is_whitespace(reader->idx[0]); reader->idx++) {
 			if ( reader->idx[0] == '\n' ) {
 				reader->lineNo++;
 			}
@@ -261,7 +264,7 @@ void read_next_token(plFileReader_t *reader, plToken_t *token) {
 					token->marker=PL_MARKER_UNTERMINATED_STRING;
 				}
 				fclose(stream);
-				if ( length > 0 ) {
+				if ( bytes ) {
 					free(bytes);
 				}
 				goto done;
@@ -281,7 +284,7 @@ void read_next_token(plFileReader_t *reader, plToken_t *token) {
 
 			object=malloc(sizeof(plObjectByteArray_t));
 			if ( !object ) {
-				if ( length > 0 ) {
+				if ( bytes ) {
 					free(bytes);
 				}
 
@@ -310,7 +313,7 @@ void read_next_token(plFileReader_t *reader, plToken_t *token) {
 						token->marker=PL_MARKER_UNTERMINATED_STRING;
 					}
 					fclose(stream);
-					if ( length > 0 ) {
+					if ( bytes ) {
 						free(bytes);
 					}
 					goto done;
@@ -343,7 +346,7 @@ void read_next_token(plFileReader_t *reader, plToken_t *token) {
 							token->marker=PL_MARKER_UNTERMINATED_STRING;
 						}
 						fclose(stream);
-						if ( length > 0 ) {
+						if ( bytes ) {
 							free(bytes);
 						}
 						goto done;
@@ -362,7 +365,7 @@ void read_next_token(plFileReader_t *reader, plToken_t *token) {
 				goto read_more_for_bytes;
 				default:
 				fclose(stream);
-				if ( length > 0 ) {
+				if ( bytes ) {
 					free(bytes);
 				}
 				token->marker=PL_MARKER_INVALID_LITERAL;
@@ -376,7 +379,7 @@ void read_next_token(plFileReader_t *reader, plToken_t *token) {
 		else {
 			token->marker=PL_MARKER_INVALID_LITERAL;
 			fclose(stream);
-			if ( length > 0 ) {
+			if ( bytes ) {
 				free(bytes);
 			}
 		}
@@ -655,13 +658,12 @@ const char *marker_name(plMarker_t marker) {
 		case PL_MARKER_UNCLOSED_COMMENT_BLOCK: return "UNCLOSED_COMMENT_BLOCK";
 		case PL_MARKER_UNTERMINATED_STRING: return "UNTERMINATED_STRING";
 		case PL_MARKER_EOF: return "EOF";
-		case PL_MARKER_COMMAND: return "COMMAND";
+		case PL_MARKER_DIRECTIVE: return "DIRECTIVE";
 		case PL_MARKER_EXPRESSION: return "EXPRESSION";
 		case PL_MARKER_SOURCE: return "SOURCE";
 		case PL_MARKER_PIPE: return "PIPE";
 		case PL_MARKER_SINK: return "SINK";
 		case PL_MARKER_STRUCT: return "STRUCT";
-		case PL_MARKER_PRED: return "PREDICATE";
 		case PL_MARKER_MODULE: return "MODULE";
 		case PL_MARKER_EXPORT: return "EXPORT";
 		case PL_MARKER_IMPORT: return "IMPORT";
@@ -687,6 +689,7 @@ const char *marker_name(plMarker_t marker) {
 		case PL_MARKER_TRUE: return "TRUE";
 		case PL_MARKER_FALSE: return "FALSE";
 		case PL_MARKER_NULL: return "NULL";
+		case PL_MARKER_ANY: return "ANY";
 		case PL_MARKER_INT: return "INT";
 		case PL_MARKER_FLOAT: return "FLOAT";
 		case PL_MARKER_NUM: return "NUM";

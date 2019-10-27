@@ -49,13 +49,18 @@ static plMarker_t print_parse_error(const plParseCtx_t *ctx, const char *format,
 static plToken_t *next_token(plParseCtx_t *ctx);
 static plError_t parse_argument_list(plParseCtx_t *ctx, plNameReference_t **arguments);
 static plError_t parse_output_type(plParseCtx_t *ctx, plNameReference_t **output);
-static bool name_in_scope(const char *name, plParseCtx_t *ctx);
+static bool name_in_scope(const char *name, const plParseCtx_t *ctx);
 static plError_t resolve_name(plParseCtx_t *ctx, plNameReference_t *reference);
 static plError_t parse_literal(plParseCtx_t *ctx, plObject_t **object);
 static bool literal_matches_reference(const plObject_t *object, const plNameReference_t *reference);
+static plError_t parse_import(plParseCtx_t *ctx);
+static plError_t parse_export(plParseCtx_t *ctx);
+static plError_t parse_directive(plParseCtx_t *ctx);
 static plError_t parse_source_header(plParseCtx_t *ctx);
 static plError_t parse_pipe_header(plParseCtx_t *ctx);
 static plError_t parse_sink_header(plParseCtx_t *ctx);
+static plError_t parse_local_header(plParseCtx_t *ctx);
+static plError_t parse_struct(plParseCtx_t *ctx);
 
 plError_t parse_source_code(const char *path, plModule_t *module) {
 	plError_t ret=PL_ERROR_OK;
@@ -76,6 +81,9 @@ plError_t parse_source_code(const char *path, plModule_t *module) {
 		read_next_token(&reader,&token);
 
 		if ( token.marker == PL_MARKER_EOF ) {
+			if ( !add_token_to_array(&array,&token) ) {
+				ret=PL_ERROR_MEMORY;
+			}
 			break;
 		}
 		else if ( token.marker == PL_MARKER_READ_FAILURE ) {
@@ -236,31 +244,28 @@ static plError_t recursively_parse_tokens(plParseCtx_t *ctx) {
 		plMarker_t frameMarker;
 
 		token=CURRENT_TOKEN(ctx->array);
-		if ( token->marker == PL_MARKER_WHITESPACE ) {
-			token++;
-		}
 
 		switch ( token->marker ) {
 			case PL_MARKER_SOURCE:
 			case PL_MARKER_PIPE:
 			case PL_MARKER_SINK:
+			case PL_MARKER_LOCAL:
 			case PL_MARKER_STRUCT:
 			ctx->stack->currentContext=token->marker;
 			case PL_MARKER_IF:
 			case PL_MARKER_WHILE:
-			case PL_MARKER_LOCAL:
 			frameMarker=token->marker;
 			break;
 			case PL_MARKER_EOF:
 			if ( ctx->stack->currentContext == PL_MARKER_MODULE ) {
 				return PL_ERROR_OK;
 			}
-			return print_parse_error(ctx,"Unexpected end of file found while parsing a %s.\n", marker_name(PL_MARKER_MODULE));
+			return print_parse_error(ctx,"Unexpected end of file found while parsing a %s.\n", marker_name(ctx->stack->currentContext));
 			case PL_MARKER_EIF:
 			case PL_MARKER_ELSE:
 			return print_parse_error(ctx,"%s found without corresponding %s.\n", marker_name(token->marker), marker_name(PL_MARKER_IF));
 			default:
-			frameMarker=PL_MARKER_COMMAND;
+			frameMarker=PL_MARKER_DIRECTIVE;
 			break;
 		}
 
@@ -268,54 +273,50 @@ static plError_t recursively_parse_tokens(plParseCtx_t *ctx) {
 			if ( frameMarker == PL_MARKER_IF || frameMarker == PL_MARKER_WHILE || frameMarker == PL_MARKER_LOCAL ) {
 				return print_parse_error(ctx,"Illegal %s found in %s context.\n", marker_name(frameMarker), marker_name(PL_MARKER_MODULE));
 			}
-		}
-		else if ( ctx->stack->currentContext == PL_MARKER_SINK && frameMarker == PL_MARKER_LOCAL ) {
-			return print_parse_error(ctx,"Illegal %s found in %s context.\n", marker_name(PL_MARKER_LOCAL), marker_name(PL_MARKER_SINK))
+
+			if ( token->marker == PL_MARKER_IMPORT ) {
+				ret=parse_import(ctx);
+				if ( ret != PL_RET_OK ) {
+					return ret;
+				}
+				continue;
+			}
+
+			if ( token->marker == PL_MARKER_EXPORT ) {
+				ret=parse_export(ctx);
+				if ( ret != PL_RET_OK ) {
+					return ret;
+				}
+				continue;
+			}
 		}
 
-		if ( frameMarker == PL_MARKER_LOCAL ) {
-			ctx->stack->currentContext=PL_MARKER_LOCAL;
+		if ( token->maker == PL_MARKER_IMPORT || frameMarker == PL_MARKER_EXPORT ) {
+			if ( ctx->stack->currentContext != PL_MARKER_MODULE ) {
+				return print_parse_error(ctx,"Illegal %s found in %s context.\n", marker_name(frameMarker))
+			}
 		}
 
 		if ( !push_to_parse_stack(stack,frameMarker) ) {
 			return PL_ERROR_MEMORY;
 		}
 
-		if ( frameMarker != PL_MARKER_COMMAND ) {
-			array->offset++;
-			token=next_token(ctx);
-			if ( token->marker == PL_MARKER_EOF ) {
-				return PL_ERROR_GRAMMAR;
+		if ( frameMarker == PL_MARKER_DIRECTIVE ) {
+			ret=parse_directive(ctx);
+		}
+		else {
+			switch ( token->marker ) {
+				case PL_MARKER_SOURCE: ret=parse_source_header(ctx); break;
+				case PL_MARKER_PIPE: ret=parse_pipe_header(ctx); break;
+				case PL_MARKER_SINK: ret=parse_sink_header(ctx); break;
+				case PL_MARKER_LOCAL: ret=parse_local_header(ctx); break;
+				case PL_MARKER_STRUCT: ret=parse_struct(ctx); break;
+				default: ret=parse_if_while_header(ctx); break;
 			}
+		}
 
-			if ( frameMarker == PL_MARKER_SOURCE ) {
-				ret=parse_source_header(ctx);
-			}
-			else if ( frameMarker == PL_MARKER_PIPE ) {
-				ret=parse_pipe_header(ctx);
-			}
-			else if ( frameMarker == PL_MARKER_SINK ) {
-				ret=parse_sink_header(ctx);
-			}
-			else if ( frameMarker == PL_MARKER_LOCAL ) {
-				ret=parse_local_header(ctx);
-			}
-			else if ( frameMarker == PL_MARKER_STRUCT ) {
-				ret=parse_struct(ctx);
-			}
-			else if ( frameMarker == PL_MARKER_IMPORT ) {
-				ret=parse_import(ctx);
-			}
-			else if ( frameMarker == PL_MARKER_EXPORT ) {
-				ret=parse_export(ctx);
-			}
-			else if ( frameMarker == PL_MARKER_WHILE || frameMarker == PL_MARKER_IF ) {
-				ret=parse_if_while_header(ctx);
-			}
-
-			if ( ret != PL_ERROR_OK ) {
-				return ret;
-			}
+		if ( ret != PL_ERROR_OK ) {
+			return ret;
 		}
 	}
 }
@@ -630,7 +631,7 @@ static plError_t parse_output_type(plParseCtx_t *ctx, plNameReference_t **output
 	return ret;
 }
 
-static bool name_in_scope(const char *name, plParseCtx_t *ctx) {
+static bool name_in_scope(const char *name, const plParseCtx_t *ctx) {
 
 }
 

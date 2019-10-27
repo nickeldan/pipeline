@@ -4,6 +4,10 @@
 #include "object.h"
 
 void free_object(plObject_t *object) {
+	if ( !object ) {
+		return;
+	}
+
 	if ( object->type&PL_PRED_ARRAY ) {
 		plObjectArrayPtr array=(plObjectArrayPtr)object;
 
