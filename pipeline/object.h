@@ -3,83 +3,91 @@
 
 #include <stdint.h>
 
-typedef uint8_t plObjectType_t;
-
-#define PL_TYPE_FLAG_DYNAMIC 0x80
-#define PL_TYPE_FLAG_ARRAY 0x40
-
-#define PL_PRED_ANY 0xff
-#define PL_TYPE_NULL 0x00
-
-#define PL_PRED_BOOL 0x20
-#define PL_TYPE_FALSE PL_PRED_BOOL
-#define PL_TYPE_TRUE (PL_PRED_BOOL|0x10)
-
-#define PL_PRED_NUM (PL_TYPE_FLAG_DYNAMIC|0x20)
-#define PL_TYPE_INT PL_PRED_NUM
-#define PL_TYPE_FLOAT (PL_PRED_NUM|0x10)
-
-#define PL_PRED_ARRAY (PL_TYPE_FLAG_DYNAMIC|PL_TYPE_FLAG_ARRAY)
-#define PL_TYPE_BYTE_ARRAY PL_PRED_ARRAY
-#define PL_PRED_OBJECT_ARRAY (PL_PRED_ARRAY|0x20)
-#define PL_TYPE_ARRAY PL_PRED_OBJECT_ARRAY
-#define PL_TYPE_STRUCT (PL_PRED_OBJECT_ARRAY|0x10)
-
 #define PL_OBJECT_HEADER \
-	plObjectType_t type;
+	uint32_t flags;
 
-typedef struct {
+#define PL_OBJ_TYPE_NULL 0x00000000
+#define PL_OBJ_TYPE_INT 0x00000001
+#define PL_OBJ_TYPE_FLOAT 0x00000002
+#define PL_OBJ_PRED_NUM (PL_OBJ_TYPE_INT|PL_OBJ_TYPE_FLOAT)
+#define PL_OBJ_TYPE_BOOL 0x00000004
+#define PL_OBJ_PRED_GEN_ARRAY 0x00000008
+#define PL_OBJ_PRED_TRUE_ARRAY 0x00000010
+#define PL_OBJ_TYPE_ARRAY (PL_OBJ_PRED_GEN_ARRAY|PL_OBJ_PRED_TRUE_ARRAY)
+#define PL_OBJ_PRED_STRUCT 0x00000020
+#define PL_OBJ_TYPE_STRUCT (PL_OBJ_TYPE_ARRAY|PL_OBJ_PRED_STRUCT)
+#define PL_OBJ_PRED_BYTE_ARRAY 0x00000040
+#define PL_OBJ_TYPE_BYTE_ARRAY (PL_OBJ_PRED_GEN_ARRAY|PL_OBJ_PRED_BYTE_ARRAY)
+#define PL_OBJ_TYPE_BLANK 0x00000080
+
+#define PL_OBJ_FLAG_TRUTHY 0x00000100
+#define PL_OBJ_FLAG_ORPHAN 0x00000200
+#define PL_OBJ_FLAG_STATIC 0x00000400
+
+#define PL_OBJ_FLAG_NEGATIVE 0x00010000
+#define PL_OBJ_FLAG_STATIC_BYTES 0x00020000
+
+typedef struct plObject {
 	PL_OBJECT_HEADER
-} plObject_t;
+} plObject;
 
-typedef int64_t plInt_t;
-typedef double plFloat_t;
+#define OBJ_TYPE(ptr) (((plObject*)ptr)->flags&0x000000ff)
+#define TRUTHY(ptr) (((plObject*)ptr)->flags&PL_OBJ_FLAG_TRUTHY)
 
-typedef struct {
+#define PL_INTEGER_MAX_DIGITS 2467
+
+typedef struct plInteger {
 	PL_OBJECT_HEADER
-	union {
-		plInt_t integer;
-		plFloat_t decimal;
-	} value;
-} plObjectNumber_t;
+	uint32_t firstBlock;
+	uint32_t *blocks;
+	uint8_t numExtraBlocks;
+} plInteger;
 
-typedef uint32_t plArraySize_t;
-#define PL_MAX_ARRAY_SIZE 0xffffffff
+typedef struct plFloat {
+	plInteger intPart;
+	double decimal;
+} plFloat;
 
-typedef struct {
-	PL_OBJECT_HEADER
-	uint8_t *bytes;
-	plArraySize_t size, length;
-} plObjectByteArray_t;
+#define PL_ARRAY_HEADER \
+	PL_OBJECT_HEADER \
+	uint32_t length; \
+	plObject *objects; \
+	uint32_t capacity;
 
-#define PL_OBJECT_ARRAY_HEADER \
-	plObject_t **values; \
-	plArraySize_t size;
+typedef struct plArray {
+	PL_ARRAY_HEADER
+} plArray;
 
-typedef struct {
-	PL_OBJECT_HEADER
-	PL_OBJECT_ARRAY_HEADER
-	plArraySize_t length;
-} plObjectArray_t;
-
-typedef uint64_t plModuleId_t;
-#define PL_BUILTIN_MODULE 0
+typedef uint32_t plModuleId_t;
 typedef uint16_t plStructId_t;
-#define PL_NOT_STRUCT 0
 
-typedef struct {
-	PL_OBJECT_HEADER
-	PL_OBJECT_ARRAY_HEADER
-	plStructId_t structId;
+typedef struct plStruct {
+	PL_ARRAY_HEADER
 	plModuleId_t moduleId;
-} plObjectStruct_t;
+	plStructId_t structId;
+} plStruct;
 
-typedef struct {
+typedef struct plByteArray {
 	PL_OBJECT_HEADER
-	void *opaque;
-	plArraySize_t size;
-} *plObjectArrayPtr;
+	uint32_t length;
+	uint8_t *bytes;
+	uint32_t capacity;
+} plByteArray;
 
-void free_object(plObject_t *object);
+typedef struct plGenArray {
+	PL_OBJECT_HEADER
+	uint32_t length;
+	void *opaque;
+	uint32_t capacity;
+} *plGenArrayPtr;
+
+void freeObject(plObject *object);
+plInteger *newInteger(void);
+int addValueToInt(plInteger **integer, uint32_t value, unsigned int bitShift);
+
+extern plObject trueObject;
+extern plObject falseObject;
+extern plObject blankObject;
+extern plObject nullObject;
 
 #endif // __PIPELINE_OBJECT_H__

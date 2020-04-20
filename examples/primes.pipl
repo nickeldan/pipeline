@@ -12,25 +12,25 @@ export isPrime;
 import os;
 import math;
 
-source icount(start:Int, finish:Int, step:Int = 1) -> Int {
+source icount(start:Int, finish:Int, step:Int=1) -> Int {
 	start -> n;
 	while n <= finish {
 		prod n;
-		n+=step;
+		n += step;
 	}
 }
 
-source forever(start:Int, step:Int = 1) -> Int {
+source forever(start:Int, step:Int=1) -> Int {
 	start -> n;
 	while true {
 		prod n;
-		n+=step;
+		n += step;
 	}
 }
 
 source factor(n:Int) -> Int {
 	verify n -> x -> math.sqrt -> s;
-	2,forever(3,2) -> local (i:Int) {
+	(2, forever(3,2)) -> local (i:Int) {
 		false -> recompute;
 		while x%i == 0 {
 			prod i;
@@ -43,11 +43,11 @@ source factor(n:Int) -> Int {
 	if x > 1 {prod x;}
 }
 
-sink doCount(...) {
+sink doCount(x:Any) {
 	prod ?STORE+1;
 }
 
-sink doTake(x) {
+sink doTake(x:Any) {
 	prod x; end;
 }
 
@@ -55,15 +55,11 @@ pipe isPrime(n:Int) -> Bool {
 	prod (factor(n) -> doTake) == n;
 }
 
-pipe filter(..., y:Bool) -> ... {
-	if not y {drop;}
-	prod ?ARGS;
-}
+main {
+	verify 1 -> os.argv -> int -> start;
+	verify 2 -> os.argv -> int -> finish;
+	icount(start,finish) -> isPrime.filter -> doCount.detour:numPrimes -> doPrintLn;
+	("There were ", numPrimes, " primes found.\n") -> doPrint;
 
-sink main {
-	verify 1 -> os.argv -> toInt -> start;
-	verify 2 -> os.argv -> toInt -> finish;
-	if start > finish {end;}
-	icount(start,finish) -> isPrime.map -> filter -> doCount.detour:numPrimes -> doPrintLn;
-	"There were ", numPrimes, " primes found.\n" -> doPrint;
+	prod 0;
 }
