@@ -25,22 +25,22 @@ typedef astZeroSplitNode *astNodePtr;
 
 typedef struct astOneSplitNode {
 	AST_NODE_HEADER
-	astNodePtr *first;
+	astNodePtr first;
 } astOneSplitNode;
 
 typedef struct astTwoSplitNode {
 	AST_NODE_HEADER
-	astNodePtr *first, *second;
+	astNodePtr first, second;
 } astTwoSplitNode;
 
 typedef struct astThreeSplitNode {
 	AST_NODE_HEADER
-	astNodePtr *first, *second, *third;
+	astNodePtr first, second, third;
 } astThreeSplitNode;
 
 typedef struct astFourSplitNode {
 	AST_NODE_HEADER
-	astNodePtr *first, *second, *third, *fourth;
+	astNodePtr first, second, third, fourth;
 } astFourSplitNode;
 
 typedef astFourSplitNode *astAllNodePtr;
