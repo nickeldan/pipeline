@@ -107,7 +107,7 @@ void freeAstTree(astNodePtr root) {
 		case SINK:
 		case FILTER:
 		case EIF:
-		case ARG_FORMAT:
+		case 'A':
 		freeTree(all->third);
 		// Intentional fall-through.
 
@@ -121,8 +121,8 @@ void freeAstTree(astNodePtr root) {
 		case MAIN:
 		case IMPORT:
 		case EXPORT:
-		case ARRAY_LITERAL:
 		case NOT:
+		case 'L':
 		freeTree(all->first);
 		break;
 	}

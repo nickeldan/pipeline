@@ -2,6 +2,7 @@
 #include <sys/types.h>
 
 #include "object.h"
+#include "util.h"
 
 // External variables
 plObject trueObject={.flags=PL_OBJ_TYPE_BOOL|PL_OBJ_FLAG_TRUTHY|PL_OBJ_FLAG_STATIC};
@@ -12,7 +13,7 @@ plObject nullObject={.flags=PL_OBJ_FLAG_STATIC};
 static size_t objectSize(uint32_t flags) __attribute__((pure));
 
 void freeObject(plObject *object) {
-	uint32_flags;
+	uint32_t flags;
 
 	flags=object->flags;
 

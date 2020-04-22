@@ -42,6 +42,7 @@ true|false|blank|null									{yylval.object=lexResolveSimpleLiteral(yytext[0]);
 if														{return IF;}
 eif														{return EIF;}
 else													{return ELSE;}
+Any														{yylval.marker=PL_MARKER_TYPE_ANY; return TYPE;}
 Int														{yylval.marker=PL_MARKER_TYPE_INT; return TYPE;}
 Float													{yylval.marker=PL_MARKER_TYPE_FLOAT; return TYPE;}
 Bool													{yylval.marker=PL_MARKER_TYPE_BOOL; return TYPE;}
