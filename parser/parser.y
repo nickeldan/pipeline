@@ -22,16 +22,16 @@ static astNodePtr resolveAttributes(astNodePtr object, astNodePtr attributes);
 %token CONT BREAK VERIFY ABORT IS AS IMPORT EXPORT MAIN
 %token ARROW LSHIFT RSHIFT AND OR
 %token <node> NAME
-%token <marker> TYPE COMPARISON OPERATOR_ASSIGNMENT CONTEXT
 %token <object> LITERAL
+%token <marker> TYPE COMPARISON OPERATOR_ASSIGNMENT CONTEXT
 
 %type <node> file global_content main_definition import_statement export_statement
-%type <node> struct_definition global_var_definition struct_field type attribute_trail attribute_trail_item moduled_name
+%type <node> struct_definition global_var_definition struct_field type attribute_trail moduled_name
 %type <node> source_definition pipe_definition sink_definition filter_definition local_definition
 %type <node> predicate_definition optional_name arg_list arg_element possible_assignment
 %type <node> compilation_expression compilation_array_literal compilation_array_element
 %type <node> expression array_literal array_element
-%type <node> statement_list if_section eif_section else_section while_section
+%type <node> statement_list actual_statement_list general_statement if_section eif_section else_section while_section
 %type <node> statement function_call call_list call_arg arrow_statement arrow_sender
 %type <node> arrow_sender_item arrow_sender_list arrow_receiver arrow_receiver_item
 
@@ -90,11 +90,7 @@ moduled_name: NAME attribute_trail {$$=resolveAttributes($1,$2);}
 	;
 
 attribute_trail: {$$=NULL;}
-	| attribute_trail_item {$$=$1;}
-	;
-
-attribute_trail_item: '.' NAME {$$=$2;}
-	| attribute_trail_item '.' NAME {$$=createTwoSplitNode('.',$1,$3);}
+	| attribute_trail '.' NAME {$$=$1? createTwoSplitNode('.',$1,$3) : $3;}
 	;
 
 source_definition: SOURCE optional_name '(' arg_list ')' ARROW type '{' statement_list '}' {$$=createFourSplitNode(SOURCE,$2,$4,$7,$9);}
@@ -157,7 +153,7 @@ compilation_expression: moduled_name {$$=$1;}
 
 expression: moduled_name {$$=$1;}
 	| LITERAL attribute_trail {$$=resolveAttributes(createOneSplitNode(LITERAL,$1),$2);}
-	| CONTEXT {$$=createZeroSplitNode(CONTEXT); $$->marker=$1;}
+	| CONTEXT attribute_trail {$$=createZeroSplitNode(CONTEXT); $$->marker=$1; if ( $2 ) {$$=resolveAttributes($$,$2);}}
 	| expression '[' expression ']' attribute_trail {$$=resolveAttributes(createTwoSplitNode('[',$1,$3),$5);}
 	| '[' array_literal ']' attribute_trail {$$=resolveAttributes(createOneSplitNode('L',$2),$4);}
 	| '(' expression ')' attribute_trail {$$=resolveAttributes($2,$4);}
@@ -210,10 +206,17 @@ call_arg: expression {$$=$1}
 	;
 
 statement_list: {$$=NULL;}
-	| ';' {$$=NULL;}
-	| statement_list statement ';' {$$=createTwoSplitNode(';',$1,$2);}
-	| statement_list if_section {$$=createTwoSplitNode(';',$1,$2);}
-	| statement_list while_section {$$=createTwoSplitNode(';',$1,$2);}
+	| actual_statement_list {$$=$1;}
+	;
+
+actual_statement_list: general_statement {$$=$1;}
+	| actual_statement_list general_statement {$$=$1? createTwoSplitNode(';',$1,$2) : $2;}
+	;
+
+general_statement: ';' {$$=NULL;}
+	| statement ';' {$$=$1;}
+	| if_section {$$=$1;}
+	| while_section {$$=$1;}
 	;
 
 if_section: IF expression '{' statement_list '}' eif_section else_section {$$=createFourSplitNode(IF,$2,$4,$6,$7);}
@@ -263,17 +266,18 @@ arrow_receiver: arrow_receiver_item {$$=$1;}
 
 arrow_receiver_item: moduled_name {$$=$1;}
 	| moduled_name ':' NAME {$$=createTwoSplitNode(':',$1,$3);}
-	| TYPE {$$=createZeroSplitNode(TYPE); $$->marker=$1;}
-	| pipe_definition {$$=$1;}
-	| sink_definition {$$=$1;}
-	| sink_definition ':' NAME {$$=createTwoSplitNode(':',$1,$3);}
-	| local_definition {$$=$1;}
-	| local_definition ':' NAME {$$=createTwoSplitNode(':',$1,$3);}
+	| TYPE attribute_trail {$$=createZeroSplitNode(TYPE); $$->marker=$1;  if ( $2 ) {$$=createTwoSplitNode('.',$$,$2);}}
+	| pipe_definition attribute_trail {$$=resolveAttributes($1,$2);}
+	| sink_definition attribute_trail {$$=resolveAttributes($1,$2);}
+	| sink_definition attribute_trail ':' NAME {$$=createTwoSplitNode(':',resolveAttributes($1,$2),$4);}
+	| local_definition attribute_trail {$$=resolveAttributes($1,$2);}
 	;
 
 %%
 
 int main(int argc, char **argv) {
+	nameTableSetup();
+
 	return yyparse();
 }
 
@@ -286,10 +290,5 @@ void yyerror(const char *format, ...) {
 }
 
 static astNodePtr resolveAttributes(astNodePtr object, astNodePtr attributes) {
-	if ( attributes ) {
-		return createTwoSplitNode('.',object,attributes);
-	}
-	else {
-		return object;
-	}
+	return attributes? createTwoSplitNode('.',object,attributes) : object;
 }
