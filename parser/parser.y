@@ -4,9 +4,11 @@
 
 #include "ast.h"
 #include "marker.h"
-#include "object.h"
+#include "nameTable.h"
+#include "plObject.h"
 
 void yyerror(const char *message, ...);
+int yylex(void);
 
 static astNodePtr resolveAttributes(astNodePtr object, astNodePtr attributes);
 %}
@@ -266,7 +268,7 @@ arrow_receiver: arrow_receiver_item {$$=$1;}
 
 arrow_receiver_item: moduled_name {$$=$1;}
 	| moduled_name ':' NAME {$$=createTwoSplitNode(':',$1,$3);}
-	| TYPE attribute_trail {$$=createZeroSplitNode(TYPE); $$->marker=$1;  if ( $2 ) {$$=createTwoSplitNode('.',$$,$2);}}
+	| TYPE attribute_trail {$$=createZeroSplitNode(TYPE); $$->marker=$1; $$=resolveAttributes($$,$2);}
 	| pipe_definition attribute_trail {$$=resolveAttributes($1,$2);}
 	| sink_definition attribute_trail {$$=resolveAttributes($1,$2);}
 	| sink_definition attribute_trail ':' NAME {$$=createTwoSplitNode(':',resolveAttributes($1,$2),$4);}

@@ -16,3 +16,25 @@ void errorQuit(const char *functionName, const char *format, ...) {
 
 	exit(1);
 }
+
+void *safeMalloc(const char *functionName, size_t size) {
+	void *ptr;
+
+	ptr=malloc(size);
+	if ( !ptr && size > 0 ) {
+		errorQuit(functionName,"Failed to allocate %zu bytes", size);
+	}
+
+	return ptr;
+}
+
+void *safeCalloc(const char *functionName, size_t nmemb, size_t size) {
+	void *ptr;
+
+	ptr=calloc(nmemb,size);
+	if ( !ptr && nmemb*size > 0 ) {
+		errorQuit(functionName,"Failed to allocate %zu bytes", nmemb*size);
+	}
+
+	return ptr;
+}

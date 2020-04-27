@@ -9,7 +9,7 @@
 #include "marker.h"
 #include "nameTable.h"
 #include "util.h"
-#include "object.h"
+#include "plObject.h"
 
 #include "parser.tab.h"
 
@@ -18,7 +18,7 @@ extern int yylineno;
 
 static plObject *lexResolveSimpleLiteral(char firstChar) __attribute__((pure));
 static plObject *lexResolveIntLiteral(const char *text, size_t len);
-static plObject *lexResoleHexLiteral(const char *text, size_t len);
+static plObject *lexResolveHexLiteral(const char *text, size_t len);
 static plObject *lexResolveStringLiteral(const char *text, size_t len);
 static int lexResolveComparison(const char *text);
 %}
@@ -71,15 +71,14 @@ main													{return MAIN;}
 ;+														{return ';';}
 [<>]=?|[!=]=											{yylval.marker=lexResolveComparison(yytext); return COMPARISON;}
 [_A-Za-z][_A-Za-z0-9]*									{yylval.node=createOneSplitNode(NAME,registerName(yytext)); return NAME;}
-([0-9]*\.?[0-9]+|[0-9]+\.)/[^.0-9A-Za-z_]				{yylval.object=lexResolveIntLiteral(yytext,yylen); return LITERAL;}
-0x[A-Fa-f0-9]+											{yylval.object=lexResolveHexLiteral(yytext+2,yylen-2); return LITERAL;}
-\"[^\"]*\"												{yylval.object=lexResolveStringLiteral(yytext,yylen); return LITERAL;}
+([0-9]*\.?[0-9]+|[0-9]+\.)/[^.0-9A-Za-z_]				{yylval.object=lexResolveIntLiteral(yytext,yyleng); return LITERAL;}
+0x[A-Fa-f0-9]+											{yylval.object=lexResolveHexLiteral(yytext+2,yyleng-2); return LITERAL;}
+\"[^\"]*\"												{yylval.object=lexResolveStringLiteral(yytext,yyleng); return LITERAL;}
 [ \t]+													{}
 "//".*													{}
 "/*"([^*]|[\r\n]|\*[^/]?)*"*/"							{}
 [\r\n]+													{}
 .														{yyerror("Line %i: Invalid input: %s\n", yylineno, yytext);}
-<<EOF>>													{return EOF;}
 
 %%
 
@@ -123,7 +122,7 @@ static plObject *lexResolveIntLiteral(const char *text, size_t len) {
 	}
 }
 
-static plObject *lexResoleHexLiteral(const char *text, size_t len) {
+static plObject *lexResolveHexLiteral(const char *text, size_t len) {
 	plInteger *integer;
 	unsigned int numExtraBlocks;
 	ssize_t i;
@@ -141,7 +140,7 @@ static plObject *lexResoleHexLiteral(const char *text, size_t len) {
 			ERROR_QUIT("Line %i: Hex string is too long (%zu characters)", yylineno, len);
 		}
 		integer->numExtraBlocks=numExtraBlocks;
-		integer->blocks=safeMalloc(sizeof(uint32_t)*numExtraBlocks);
+		integer->blocks=SAFE_MALLOC(sizeof(uint32_t)*numExtraBlocks);
 	}
 
 	i=MAX((ssize_t)len-4,0);
@@ -171,7 +170,7 @@ static plObject *lexResolveStringLiteral(const char *text, size_t len) {
 	}
 
 	array->length=array->capacity=len;
-	arrray->bytes=malloc(len);
+	array->bytes=malloc(len);
 	if ( !array->bytes ) {
 		free(array);
 		ERROR_QUIT("Line %i: Failed to allocate %zu bytes", yylineno, len);
@@ -183,7 +182,7 @@ static plObject *lexResolveStringLiteral(const char *text, size_t len) {
 	return (plObject*)array;
 }
 
-static plMarker_t lexResolveComparison(const char *text) {
+static int lexResolveComparison(const char *text) {
 	switch ( text[0] ) {
 		case '=':
 		return PL_MARKER_COMPARISON_EQ;

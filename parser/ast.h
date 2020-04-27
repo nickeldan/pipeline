@@ -49,7 +49,7 @@ astNodePtr createZeroSplitNode(int nodeType);
 astNodePtr createOneSplitNode(int nodeType, void *first);
 astNodePtr createTwoSplitNode(int nodeType, void *first, void *second);
 astNodePtr createThreeSplitNode(int nodeType, void *first, void *second, void *third);
-astNodePtr createFourSplitNode(int nodetype, void *first, void *second, void *third, void *fourth);
+astNodePtr createFourSplitNode(int nodeType, void *first, void *second, void *third, void *fourth);
 void freeAstTree(astNodePtr root);
 
 #endif // __PIPELINE_AST_H__

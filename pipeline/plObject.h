@@ -1,5 +1,5 @@
-#ifndef __PIPELINE_OBJECT_H__
-#define __PIPELINE_OBJECT_H__
+#ifndef __PIPELINE_PLOBJECT_H__
+#define __PIPELINE_PLOBJECT_H__
 
 #include <stdint.h>
 

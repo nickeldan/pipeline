@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
-#include "object.h"
+#include "plObject.h"
 #include "util.h"
 
 // External variables
@@ -45,7 +45,7 @@ void freeObject(plObject *object) {
 		free(array->bytes);
 	}
 
-	if ( !flags&PL_OBJ_FLAG_STATIC ) {
+	if ( !(flags&PL_OBJ_FLAG_STATIC) ) {
 		free(object);
 	}
 	else if ( flags&(PL_OBJ_PRED_NUM|PL_OBJ_PRED_GEN_ARRAY) ) {

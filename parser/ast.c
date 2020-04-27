@@ -3,6 +3,7 @@
 #include "ast.h"
 #include "util.h"
 #include "parser.tab.h"
+#include "plObject.h"
 
 astNodePtr createZeroSplitNode(int nodeType) {
 	astZeroSplitNode *node;
@@ -29,7 +30,7 @@ astNodePtr createOneSplitNode(int nodeType, void *first) {
 	return (astNodePtr)node;
 }
 
-astNodePtr createTwoSplitNode(int nodeType, void *first, *second) {
+astNodePtr createTwoSplitNode(int nodeType, void *first, void *second) {
 	astTwoSplitNode *node;
 
 	node=malloc(sizeof(astTwoSplitNode));
@@ -40,7 +41,7 @@ astNodePtr createTwoSplitNode(int nodeType, void *first, *second) {
 	node->first=first;
 	node->second=second;
 
-	return node;
+	return (astNodePtr)node;
 }
 
 astNodePtr createThreeSplitNode(int nodeType, void *first, void *second, void *third) {
@@ -55,10 +56,10 @@ astNodePtr createThreeSplitNode(int nodeType, void *first, void *second, void *t
 	node->second=second;
 	node->third=third;
 
-	return node;
+	return (astNodePtr)node;
 }
 
-astNodePtr createFourSplitNode(int nodetype, void *first, void *second, void *third, void *fourth) {
+astNodePtr createFourSplitNode(int nodeType, void *first, void *second, void *third, void *fourth) {
 	astFourSplitNode *node;
 
 	node=malloc(sizeof(astFourSplitNode));
@@ -71,7 +72,7 @@ astNodePtr createFourSplitNode(int nodetype, void *first, void *second, void *th
 	node->third=third;
 	node->fourth=fourth;
 
-	return node;
+	return (astNodePtr)node;
 }
 
 void freeAstTree(astNodePtr root) {
@@ -126,8 +127,6 @@ void freeAstTree(astNodePtr root) {
 		freeTree(all->first);
 		break;
 	}
-
-	done:
 
 	free(root);
 }
