@@ -51,7 +51,7 @@ typedef struct plFloat {
 #define PL_ARRAY_HEADER \
 	PL_OBJECT_HEADER \
 	uint32_t length; \
-	plObject *objects; \
+	plObject **objects; \
 	uint32_t capacity;
 
 typedef struct plArray {
@@ -82,8 +82,15 @@ typedef struct plGenArray {
 } *plGenArrayPtr;
 
 void freeObject(plObject *object);
-plInteger *newInteger(void);
-int addValueToInt(plInteger **integer, uint32_t value, unsigned int bitShift);
+plObject *copyObject(const plObject *object);
+
+plInteger *plIntegerNew(void);
+void plIntegerClear(plInteger *integer);
+int plIntegerFromString(plInteger **integer, const char *string, size_t len);
+int plIntegerSmartAddInPlace(plInteger **original, const plInteger *summand);
+int plIntegerAddInPlace(plInteger *original, const plInteger *summand);
+int plIntegerQuickAddInPlace(plInteger *integer, uint32_t value, uint32_t blockShift);
+int plIntegerShiftInPlace(plInteger *integer, unsigned int shift);
 
 extern plObject trueObject;
 extern plObject falseObject;

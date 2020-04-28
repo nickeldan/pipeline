@@ -2,8 +2,8 @@ CC := gcc --std=c99 -O3
 
 .PHONY: clean
 
-util.o: util.c util.h
+plUtil.o: plUtil.c plUtil.h plError.h
 	$(CC) -c $<
 
 clean:
-	rm -f util.o
+	rm -f *.o

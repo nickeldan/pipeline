@@ -1,8 +1,8 @@
 #include <stdlib.h>
 
 #include "ast.h"
-#include "util.h"
 #include "parser.tab.h"
+#include "plUtil.h"
 #include "plObject.h"
 
 astNodePtr createZeroSplitNode(int nodeType) {

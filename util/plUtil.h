@@ -1,8 +1,10 @@
-#ifndef __PIPELINE_UTIL_H__
-#define __PIPELINE_UTIL_H__
+#ifndef __PIPELINE_PLUTIL_H__
+#define __PIPELINE_PLUTIL_H__
 
 #include <string.h>
 #include <stdarg.h>
+
+#include "plError.h"
 
 #ifndef MIN
 #define MIN(a,b) (((a) < (b))? (a) : (b))

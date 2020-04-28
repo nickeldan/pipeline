@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "util.h"
+#include "plUtil.h"
 
 void errorQuit(const char *functionName, const char *format, ...) {
 	va_list args;

@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "nameTable.h"
-#include "util.h"
+#include "plUtil.h"
 
 #define REF_TABLE_SIZE 9997
 

@@ -8,7 +8,7 @@
 #include "ast.h"
 #include "marker.h"
 #include "nameTable.h"
-#include "util.h"
+#include "plUtil.h"
 #include "plObject.h"
 
 #include "parser.tab.h"
@@ -17,7 +17,6 @@ void yyerror(const char *format, ...);
 extern int yylineno;
 
 static plObject *lexResolveSimpleLiteral(char firstChar) __attribute__((pure));
-static plObject *lexResolveIntLiteral(const char *text, size_t len);
 static plObject *lexResolveHexLiteral(const char *text, size_t len);
 static plObject *lexResolveStringLiteral(const char *text, size_t len);
 static int lexResolveComparison(const char *text);
@@ -71,7 +70,13 @@ main													{return MAIN;}
 ;+														{return ';';}
 [<>]=?|[!=]=											{yylval.marker=lexResolveComparison(yytext); return COMPARISON;}
 [_A-Za-z][_A-Za-z0-9]*									{yylval.node=createOneSplitNode(NAME,registerName(yytext)); return NAME;}
-([0-9]*\.?[0-9]+|[0-9]+\.)/[^.0-9A-Za-z_]				{yylval.object=lexResolveIntLiteral(yytext,yyleng); return LITERAL;}
+-?([0-9]*\.?[0-9]+|[0-9]+\.)/[^.0-9A-Za-z_]				{	if ( plIntegerFromString((plInteger**)&yylval.object,yytext,yyleng) != PL_ERROR_OK )
+															{
+																yyerror("Memory allocation failure");
+																exit(1);
+															}
+															return LITERAL;
+														}
 0x[A-Fa-f0-9]+											{yylval.object=lexResolveHexLiteral(yytext+2,yyleng-2); return LITERAL;}
 \"[^\"]*\"												{yylval.object=lexResolveStringLiteral(yytext,yyleng); return LITERAL;}
 [ \t]+													{}
@@ -98,37 +103,13 @@ static plObject *lexResolveSimpleLiteral(char firstChar) {
 	}	
 }
 
-static plObject *lexResolveIntLiteral(const char *text, size_t len) {
-	plInteger *integer;
-
-	if ( len > PL_INTEGER_MAX_DIGITS ) {
-		ERROR_QUIT("Line %i: Too many (%zu) digits for an integer", yylineno, len);
-	}
-
-	integer=newInteger();
-	if ( !integer ) {
-		ERROR_QUIT("Failed to allocate %zu bytes", sizeof(plInteger));
-	}
-
-	for (size_t k=0; k<len; k++) {
-		int ret;
-		uint32_t value;
-		char buffer[2];
-
-		buffer[0]=text[len-k-1];
-		buffer[1]='\0';
-
-		value=atoi(buffer);
-	}
-}
-
 static plObject *lexResolveHexLiteral(const char *text, size_t len) {
 	plInteger *integer;
 	unsigned int numExtraBlocks;
 	ssize_t i;
 	char buffer[5];
 
-	integer=newInteger();
+	integer=plIntegerNew();
 	if ( !integer ) {
 		ERROR_QUIT("Line %i: Failed to allocate %zu bytes", yylineno, sizeof(plInteger));
 	}
