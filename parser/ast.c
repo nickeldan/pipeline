@@ -1,9 +1,9 @@
 #include <stdlib.h>
 
 #include "ast.h"
-#include "parser.tab.h"
 #include "plUtil.h"
 #include "plObject.h"
+#include "parser.tab.h"
 
 astNodePtr createZeroSplitNode(int nodeType) {
 	astZeroSplitNode *node;
@@ -102,18 +102,18 @@ void freeAstTree(astNodePtr root) {
 		case PIPE:
 		case PREDICATE:
 		case IF:
-		freeTree(all->fourth);
+		freeAstTree(all->fourth);
 		// Intentional fall-through.
 
 		case SINK:
 		case FILTER:
 		case EIF:
 		case 'A':
-		freeTree(all->third);
+		freeAstTree(all->third);
 		// Intentional fall-through.
 
 		default:
-		freeTree(all->second);
+		freeAstTree(all->second);
 		// Intentional fall-through.
 
 		case PROD:
@@ -124,7 +124,7 @@ void freeAstTree(astNodePtr root) {
 		case EXPORT:
 		case NOT:
 		case 'L':
-		freeTree(all->first);
+		freeAstTree(all->first);
 		break;
 	}
 

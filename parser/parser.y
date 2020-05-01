@@ -203,7 +203,7 @@ call_list: {$$=NULL;}
 	| call_list ',' call_arg {$$=createTwoSplitNode(',',$1,$3);}
 	;
 
-call_arg: expression {$$=$1}
+call_arg: expression {$$=$1;}
 	| NAME '=' expression {$$=createTwoSplitNode('=',$1,$3);}
 	;
 

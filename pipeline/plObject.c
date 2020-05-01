@@ -47,7 +47,7 @@ void freeObject(plObject *object) {
 	}
 	else if ( flags&PL_OBJ_PRED_BYTE_ARRAY ) {
 		if ( !(flags&PL_OBJ_FLAG_STATIC_BYTES) ) {
-			free(((plByteArray*)array)->bytes);
+			free(((plByteArray*)object)->bytes);
 		}
 	}
 
@@ -105,7 +105,7 @@ plObject *copyObject(const plObject *object) {
 			uint32_t length=trueArray->length;
 
 			if ( (object->flags)&PL_OBJ_PRED_STRUCT ) {
-				plStuct *st=(plStruct*)new;
+				plStruct *st=(plStruct*)new;
 
 				st->moduleId=((plStruct*)object)->moduleId;
 				st->structId=((plStruct*)object)->structId;
@@ -162,7 +162,7 @@ int plIntegerFromString(plInteger **integer, const char *string, size_t len) {
 
 	for (size_t k=1; k<=len; k++) {
 		int digit;
-		plInteger temp;
+		plInteger temp={.blocks=NULL};;
 
 		if ( !isdigit(string[len-k]) ) {
 			if ( k == len && string[0] == '-' ) {
@@ -290,10 +290,10 @@ int plIntegerQuickAddInPlace(plInteger *integer, uint32_t value, uint32_t blockS
 		if ( !success ) {
 			return PL_ERROR_OUT_OF_MEMORY;
 		}
+		integer->blocks=success;
 		if ( integer->numExtraBlocks == 0 ) {
 			BZERO(integer->blocks,sizeof(uint32_t)*blockShift);
 		}
-		integer->blocks=success;
 		integer->numExtraBlocks=blockShift;
 	}
 

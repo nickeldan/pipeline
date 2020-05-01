@@ -1,4 +1,4 @@
-CC := gcc --std=c99 -O3
+CC := gcc --std=gnu99 -O3 -g
 
 .PHONY: clean
 
