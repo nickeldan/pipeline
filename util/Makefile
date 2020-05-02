@@ -1,4 +1,4 @@
-CC := gcc --std=gnu99 -O3 -g
+CC := gcc
 COMPILER_FLAGS := --std=gnu99 -O3 -g -fpic
 
 .PHONY: all clean
