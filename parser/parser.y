@@ -277,12 +277,6 @@ arrow_receiver_item: moduled_name {$$=$1;}
 
 %%
 
-int main(int argc, char **argv) {
-	nameTableSetup();
-
-	return yyparse();
-}
-
 void yyerror(const char *format, ...) {
 	va_list args;
 

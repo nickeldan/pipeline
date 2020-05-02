@@ -1,9 +1,12 @@
 CC := gcc --std=gnu99 -O3 -g
+COMPILER_FLAGS := --std=gnu99 -O3 -g -fpic
 
-.PHONY: clean
+.PHONY: all clean
+
+all: plUtil.o
 
 plUtil.o: plUtil.c plUtil.h plError.h
-	$(CC) -c $<
+	$(CC) $(COMPILER_FLAGS) -c $<
 
 clean:
 	rm -f *.o
