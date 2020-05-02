@@ -70,12 +70,24 @@ main													{return MAIN;}
 ;+														{return ';';}
 [<>]=?|[!=]=											{yylval.marker=lexResolveComparison(yytext); return COMPARISON;}
 [_A-Za-z][_A-Za-z0-9]*									{yylval.node=createOneSplitNode(NAME,registerName(yytext)); return NAME;}
--?([0-9]*\.?[0-9]+|[0-9]+\.)/[^.0-9A-Za-z_]				{	if ( plIntegerFromString((plInteger**)&yylval.object,yytext,yyleng) != PL_ERROR_OK )
+-?([0-9]*\.?[0-9]+|[0-9]+\.)/[^.0-9A-Za-z_]				{	switch ( plIntegerFromString((plInteger**)&yylval.object,yytext,yyleng) )
 															{
-																yyerror("Memory allocation failure");
-																exit(1);
+																case PL_ERROR_OK:
+																return LITERAL;
+
+																case PL_ERROR_OUT_OF_MEMORY:
+																yyerror("Memory allocation error");
+																break;
+
+																case PL_ERROR_BAD_INPUT:
+																yyerror("Line %i: Invalid integer literal", yylineno);
+																break;
+
+																default:
+																break;
 															}
-															return LITERAL;
+
+															exit(1);
 														}
 0x[A-Fa-f0-9]+											{yylval.object=lexResolveHexLiteral(yytext+2,yyleng-2); return LITERAL;}
 \"[^\"]*\"												{yylval.object=lexResolveStringLiteral(yytext,yyleng); return LITERAL;}

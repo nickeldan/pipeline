@@ -13,7 +13,7 @@ plObject blankObject={.flags=PL_OBJ_TYPE_BLANK|PL_OBJ_FLAG_STATIC};
 plObject nullObject={.flags=PL_OBJ_FLAG_STATIC};
 
 static size_t objectSize(uint32_t flags) __attribute__((pure));
-static void plIntegerSafeShiftInPlace(plInteger *integer, unsigned int shift);
+static void plIntegerSafeLeftShiftInPlace(plInteger *integer, unsigned int shift);
 
 void freeObject(plObject *object) {
 	uint32_t flags;
@@ -38,7 +38,7 @@ void freeObject(plObject *object) {
 			uint32_t length;
 
 			length=array->length;
-			for (uint32_t k=0; k<length; k++) {
+			for (unsigned int k=0; k<length; k++) {
 				freeObject(array->objects[k]);
 			}
 
@@ -155,6 +155,10 @@ int plIntegerFromString(plInteger **integer, const char *string, size_t len) {
 	int ret;
 	plInteger *new;
 
+	if ( len > PL_INTEGER_MAX_DIGITS || ( string[0] == '-' && len >= PL_INTEGER_MAX_DIGITS ) ) {
+		return PL_ERROR_BAD_INPUT;
+	}
+
 	new=plIntegerNew();
 	if ( !new ) {
 		return PL_ERROR_OUT_OF_MEMORY;
@@ -162,7 +166,7 @@ int plIntegerFromString(plInteger **integer, const char *string, size_t len) {
 
 	for (size_t k=1; k<=len; k++) {
 		int digit;
-		plInteger temp={.blocks=NULL};;
+		plInteger temp;
 
 		if ( !isdigit(string[len-k]) ) {
 			if ( k == len && string[0] == '-' ) {
@@ -179,6 +183,7 @@ int plIntegerFromString(plInteger **integer, const char *string, size_t len) {
 			continue;
 		}
 
+		temp.blocks=NULL;
 		plIntegerClear(&temp);
 		temp.firstBlock=digit;
 
@@ -196,7 +201,7 @@ int plIntegerFromString(plInteger **integer, const char *string, size_t len) {
 				memcpy(temp2.blocks,temp.blocks,sizeof(uint32_t)*temp2.numExtraBlocks);
 			}
 
-			ret=plIntegerShiftInPlace(&temp,2);
+			ret=plIntegerLeftShiftInPlace(&temp,2);
 			if ( ret != PL_ERROR_OK ) {
 				free(temp2.blocks);
 				goto loop_error;
@@ -209,7 +214,7 @@ int plIntegerFromString(plInteger **integer, const char *string, size_t len) {
 			}
 		}
 
-		ret=plIntegerShiftInPlace(&temp,k-1);
+		ret=plIntegerLeftShiftInPlace(&temp,k-1);
 		if ( ret != PL_ERROR_OK ) {
 			goto loop_error;
 		}
@@ -266,14 +271,14 @@ int plIntegerAddInPlace(plInteger *original, const plInteger *summand) {
 	int ret;
 
 	ret=plIntegerQuickAddInPlace(original,summand->firstBlock,0);
-	for (size_t k=0; ret==PL_ERROR_OK && k<summand->numExtraBlocks; k++) {
+	for (unsigned int k=0; ret==PL_ERROR_OK && k<summand->numExtraBlocks; k++) {
 		ret=plIntegerQuickAddInPlace(original,summand->blocks[k],k+1);
 	}
 
 	return ret;
 }
 
-int plIntegerQuickAddInPlace(plInteger *integer, uint32_t value, uint32_t blockShift) {
+int plIntegerQuickAddInPlace(plInteger *integer, uint32_t value, uint8_t blockShift) {
 	uint64_t carry=value;
 
 	if ( blockShift == 0 ) {
@@ -317,7 +322,7 @@ int plIntegerQuickAddInPlace(plInteger *integer, uint32_t value, uint32_t blockS
 	return PL_ERROR_OK;
 }
 
-int plIntegerShiftInPlace(plInteger *integer, unsigned int shift) {
+int plIntegerLeftShiftInPlace(plInteger *integer, unsigned int shift) {
 	unsigned int remainingBits;
 	uint32_t lastBlock, newBlocks;
 	uint32_t *success;
@@ -339,7 +344,7 @@ int plIntegerShiftInPlace(plInteger *integer, unsigned int shift) {
 	remainingBits=MIN(shift,remainingBits);
 
 	if ( remainingBits > 0 ) {
-		plIntegerSafeShiftInPlace(integer,remainingBits);
+		plIntegerSafeLeftShiftInPlace(integer,remainingBits);
 
 		shift-=remainingBits;
 	}
@@ -370,7 +375,7 @@ int plIntegerShiftInPlace(plInteger *integer, unsigned int shift) {
 	}
 
 	integer->numExtraBlocks+=newBlocks;
-	plIntegerSafeShiftInPlace(integer,shift);
+	plIntegerSafeLeftShiftInPlace(integer,shift);
 
 	return PL_ERROR_OK;
 }
@@ -395,9 +400,9 @@ static size_t objectSize(uint32_t flags) {
 	}
 }
 
-static void plIntegerSafeShiftInPlace(plInteger *integer, unsigned int shift) {
+static void plIntegerSafeLeftShiftInPlace(plInteger *integer, unsigned int shift) {
 	if ( integer->numExtraBlocks > 0 ) {
-		for (uint32_t k=integer->numExtraBlocks-1; k>0; k--) {
+		for (unsigned int k=integer->numExtraBlocks-1; k>0; k--) {
 			integer->blocks[k]=( integer->blocks[k] << shift );
 			integer->blocks[k]|=( integer->blocks[k-1] >> (32-shift) );
 		}

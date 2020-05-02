@@ -89,8 +89,8 @@ void plIntegerClear(plInteger *integer);
 int plIntegerFromString(plInteger **integer, const char *string, size_t len);
 int plIntegerSmartAddInPlace(plInteger **original, const plInteger *summand);
 int plIntegerAddInPlace(plInteger *original, const plInteger *summand);
-int plIntegerQuickAddInPlace(plInteger *integer, uint32_t value, uint32_t blockShift);
-int plIntegerShiftInPlace(plInteger *integer, unsigned int shift);
+int plIntegerQuickAddInPlace(plInteger *integer, uint32_t value, uint8_t blockShift);
+int plIntegerLeftShiftInPlace(plInteger *integer, unsigned int shift);
 
 extern plObject trueObject;
 extern plObject falseObject;
