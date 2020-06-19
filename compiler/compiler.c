@@ -1,6 +1,6 @@
 #include "ast.h"
 #include "dll.h"
-#include "module.h"
+#include "plModule.h"
 #include "plError.h"
 
 static int recursivelyCompileTree(astNodePtr tree, dll *list);

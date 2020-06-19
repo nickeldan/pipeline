@@ -16,65 +16,91 @@ dllNode *createNode(int marker, void *data) {
 }
 
 int insertLeft(int marker, void *data, dll *list, dllNode *here) {
-	dllNode *new;
+	dll insertMe;
 
-	new=createNode(marker,data);
-	if ( !new ) {
+	insertMe.head=insertMe.tail=createNode(marker,data);
+	if ( !insertMe.head ) {
 		return PL_ERROR_OUT_OF_MEMORY;
 	}
 
-	if ( !list->head ) {
-		new->prev=new->next=NULL;
-		list->head=list->tail=new;
-
-		return PL_ERROR_OK;
-	}
-
-	new->prev=here->prev;
-	new->next=here;
-
-	if ( here->prev ) {
-		here->prev->next=new;
-	}
-
-	here->prev=new;
-
-	if ( list->head == here ) {
-		list->head=new;
-	}
+	insertListLeft(&insertMe,list,here);
 
 	return PL_ERROR_OK;
 }
 
-int insertRight(int marker, void *data, dll *list, dllNode *here) {
-	dllNode *new;
-
-	new=createNode(marker,data);
-	if ( !new ) {
-		return PL_ERROR_OUT_OF_MEMORY;
+void insertListLeft(dll *insertMe, dll *list, dllNode *here) {
+	if ( !insertMe->head ) {
+		return;
 	}
 
 	if ( !list->head ) {
-		new->prev=new->next=NULL;
-		list->head=list->tail=new;
+		list->head=insertMe->head;
+		list->tail=insertMe->tail;
 
-		return PL_ERROR_OK;
+		goto done;
 	}
 
-	new->next=here->next;
-	new->prev=here;
+	insertMe->head->prev=here->prev;
+	insertMe->tail->next=here;
 
-	if ( here->next ) {
-		here->next->prev=new;
+	if ( here->prev ) {
+		here->prev->next=insertMe->head;
 	}
 
-	here->next=new;
+	here->prev=insertMe->tail;
 
-	if ( list->tail == here ) {
-		list->tail=new;
+	if ( list->head == here ) {
+		list->head=insertMe->head;
 	}
+
+	done:
+
+	insertMe->head=NULL;
+	insertMe->tail=NULL;
+}
+
+int insertRight(int marker, void *data, dll *list, dllNode *here) {
+	dll insertMe;
+
+	insertMe.head=insertMe.tail=createNode(marker,data);
+	if ( !insertMe.head ) {
+		return PL_ERROR_OUT_OF_MEMORY;
+	}
+
+	insertListRight(&insertMe,list,here);
 
 	return PL_ERROR_OK;
+}
+
+void insertListRight(dll *insertMe, dll *list, dllNode *here) {
+	if ( !insertMe.head ) {
+		return;
+	}
+
+	if ( !list->head ) {
+		insertMe->head=list->head;
+		insertMe->tail=list->tail;
+
+		goto done;
+	}
+
+	insertMe->tail->next=here->next;
+	insertMe->head->prev=here;
+
+	if ( here->next ) {
+		here->next->prev=insertMe->tail;
+	}
+
+	here->next=insertMe->head;
+
+	if ( list->tail == here ) {
+		list->tail=insertMe->tail;
+	}
+
+	done:
+
+	insertMe->head=NULL;
+	insertMe->tail=NULL;
 }
 
 void deleteNode(dll *list, dllNode *here) {
