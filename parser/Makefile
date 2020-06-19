@@ -1,6 +1,6 @@
 CC := gcc
 COMPILER_FLAGS := --std=gnu99 -O3 -g -fpic
-INCLUDES := -I../util -I../pipeline 
+INCLUDES := -I../util -I../pipeline -I../compiler
 
 .PHONY: all clean
 

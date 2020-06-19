@@ -1,4 +1,5 @@
 %{
+#include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
 
@@ -6,6 +7,7 @@
 #include "marker.h"
 #include "nameTable.h"
 #include "plObject.h"
+#include "compiler.h"
 
 void yyerror(const char *message, ...);
 int yylex(void);
@@ -27,7 +29,7 @@ static astNodePtr resolveAttributes(astNodePtr object, astNodePtr attributes);
 %token <object> LITERAL
 %token <marker> TYPE COMPARISON OPERATOR_ASSIGNMENT CONTEXT
 
-%type <node> file global_content main_definition import_statement export_statement
+%type <node> file file_section global_content main_definition import_statement export_statement
 %type <node> struct_definition global_var_definition struct_field type attribute_trail moduled_name
 %type <node> source_definition pipe_definition sink_definition filter_definition local_definition
 %type <node> predicate_definition optional_name arg_list arg_element possible_assignment
@@ -52,8 +54,10 @@ static astNodePtr resolveAttributes(astNodePtr object, astNodePtr attributes);
 
 %%
 
-file: global_content {$$=$1;}
-	| file global_content {$$ = createTwoSplitNode('F',$1,$2);}
+file: file_section {compileTree($1);}
+
+file_section: global_content {$$=$1;}
+	| file_section global_content {$$ = createTwoSplitNode('F',$1,$2);}
 	;
 
 global_content: main_definition {$$=$1;}
