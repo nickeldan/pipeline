@@ -14,6 +14,10 @@ dllNode *createNode(int marker, void *data);
 
 int insertLeft(int marker, void *data, dll *list, dllNode *here);
 
+void insertListList(dll *insertMe, dll *list, dllNode *here);
+
 int insertRight(int marker, void *data, dll *list, dllNode *here);
+
+void insertRightList(dll *insertMe, dll *list, dllNode *here);
 
 void deleteNode(dll *list, dllNode *here);
