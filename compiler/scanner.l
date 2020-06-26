@@ -5,7 +5,7 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include "ast.h"
+#include "parserUtil.h"
 #include "marker.h"
 #include "nameTable.h"
 #include "plUtil.h"
@@ -69,7 +69,7 @@ main													{return MAIN;}
 "["|"]"													{return yytext[0];}
 ;+														{return ';';}
 [<>]=?|[!=]=											{yylval.marker=lexResolveComparison(yytext); return COMPARISON;}
-[_A-Za-z][_A-Za-z0-9]*									{yylval.node=createOneSplitNode(NAME,registerName(yytext)); return NAME;}
+[_A-Za-z][_A-Za-z0-9]*									{yylval.node=CR_1_NODE(NAME,registerName(yytext)); return NAME;}
 -?([0-9]*\.?[0-9]+|[0-9]+\.)/[^.0-9A-Za-z_]				{	switch ( plIntegerFromString((plInteger**)&yylval.object,yytext,yyleng) )
 															{
 																case PL_ERROR_OK:

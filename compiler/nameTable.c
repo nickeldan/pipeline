@@ -47,7 +47,7 @@ static void clearTable(void) {
 static unsigned int symbolHash(const char *name) {
 	unsigned int hash=0, c;
 
-	while ( c=*name++ ) {
+	while ( (c=*name++) ) {
 		hash*=9;
 		hash^=c;
 	}

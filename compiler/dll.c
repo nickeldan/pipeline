@@ -55,8 +55,11 @@ void insertListLeft(dll *insertMe, dll *list, dllNode *here) {
 
 	done:
 
+	list->length+=insertMe->length;
+
 	insertMe->head=NULL;
 	insertMe->tail=NULL;
+	insertMe->length=0;
 }
 
 int insertRight(int marker, void *data, dll *list, dllNode *here) {
@@ -99,8 +102,11 @@ void insertListRight(dll *insertMe, dll *list, dllNode *here) {
 
 	done:
 
+	list->length+=insertMe->length;
+
 	insertMe->head=NULL;
 	insertMe->tail=NULL;
+	insertMe->length=0;
 }
 
 void deleteNode(dll *list, dllNode *here) {
@@ -121,4 +127,21 @@ void deleteNode(dll *list, dllNode *here) {
 	}
 
 	free(here);
+	list->length--;
+}
+
+void deleteList(dll *list) {
+	dllNode *head=list->head;
+
+	while ( head ) {
+		dllNode *temp;
+
+		temp=head->next;
+		free(head);
+		head=temp;
+	}
+
+	list->head=NULL;
+	list->tail=NULL;
+	list->length=0;
 }

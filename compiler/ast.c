@@ -5,38 +5,41 @@
 #include "plObject.h"
 #include "parser.tab.h"
 
-astNodePtr createZeroSplitNode(int nodeType) {
+astNodePtr createZeroSplitNode(int lineno, int nodeType) {
 	astZeroSplitNode *node;
 
 	node=malloc(sizeof(astZeroSplitNode));
 	if ( !node ) {
 		ERROR_QUIT("Failed to allocate %zu bytes", sizeof(astZeroSplitNode));
 	}
+	node->lineno=lineno;
 	node->nodeType=nodeType;
 
-	return node;
+	return (astNodePtr)node;
 }
 
-astNodePtr createOneSplitNode(int nodeType, void *first) {
+astNodePtr createOneSplitNode(int lineno, int nodeType, void *first) {
 	astOneSplitNode *node;
 
 	node=malloc(sizeof(astOneSplitNode));
 	if ( !node ) {
 		ERROR_QUIT("Failed to allocate %zu bytes", sizeof(astOneSplitNode));
 	}
+	node->lineno=lineno;
 	node->nodeType=nodeType;
 	node->first=first;
 
 	return (astNodePtr)node;
 }
 
-astNodePtr createTwoSplitNode(int nodeType, void *first, void *second) {
+astNodePtr createTwoSplitNode(int lineno, int nodeType, void *first, void *second) {
 	astTwoSplitNode *node;
 
 	node=malloc(sizeof(astTwoSplitNode));
 	if ( !node ) {
 		ERROR_QUIT("Failed to allocate %zu bytes", sizeof(astTwoSplitNode));
 	}
+	node->lineno=lineno;
 	node->nodeType=nodeType;
 	node->first=first;
 	node->second=second;
@@ -44,13 +47,14 @@ astNodePtr createTwoSplitNode(int nodeType, void *first, void *second) {
 	return (astNodePtr)node;
 }
 
-astNodePtr createThreeSplitNode(int nodeType, void *first, void *second, void *third) {
+astNodePtr createThreeSplitNode(int lineno, int nodeType, void *first, void *second, void *third) {
 	astThreeSplitNode *node;
 
 	node=malloc(sizeof(astThreeSplitNode));
 	if ( !node ) {
 		ERROR_QUIT("Failed to allocate %zu bytes", sizeof(astThreeSplitNode));
 	}
+	node->lineno=lineno;
 	node->nodeType=nodeType;
 	node->first=first;
 	node->second=second;
@@ -59,13 +63,14 @@ astNodePtr createThreeSplitNode(int nodeType, void *first, void *second, void *t
 	return (astNodePtr)node;
 }
 
-astNodePtr createFourSplitNode(int nodeType, void *first, void *second, void *third, void *fourth) {
+astNodePtr createFourSplitNode(int lineno, int nodeType, void *first, void *second, void *third, void *fourth) {
 	astFourSplitNode *node;
 
 	node=malloc(sizeof(astFourSplitNode));
 	if ( !node ) {
 		ERROR_QUIT("Failed to allocate %zu bytes", sizeof(astFourSplitNode));
 	}
+	node->lineno=lineno;
 	node->nodeType=nodeType;
 	node->first=first;
 	node->second=second;
@@ -76,45 +81,48 @@ astNodePtr createFourSplitNode(int nodeType, void *first, void *second, void *th
 }
 
 void freeAstTree(astNodePtr root) {
-	astAllNodePtr all;
-
-	if ( !root ) {
+	if ( root->nodeType == LITERAL ) {
+		freeObject((plObject*)root->first);
 		return;
 	}
 
-	all=(astAllNodePtr)root;
+	switch ( nodeSplitSize(root->nodeType) ) {
+		case 4:
+		freeAstTree(root->fourth);
+		// Intentional fall-through
 
-	switch ( root->nodeType ) {
-		case LITERAL:
-		freeObject((plObject*)all->first);
+		case 3:
+		freeAstTree(root->third);
+		// Intentional fall-through
+
+		case 2:
+		freeAstTree(root->second);
+		// Intentional fall-through
+
+		case 1:
+		freeAstTree(root->first);
 		break;
 
+		default:
+		break;
+	}
+
+	free(root);
+}
+
+int nodeSplitSize(int nodeType) {
+	switch ( nodeType ) {
+		case LITERAL:
 		case NAME:
+		return -1;
+
 		case TYPE:
 		case DROP:
 		case END:
 		case CONT:
 		case BREAK:
 		case CONTEXT:
-		break;
-
-		case SOURCE:
-		case PIPE:
-		case PREDICATE:
-		case IF:
-		freeAstTree(all->fourth);
-		// Intentional fall-through.
-
-		case SINK:
-		case FILTER:
-		case EIF:
-		case 'A':
-		freeAstTree(all->third);
-		// Intentional fall-through.
-
-		default:
-		freeAstTree(all->second);
-		// Intentional fall-through.
+		return 0;
 
 		case PROD:
 		case ABORT:
@@ -124,9 +132,21 @@ void freeAstTree(astNodePtr root) {
 		case EXPORT:
 		case NOT:
 		case 'L':
-		freeAstTree(all->first);
-		break;
-	}
+		return 1;
 
-	free(root);
+		default:
+		return 2;
+
+		case SINK:
+		case FILTER:
+		case EIF:
+		case 'A':
+		return 3;
+
+		case SOURCE:
+		case PIPE:
+		case PREDICATE:
+		case IF:
+		return 4;
+	}
 }

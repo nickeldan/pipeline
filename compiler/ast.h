@@ -5,7 +5,8 @@
 
 #define AST_NODE_HEADER \
 	int nodeType; \
-	int marker;
+	int marker; \
+	int lineno;
 
 /*
 	Non-obvious nodetypes:
@@ -17,11 +18,13 @@
 	L: ARRAY_LITERAL
 */
 
+struct astFourSplitNode;
+
+typedef struct astFourSplitNode *astNodePtr;
+
 typedef struct astZeroSplitNode {
 	AST_NODE_HEADER
 } astZeroSplitNode;
-
-typedef astZeroSplitNode *astNodePtr;
 
 typedef struct astOneSplitNode {
 	AST_NODE_HEADER
@@ -43,13 +46,12 @@ typedef struct astFourSplitNode {
 	astNodePtr first, second, third, fourth;
 } astFourSplitNode;
 
-typedef astFourSplitNode *astAllNodePtr;
-
-astNodePtr createZeroSplitNode(int nodeType);
-astNodePtr createOneSplitNode(int nodeType, void *first);
-astNodePtr createTwoSplitNode(int nodeType, void *first, void *second);
-astNodePtr createThreeSplitNode(int nodeType, void *first, void *second, void *third);
-astNodePtr createFourSplitNode(int nodeType, void *first, void *second, void *third, void *fourth);
+astNodePtr createZeroSplitNode(int lineno, int nodeType);
+astNodePtr createOneSplitNode(int lineno, int nodeType, void *first);
+astNodePtr createTwoSplitNode(int lineno, int nodeType, void *first, void *second);
+astNodePtr createThreeSplitNode(int lineno, int nodeType, void *first, void *second, void *third);
+astNodePtr createFourSplitNode(int lineno, int nodeType, void *first, void *second, void *third, void *fourth);
 void freeAstTree(astNodePtr root);
+int nodeSplitSize(int nodeType) __attribute__ ((pure));
 
 #endif // __PIPELINE_AST_H__
