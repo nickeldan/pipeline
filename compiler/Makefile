@@ -4,9 +4,9 @@ INCLUDES := -I../util -I../pipeline
 
 .PHONY: all clean
 
-all: plParser.so
+all: libplparser.so
 
-plParser.so: scanner.o nameTable.o ast.o parser.tab.o
+libplparser.so: scanner.o nameTable.o ast.o parser.tab.o
 	$(CC) -shared -o $@ $^
 
 scanner.o: scanner.c parser.tab.h ast.h marker.h ../util/plUtil.h ../util/plError.h ../pipeline/plObject.h
@@ -28,4 +28,4 @@ parser.tab.h parser.tab.c: parser.y
 	bison -dv $<
 
 clean:
-	rm -f scanner.c parser.tab.h parser.tab.c parser.output *.o plParser.so
+	rm -f scanner.c parser.tab.h parser.tab.c parser.output *.o libplparser.so
