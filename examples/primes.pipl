@@ -39,7 +39,7 @@ source factor(n:Int) -> Int {
 		}
 		if recompute {x -> math.sqrt -> s;}
 		if i > s {end;}
-	}
+	};
 	if x > 1 {prod x;}
 }
 
@@ -58,7 +58,7 @@ pipe isPrime(n:Int) -> Bool {
 main {
 	verify (1 -> os.argv -> int -> start);
 	verify (2 -> os.argv -> int -> finish);
-	icount(start,finish) -> isPrime.filter -> doCount.detour:numPrimes -> doPrintLn;
+	icount(start,finish) -> isPrime.asFilter -> doCount.detour:numPrimes -> doPrintLn;
 	("There were ", numPrimes, " primes found.\n") -> doPrint;
 
 	prod 0;

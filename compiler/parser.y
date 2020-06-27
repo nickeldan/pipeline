@@ -7,13 +7,17 @@
 #include "marker.h"
 #include "nameTable.h"
 #include "plObject.h"
-#include "compiler.h"
 
 void yyerror(const char *message, ...);
 int yylex(void);
 
 static astNodePtr resolveAttributes(astNodePtr object, astNodePtr attributes);
+
+astNodePtr programTree;
 %}
+
+%define parse.error verbose
+%define parse.lac full
 
 %union {
 	astNodePtr node;
@@ -52,9 +56,11 @@ static astNodePtr resolveAttributes(astNodePtr object, astNodePtr attributes);
 %nonassoc '['
 %left '.'
 
+%start file
+
 %%
 
-file: file_section {compileTree($1);}
+file: file_section {programTree=$1;}
 	;
 
 file_section: global_content {$$=$1;}
@@ -286,7 +292,9 @@ void yyerror(const char *format, ...) {
 	va_list args;
 
 	va_start(args,format);
+	fprintf(stderr,"Parsing error (on line %i): ", yylineno);
 	vfprintf(stderr,format,args);
+	fprintf(stderr,"\n");
 	va_end(args);
 }
 
