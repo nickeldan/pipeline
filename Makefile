@@ -12,14 +12,8 @@ parser_check: parser_check.o compiler/libplcompiler.a pipeline/libplobject.a uti
 parser_check.o: parser_check.c pipeline/plObject.h compiler/ast.h compiler/parser.tab.h
 	$(CC) $(COMPILER_FLAGS) $(INCLUDE_DIRS) -c $<
 
-compiler/libplcompiler.a compiler/parser.tab.h:
-	cd compiler && make
-
-pipeline/libplobject.a:
-	cd pipeline && make
-
-util/libplutil.a:
-	cd util && make
+compiler/libplcompiler.a compiler/parser.tab.h pipeline/libplobject.a util/libplutil.a:
+	cd $(dir $@) && make $(notdir $@)
 
 clean:
 	rm -f parser_check parser_check.o
