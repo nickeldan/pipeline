@@ -17,3 +17,6 @@ compiler/libplcompiler.a compiler/parser.tab.h pipeline/libplobject.a util/libpl
 
 clean:
 	rm -f parser_check parser_check.o
+	cd compiler && make clean
+	cd pipeline && make clean
+	cd util && make clean

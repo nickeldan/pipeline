@@ -1,91 +1,97 @@
 #include <stdlib.h>
+#include <stdarg.h>
+#include <sys/types.h>
 
 #include "ast.h"
 #include "plUtil.h"
 #include "plObject.h"
 #include "parser.tab.h"
 
-astNodePtr createZeroSplitNode(int lineno, int nodeType) {
-	astZeroSplitNode *node;
+struct astZeroSplitNode {
+	AST_NODE_HEADER
+};
 
-	node=malloc(sizeof(astZeroSplitNode));
-	if ( !node ) {
-		ERROR_QUIT("Failed to allocate %zu bytes", sizeof(astZeroSplitNode));
+struct astOneSplitNode {
+	AST_NODE_HEADER
+	astNodePtr first;
+};
+
+struct astTwoSplitNode {
+	AST_NODE_HEADER
+	astNodePtr first;
+	astNodePtr second;
+};
+
+struct astThreeSplitNode {
+	AST_NODE_HEADER
+	astNodePtr first;
+	astNodePtr second;
+	astNodePtr third;
+};
+
+astNodePtr createNode(int lineno, int nodeType, ...) {
+	astNodePtr node;
+	int splitSize;
+	size_t size;
+	va_list args;
+
+	splitSize=nodeSplitSize(nodeType);
+
+	switch ( splitSize ) {
+		default:
+		size=sizeof(struct astZeroSplitNode);
+		break;
+
+		case -1:
+		case 1:
+		size=sizeof(struct astOneSplitNode);
+		break;
+
+		case 2:
+		size=sizeof(struct astTwoSplitNode);
+		break;
+
+		case 3:
+		size=sizeof(struct astThreeSplitNode);
+		break;
+
+		case 4:
+		size=sizeof(struct astFourSplitNode);
+		break;
 	}
+
+	node=malloc(size);
+	if ( !node ) {
+		ERROR_QUIT("Failed to allocate %zu bytes", size);
+	}
+
 	node->lineno=lineno;
 	node->nodeType=nodeType;
 
-	return (astNodePtr)node;
-}
-
-astNodePtr createOneSplitNode(int lineno, int nodeType, void *first) {
-	astOneSplitNode *node;
-
-	node=malloc(sizeof(astOneSplitNode));
-	if ( !node ) {
-		ERROR_QUIT("Failed to allocate %zu bytes", sizeof(astOneSplitNode));
+	if ( splitSize == 0 ) {
+		return node;
 	}
-	node->lineno=lineno;
-	node->nodeType=nodeType;
-	node->first=first;
 
-	return (astNodePtr)node;
-}
-
-astNodePtr createTwoSplitNode(int lineno, int nodeType, void *first, void *second) {
-	astTwoSplitNode *node;
-
-	node=malloc(sizeof(astTwoSplitNode));
-	if ( !node ) {
-		ERROR_QUIT("Failed to allocate %zu bytes", sizeof(astTwoSplitNode));
+	va_start(args,nodeType);
+	if ( splitSize == -1 ) {
+		node->first=va_arg(args,astNodePtr);
 	}
-	node->lineno=lineno;
-	node->nodeType=nodeType;
-	node->first=first;
-	node->second=second;
+	else {
+		astNodePtr *branch;
 
-	return (astNodePtr)node;
-}
-
-astNodePtr createThreeSplitNode(int lineno, int nodeType, void *first, void *second, void *third) {
-	astThreeSplitNode *node;
-
-	node=malloc(sizeof(astThreeSplitNode));
-	if ( !node ) {
-		ERROR_QUIT("Failed to allocate %zu bytes", sizeof(astThreeSplitNode));
+		branch=&node->first;
+		for (int k=0; k<splitSize; k++) {
+			*branch=va_arg(args,astNodePtr);
+			(*branch)->parent=node;
+			branch++;
+		}
 	}
-	node->lineno=lineno;
-	node->nodeType=nodeType;
-	node->first=first;
-	node->second=second;
-	node->third=third;
+	va_end(args);
 
-	return (astNodePtr)node;
-}
-
-astNodePtr createFourSplitNode(int lineno, int nodeType, void *first, void *second, void *third, void *fourth) {
-	astFourSplitNode *node;
-
-	node=malloc(sizeof(astFourSplitNode));
-	if ( !node ) {
-		ERROR_QUIT("Failed to allocate %zu bytes", sizeof(astFourSplitNode));
-	}
-	node->lineno=lineno;
-	node->nodeType=nodeType;
-	node->first=first;
-	node->second=second;
-	node->third=third;
-	node->fourth=fourth;
-
-	return (astNodePtr)node;
+	return node;
 }
 
 void freeAstTree(astNodePtr root) {
-	if ( root->nodeType == LITERAL ) {
-		freeObject((plObject*)root->first);
-		return;
-	}
-
 	switch ( nodeSplitSize(root->nodeType) ) {
 		case 4:
 		freeAstTree(root->fourth);
@@ -104,6 +110,9 @@ void freeAstTree(astNodePtr root) {
 		break;
 
 		default:
+		if ( root->nodeType == LITERAL ) {
+			freeObject((plObject*)root->first);
+		}
 		break;
 	}
 

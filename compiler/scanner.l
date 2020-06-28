@@ -69,7 +69,7 @@ main													{return MAIN;}
 "["|"]"													{return yytext[0];}
 ;+														{return ';';}
 [<>]=?|[!=]=											{yylval.marker=lexResolveComparison(yytext); return COMPARISON;}
-[_A-Za-z][_A-Za-z0-9]*									{yylval.node=CR_1_NODE(NAME,registerName(yytext)); return NAME;}
+[_A-Za-z][_A-Za-z0-9]*									{yylval.node=NODE(NAME,registerName(yytext)); return NAME;}
 -?([0-9]*\.?[0-9]+|[0-9]+\.)/[^.0-9A-Za-z_]				{	switch ( plIntegerFromString((plInteger**)&yylval.object,yytext,yyleng) )
 															{
 																case PL_ERROR_OK:

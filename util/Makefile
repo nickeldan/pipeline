@@ -1,5 +1,5 @@
 CC := gcc
-COMPILER_FLAGS := --std=gnu99 -O3 -g -fpic
+COMPILER_FLAGS := -std=gnu99 -O3 -g -fpic
 
 LIB_NAME :=libplutil
 
