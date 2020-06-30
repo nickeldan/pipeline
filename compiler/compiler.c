@@ -4,7 +4,7 @@
 #include <sys/types.h>
 
 #include "ast.h"
-#include "dll.h"
+#include "codeBlock.h"
 #include "plObject.h"
 #include "plModule.h"
 #include "plError.h"
@@ -19,13 +19,13 @@ typedef struct contextStack {
 
 typedef struct compilationContext {
 	plModule module;
-	dll statementList;
+	codeBlock block;
 	contextStack stack;
 } compilationContext;
 
-typedef uint16_t refFlags_t;
+typedef uint32_t refFlags_t;
 
-#define VAR_REF_ANY 0x00ff
+#define VAR_REF_ANY 0x000000ff
 #define VAR_REF_NULL PL_OBJ_TYPE_NULL
 #define VAR_REF_INT PL_OBJ_TYPE_INT
 #define VAR_REF_FLOAT PL_OBJ_TYPE_FLOAT
@@ -38,20 +38,20 @@ typedef uint16_t refFlags_t;
 #define VAR_REF_BYTE_ARRAY PL_OBJ_TYPE_BYTE_ARRAY
 #define VAR_REF_BLANK PL_OBJ_TYPE_BLANK
 
-#define VAR_REF_NOT_OBJECT 0xff00
-#define VAR_REF_MODULE 0x0100
-#define VAR_REF_SOURCE 0x0200
-#define VAR_REF_PIPE 0x0400
-#define VAR_REF_SINK 0x0800
-#define VAR_REF_FILTER 0x1000
-#define VAR_REF_PREDICATE 0x2000
-#define VAR_REF_STRUCT_DEF 0x4000
-#define VAR_REF_UNRESOLVED 0x8000
+#define VAR_REF_NOT_OBJECT 0x0000ff00
+#define VAR_REF_MODULE 0x00000100
+#define VAR_REF_SOURCE 0x00000200
+#define VAR_REF_PIPE 0x00000400
+#define VAR_REF_SINK 0x00000800
+#define VAR_REF_FILTER 0x00001000
+#define VAR_REF_PREDICATE 0x00002000
+#define VAR_REF_STRUCT_TYPE 0x00004000
+#define VAR_REF_CONSTANT 0x00010000
 
 typedef struct variableReferenceType {
+	refFlags_t flags;
 	plModuleId_t moduleId;
 	plStructId_t structId;
-	refFlags_t flags;
 } variableReferenceType;
 
 typedef struct argumentSignature {
@@ -79,15 +79,18 @@ typedef struct variableReference {
 	variableReferenceType type;
 } variableReference;
 
-static int recursivelyCompileTree(astNodePtr tree, compilationContext *ctx);
+static int recursivelyCompileTree(const astNodePtr tree, compilationContext *ctx);
 static void pushContextToStack(int nodeType, contextStack *stack);
 static int popContextFromStack(contextStack *stack);
+static int compileStatementList(const astNodePtr tree, compilationContext *ctx, codeBlock *block);
 static void resolveReference(const astNodePtr node, const compilationContext *ctx, variableReference *ref);
-static int moduleAddMain(plModule *module, dll *statementList);
+static int moduleAddMain(plModule *module, codeBlock *block);
 static int moduleAddImport(plModule *module, const char *name);
 static int moduleAddExport(plModule *module, const char *name);
 static int compileStructDefinition(astNodePtr tree, plModule *module);
 static int compileFunction(astNodePtr tree, compilationContext *ctx);
+static int resolveCompilationLiteral(const astNodePtr tree, plObject **object);
+static int moduleAddGlobalLiteral(plModule *module, plObject *object, const char *name);
 
 void compileTree(astNodePtr tree) {
 	int ret;
@@ -101,8 +104,9 @@ void compileTree(astNodePtr tree) {
 
 }
 
-static int recursivelyCompileTree(astNodePtr tree, compilationContext *ctx) {
+static int recursivelyCompileTree(const astNodePtr tree, compilationContext *ctx) {
 	int ret, nodeType;
+	plObject *object;
 
 	if ( !tree ) {
 		return PL_ERROR_OK;
@@ -112,18 +116,24 @@ static int recursivelyCompileTree(astNodePtr tree, compilationContext *ctx) {
 		case 'F':
 		ret=recursivelyCompileTree(tree->first,ctx);
 		tree->first=NULL;
-		if ( ret == PL_ERROR_OK ) {
-			ret=recursivelyCompileTree(tree->second,ctx);
-			tree->second=NULL;
+		if ( ret != PL_ERROR_OK ) {
+			goto done;
 		}
+		ret=recursivelyCompileTree(tree->second,ctx);
+		tree->second=NULL;
 		break;
 
 		case MAIN:
-		ret=recursivelyCompileTree(tree->first,ctx);
-		if ( ret == PL_ERROR_OK ) {
-			ret=moduleAddMain(tree->first,&ctx->statementList);
-			deleteList(&ctx->statementList);
+		ret=pushContextToStack(MAIN,&ctx->stack);
+		if ( ret != PL_ERROR_OK ) {
+			goto done;
 		}
+		ret=compileStatementList(tree->first,ctx,&ctx->block);
+		if ( ret != PL_ERROR_OK ) {
+			goto done;
+		}
+		ret=moduleAddMain(tree->first,&ctx->block);
+		freeCodeBlock(&ctx->block);
 		break;
 
 		case IMPORT:
@@ -147,10 +157,21 @@ static int recursivelyCompileTree(astNodePtr tree, compilationContext *ctx) {
 		ret=compileFunction(tree,ctx);
 		break;
 
-		
+		case 'G':
+		ret=resolveCompilationLiteral(tree->first,&object);
+		if ( ret != PL_ERROR_OK ) {
+			goto done;
+		}
+		ret=moduleAddGlobalLiteral(&ctx->module,object,(const char*)tree->second);
+		if ( ret != PL_ERROR_OK ) {
+			freeObject(object);
+		}
+		break;
+
 	}
 
-	freeAstTree(tree);
+	done:
+
 	return ret;
 }
 
@@ -177,11 +198,15 @@ static int popContextFromStack(contextStack *stack) {
 	return stack->values[--stack->length];
 }
 
+static int compileStatementList(const astNodePtr tree, compilationContext *ctx, codeBlock *block) {
+
+}
+
 static void resolveReference(const astNodePtr node, const compilationContext *ctx, variableReference *ref) {
 
 }
 
-static int moduleAddMain(plModule *module, dll *statementList) {
+static int moduleAddMain(plModule *module, codeBlock *block) {
 
 }
 
@@ -198,5 +223,13 @@ static int compileStructDefinition(astNodePtr tree, plModule *module) {
 }
 
 static int compileFunction(astNodePtr tree, compilationContext *ctx) {
+
+}
+
+static int resolveCompilationLiteral(const astNodePtr tree, plObject **object) {
+
+}
+
+static int moduleAddGlobalLiteral(plModule *module, plObject *object, const char *name) {
 
 }

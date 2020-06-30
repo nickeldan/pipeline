@@ -67,6 +67,7 @@ astNodePtr createNode(int lineno, int nodeType, ...) {
 
 	node->lineno=lineno;
 	node->nodeType=nodeType;
+	node->parent=NULL;
 
 	if ( splitSize == 0 ) {
 		return node;
