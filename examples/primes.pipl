@@ -30,7 +30,7 @@ source forever(start:Int, step:Int=1) -> Int {
 
 source factor(n:Int) -> Int {
 	verify (n -> x -> math.sqrt -> s);
-	(2, forever(3,2)) -> local (i:Int) {
+	(2, forever(3,step=2)) -> local (i:Int) {
 		false -> recompute;
 		while x%i == 0 {
 			prod i;

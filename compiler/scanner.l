@@ -28,7 +28,6 @@ source													{return SOURCE;}
 pipe													{return PIPE;}
 sink													{return SINK;}
 filter													{return FILTER;}
-predicate												{return PREDICATE;}
 struct													{return STRUCT;}
 prod													{return PROD;}
 drop													{return DROP;}
@@ -76,11 +75,11 @@ main													{return MAIN;}
 																return LITERAL;
 
 																case PL_ERROR_OUT_OF_MEMORY:
-																yyerror("Memory allocation error");
+																yyerror("Memory allocation error on line %i", yylineno);
 																break;
 
 																case PL_ERROR_BAD_INPUT:
-																yyerror("Line %i: Invalid integer literal", yylineno);
+																yyerror("Lexical error on line %i: Invalid integer literal", yylineno);
 																break;
 
 																default:
