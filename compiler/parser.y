@@ -36,7 +36,7 @@ astNodePtr programTree;
 %type <node> file file_section global_content main_definition import_statement export_statement
 %type <node> struct_definition global_var_definition struct_field type attribute_trail moduled_name
 %type <node> source_definition pipe_definition sink_definition filter_definition local_definition
-%type <node> predicate_definition optional_name arg_list arg_element possible_assignment
+%type <node> predicate_definition optional_name possible_arg_list arg_list arg_element single_argument
 %type <node> compilation_expression compilation_array_literal compilation_array_element
 %type <node> expression array_literal array_element
 %type <node> statement_list actual_statement_list general_statement if_section eif_section else_section while_section
@@ -91,8 +91,8 @@ export_statement: EXPORT NAME ';' {$$=NODE(EXPORT,$2);}
 struct_definition: STRUCT NAME '{' struct_field '}' {$$=NODE(STRUCT,$2,$4);}
 	;
 
-struct_field: NAME ':' type {$$=NODE(':',$1,$3);}
-	| struct_field ',' NAME ':' type {$$=NODE(',',$1,NODE(':',$3,$5));}
+struct_field: single_argument {$$=$1;}
+	| struct_field ',' single_argument {$$=NODE(',',$1,$3);}
 	;
 
 type: TYPE {$$=NODE(TYPE); $$->marker=$1;}
@@ -106,41 +106,45 @@ attribute_trail: {$$=NULL;}
 	| attribute_trail '.' NAME {$$=$1? NODE('.',$1,$3) : $3;}
 	;
 
-source_definition: SOURCE optional_name '(' arg_list ')' ARROW type '{' statement_list '}' {$$=NODE(SOURCE,$2,$4,$7,$9);}
+source_definition: SOURCE optional_name '(' possible_arg_list ')' ARROW type '{' statement_list '}' {$$=NODE(SOURCE,$2,$4,$7,$9);}
 	;
 
-pipe_definition: PIPE optional_name '(' arg_list ')' ARROW type '{' statement_list '}' {$$=NODE(PIPE,$2,$4,$7,$9);}
+pipe_definition: PIPE optional_name '(' single_argument ')' ARROW type '{' statement_list '}' {$$=NODE(PIPE,$2,$4,$7,$9);}
 	;
 
-sink_definition: SINK optional_name '(' arg_list ')' '{' statement_list '}' {$$=NODE(SINK,$2,$4,$7);}
+sink_definition: SINK optional_name '(' single_argument ')' '{' statement_list '}' {$$=NODE(SINK,$2,$4,$7);}
 	;
 
-local_definition: LOCAL '(' arg_list ')' '{' statement_list '}' {$$=NODE(LOCAL,$3,$6);}
+local_definition: LOCAL '(' single_argument ')' '{' statement_list '}' {$$=NODE(LOCAL,$3,$6);}
 	;
 
-filter_definition: FILTER optional_name '(' arg_list ')' '{' statement_list '}' {$$=NODE(FILTER,$2,$4,$7);}
+filter_definition: FILTER optional_name '(' single_argument ')' '{' statement_list '}' {$$=NODE(FILTER,$2,$4,$7);}
 	;
 
-predicate_definition: PREDICATE NAME '(' NAME ':' type ')' '{' statement_list '}' {$$=NODE(PREDICATE,$2,$4,$6,$9);}
+predicate_definition: PREDICATE NAME '(' single_argument ')' '{' statement_list '}' {$$=NODE(PREDICATE,$2,$4,$8);}
 	;
 
-global_var_definition: compilation_expression ARROW NAME ';' {$$=NODE('G',$1,$3);}
+global_var_definition: compilation_expression ARROW NAME ';' {$$=NODE(ARROW,$1,$3);}
 	;
 
 optional_name: {$$=NULL;}
 	| NAME {$$=$1;}
 	;
 
-arg_list: {$$=NULL;}
-	| arg_element {$$=$1;}
+possible_arg_list: {$$=NULL;}
+	| arg_list {$$=$1;}
 	;
 
-arg_element: NAME ':' type possible_assignment {$$=NODE('A',$1,$3,$4);}
-	| arg_element ',' NAME ':' type possible_assignment {$$=NODE(',',$1,NODE('A',$3,$5,$6));}
+arg_list: arg_element {$$=$1;}
+	| arg_list ',' arg_element {$$=NODE(',',$1,$3);}
 	;
 
-possible_assignment: {$$=NULL;}
-	| '=' compilation_expression {$$=$2;}
+arg_element: single_argument {$$=$1;}
+	| single_argument '=' compilation_expression {$$=NODE('=',$1,$3);}
+	;
+}
+
+single_argument: NAME ':' type {$$=NODE(':',$1,$3);}
 	;
 
 compilation_expression: moduled_name {$$=$1;}
@@ -256,6 +260,9 @@ statement: PROD expression {$$=NODE(PROD,$2);}
 	| NAME AS type {$$=NODE(AS,$1,$3);}
 	| expression OPERATOR_ASSIGNMENT expression {$$=NODE(OPERATOR_ASSIGNMENT,$1,$3); $$->marker=$2;}
 	| arrow_statement {$$=$1;}
+	| source_definition {$$=$1;}
+	| pipe_definition {$$=$1;}
+	| sink_definition {$$=$1;}
 	;
 
 arrow_statement: arrow_sender ARROW arrow_receiver {$$=NODE(ARROW,$1,$3);}

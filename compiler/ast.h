@@ -5,9 +5,7 @@
 	Non-obvious nodetypes:
 
 	F: FILE
-	A: ARG_FORMAT
 	C: FUNCTION_CALL
-	G: GLOBAL
 	L: ARRAY_LITERAL
 */
 

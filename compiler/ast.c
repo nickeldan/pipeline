@@ -148,14 +148,13 @@ int nodeSplitSize(int nodeType) {
 		return 2;
 
 		case SINK:
+		case PREDICATE:
 		case FILTER:
 		case EIF:
-		case 'A':
 		return 3;
 
 		case SOURCE:
 		case PIPE:
-		case PREDICATE:
 		case IF:
 		return 4;
 	}
