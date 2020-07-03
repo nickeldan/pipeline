@@ -121,7 +121,7 @@ local_definition: LOCAL '(' single_argument ')' '{' statement_list '}' {$$=NODE(
 filter_definition: FILTER optional_name '(' single_argument ')' '{' statement_list '}' {$$=NODE(FILTER,$2,$4,$7);}
 	;
 
-predicate_definition: PREDICATE NAME '(' single_argument ')' '{' statement_list '}' {$$=NODE(PREDICATE,$2,$4,$8);}
+predicate_definition: PREDICATE NAME '(' single_argument ')' '{' statement_list '}' {$$=NODE(PREDICATE,$2,$4,$7);}
 	;
 
 global_var_definition: compilation_expression ARROW NAME ';' {$$=NODE(ARROW,$1,$3);}
@@ -142,7 +142,6 @@ arg_list: arg_element {$$=$1;}
 arg_element: single_argument {$$=$1;}
 	| single_argument '=' compilation_expression {$$=NODE('=',$1,$3);}
 	;
-}
 
 single_argument: NAME ':' type {$$=NODE(':',$1,$3);}
 	;
