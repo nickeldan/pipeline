@@ -64,7 +64,7 @@ file: file_section {programTree=$1;}
 	;
 
 file_section: global_content {$$=$1;}
-	| file_section global_content {$$ = NODE('F',$1,$2);}
+	| file_section global_content {$$ = NODE(';',$1,$2);}
 	;
 
 global_content: main_definition {$$=$1;}
@@ -298,11 +298,11 @@ arrow_receiver_item: moduled_name {$$=$1;}
 void yyerror(const char *format, ...) {
 	va_list args;
 
+	fprintf(stderr,"Syntax error on line %i: ", yylineno);
 	va_start(args,format);
-	fprintf(stderr,"Parsing error (on line %i): ", yylineno);
 	vfprintf(stderr,format,args);
-	fprintf(stderr,"\n");
 	va_end(args);
+	fprintf(stderr,"\n");
 }
 
 static astNodePtr resolveAttributes(astNodePtr object, astNodePtr attributes) {

@@ -4,7 +4,6 @@
 /*
 	Non-obvious nodetypes:
 
-	F: FILE
 	C: FUNCTION_CALL
 	L: ARRAY_LITERAL
 */
