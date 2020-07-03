@@ -19,6 +19,7 @@ extern int yylineno;
 static plObject *lexResolveSimpleLiteral(char firstChar) __attribute__((pure));
 static plObject *lexResolveHexLiteral(const char *text, size_t len);
 static plObject *lexResolveStringLiteral(const char *text, size_t len);
+static int lexResolveContext(const char *text, size_t len);
 static int lexResolveComparison(const char *text);
 %}
 
@@ -56,7 +57,7 @@ as														{return AS;}
 import													{return IMPORT;}
 export													{return EXPORT;}
 main													{return MAIN;}
-\?STORE/[^_A-Za-z0-9]									{yylval.marker=PL_MARKER_CONTEXT_STORE; return CONTEXT;}
+\?[A-Z]+/[^_a-z0-9]										{yylval.marker=lexResolveContext(yytext+1,yyleng-1); return CONTEXT;}
 "->"													{return ARROW;}
 [-+*/%^&|]/[^=]											{return yytext[0];}
 "<<"/[^=]												{return LSHIFT;}
@@ -79,7 +80,7 @@ main													{return MAIN;}
 																break;
 
 																case PL_ERROR_BAD_INPUT:
-																yyerror("Lexical error on line %i: Invalid integer literal", yylineno);
+																yyerror("Lexical error on line %i: Invalid integer literal: %s", yylineno, yytext);
 																break;
 
 																default:
@@ -88,13 +89,13 @@ main													{return MAIN;}
 
 															exit(1);
 														}
-0x[A-Fa-f0-9]+											{yylval.object=lexResolveHexLiteral(yytext+2,yyleng-2); return LITERAL;}
+-?0x[A-Fa-f0-9]+/[^_G-Zg-z]								{yylval.object=lexResolveHexLiteral(yytext,yyleng); return LITERAL;}
 \"[^\"]*\"												{yylval.object=lexResolveStringLiteral(yytext,yyleng); return LITERAL;}
 [ \t]+													{}
 "//".*													{}
 "/*"([^*]|[\r\n]|\*[^/]?)*"*/"							{}
 [\r\n]+													{}
-.														{yyerror("Line %i: Invalid input: %s\n", yylineno, yytext);}
+.														{yyerror("Lexical error on line %i: Invalid input: %s\n", yylineno, yytext);}
 
 %%
 
@@ -122,14 +123,24 @@ static plObject *lexResolveHexLiteral(const char *text, size_t len) {
 
 	integer=plIntegerNew();
 	if ( !integer ) {
-		ERROR_QUIT("Line %i: Failed to allocate %zu bytes", yylineno, sizeof(plInteger));
+		ERROR_QUIT("Memory allocation error on line %i: Failed to allocate %zu bytes", yylineno, sizeof(plInteger));
+	}
+
+	if ( text[0] == '-' ) {
+		integer->flags|=PL_OBJ_FLAG_NEGATIVE;
+		text+=3;
+		len-=3;
+	}
+	else {
+		text+=2;
+		len-=2;
 	}
 
 	if ( len > 4 ) {
 		numExtraBlocks=((len-4)+3)/4;
 		if ( numExtraBlocks > 255 ) {
 			free(integer);
-			ERROR_QUIT("Line %i: Hex string is too long (%zu characters)", yylineno, len);
+			ERROR_QUIT("Lexical error on line %i: Hex string is too long (%zu characters)", yylineno, len);
 		}
 		integer->numExtraBlocks=numExtraBlocks;
 		integer->blocks=SAFE_MALLOC(sizeof(uint32_t)*numExtraBlocks);
@@ -174,11 +185,26 @@ static plObject *lexResolveStringLiteral(const char *text, size_t len) {
 	return (plObject*)array;
 }
 
+static int lexResolveContext(const char *text, size_t len) {
+	if ( strncmp(text,"STORE",len) == 0 ) {
+		return PL_MARKER_CONTEXT_STORE;
+	}
+	else if ( strncmp(text,"FILE",len) == 0 ) {
+		return PL_MARKER_CONTEXT_FILE;
+	}
+	else if ( strncmp(text,"LINE",len) == 0 ) {
+		return PL_MARKER_CONTEXT_LINE;
+	}
+	else {
+		ERROR_QUIT("Lexical error on line %i: Invalid context identifier: %s", yylineno, text);
+	}
+}
+
 static int lexResolveComparison(const char *text) {
 	switch ( text[0] ) {
 		case '=':
-		return PL_MARKER_COMPARISON_EQ;
-
+ 		return PL_MARKER_COMPARISON_EQ;
+ 
 		case '!':
 		return PL_MARKER_COMPARISON_NOT_EQ;
 
