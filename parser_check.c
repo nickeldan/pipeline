@@ -1,7 +1,6 @@
 #include <stdio.h>
 
 #include "ast.h"
-#include "plObject.h"
 #include "parser.tab.h"
 
 int yyparse(void);
@@ -18,6 +17,7 @@ int main() {
 	ret=yyparse();
 	if ( ret == 0 ) {
 		printTree(programTree,0);
+		freeAstTree(programTree);
 	}
 
 	return ret;
