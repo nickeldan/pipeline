@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "ast.h"
+#include "plObject.h"
 #include "parser.tab.h"
 
 int yyparse(void);
@@ -73,7 +74,6 @@ const char *nodeTypeName(int nodeType) {
 		case PIPE: return "PIPE";
 		case SINK: return "SINK";
 		case FILTER: return "FILTER";
-		case PREDICATE: return "PREDICATE";
 		case LOCAL: return "LOCAL";
 		case STRUCT: return "STRUCT";
 		case WHILE: return "WHILE";
