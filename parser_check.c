@@ -41,18 +41,18 @@ void printTree(const astNodePtr tree, unsigned int margin) {
 	splitSize=nodeSplitSize(tree->nodeType);
 
 	if ( splitSize > 0 ) {
+		astNodePtr *field;
+
+		field=&tree->first;
+
 		printMargin(margin);
 		printf("{\n");
-		printTree(tree->first,margin+1);
-		if ( splitSize >= 2 ) {
-			printTree(tree->second,margin+1);
+
+		for (int k=0; k<splitSize; k++) {
+			printTree(*field,margin+1);
+			field++;
 		}
-		if ( splitSize >= 3 ) {
-			printTree(tree->third,margin+1);
-		}
-		if ( splitSize == 4 ) {
-			printTree(tree->fourth,margin+1);
-		}
+
 		printMargin(margin);
 		printf("}\n");
 	}
@@ -62,7 +62,7 @@ void printTree(const astNodePtr tree, unsigned int margin) {
 
 void printMargin(unsigned int margin) {
 	for (unsigned int k=0; k<margin; k++) {
-		printf("    ");
+		printf("\t");
 	}
 }
 
@@ -73,7 +73,6 @@ const char *nodeTypeName(int nodeType) {
 		case SOURCE: return "SOURCE";
 		case PIPE: return "PIPE";
 		case SINK: return "SINK";
-		case FILTER: return "FILTER";
 		case LOCAL: return "LOCAL";
 		case STRUCT: return "STRUCT";
 		case WHILE: return "WHILE";
@@ -94,8 +93,8 @@ const char *nodeTypeName(int nodeType) {
 		case EXPORT: return "EXPORT";
 		case MAIN: return "MAIN";
 		case ARROW: return "ARROW";
-		case LSHIFT: return "LSHIFT";
-		case RSHIFT: return "RSHIFT";
+		case LSHIFT: return "<<";
+		case RSHIFT: return ">>";
 		case AND: return "AND";
 		case OR: return "OR";
 		case NAME: return "NAME";

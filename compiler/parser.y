@@ -25,7 +25,7 @@ astNodePtr programTree;
 	int marker;
 }
 
-%token SOURCE PIPE SINK FILTER
+%token SOURCE PIPE SINK
 %token LOCAL STRUCT WHILE IF EIF ELSE PROD DROP END NOT
 %token CONT BREAK VERIFY ABORT IS AS IMPORT EXPORT MAIN
 %token ARROW LSHIFT RSHIFT AND OR
@@ -35,7 +35,7 @@ astNodePtr programTree;
 
 %type <node> file file_section global_content main_definition import_statement export_statement
 %type <node> struct_definition global_var_definition struct_field type attribute_trail moduled_name
-%type <node> source_definition pipe_definition sink_definition filter_definition local_definition
+%type <node> source_definition pipe_definition sink_definition local_definition
 %type <node> optional_name possible_arg_list arg_list arg_element single_argument
 %type <node> compilation_expression compilation_array_literal compilation_array_element
 %type <node> expression array_literal array_element
@@ -74,7 +74,6 @@ global_content: main_definition {$$=$1;}
 	| source_definition {$$=$1;}
 	| pipe_definition {$$=$1;}
 	| sink_definition {$$=$1;}
-	| filter_definition {$$=$1;}
 	| global_var_definition {$$=$1;}
 	;
 
@@ -115,9 +114,6 @@ sink_definition: SINK optional_name '(' single_argument ')' '{' statement_list '
 	;
 
 local_definition: LOCAL '(' single_argument ')' '{' statement_list '}' {$$=NODE(LOCAL,$3,$6);}
-	;
-
-filter_definition: FILTER optional_name '(' single_argument ')' '{' statement_list '}' {$$=NODE(FILTER,$2,$4,$7);}
 	;
 
 global_var_definition: compilation_expression ARROW NAME ';' {$$=NODE(ARROW,$1,$3);}

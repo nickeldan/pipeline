@@ -43,10 +43,10 @@ typedef uint32_t refFlags_t;
 #define VAR_REF_SOURCE 0x00000200
 #define VAR_REF_PIPE 0x00000400
 #define VAR_REF_SINK 0x00000800
-#define VAR_REF_FILTER 0x00001000
-#define VAR_REF_PREDICATE 0x00002000
-#define VAR_REF_STRUCT_TYPE 0x00004000
-#define VAR_REF_CONSTANT 0x00010000
+#define VAR_REF_STRUCT_TYPE 0x00001000
+
+#define VAR_REF_CONSTANT 0x01000000
+#define VAR_REF_UNRESOLVED 0x02000000
 
 typedef struct variableReferenceType {
 	refFlags_t flags;
@@ -152,8 +152,6 @@ static int recursivelyCompileTree(const astNodePtr tree, compilationContext *ctx
 		case PIPE:
 		case SINK:
 		case LOCAL:
-		case FILTER:
-		case PREDICATE:
 		ret=compileFunction(tree,ctx);
 		break;
 

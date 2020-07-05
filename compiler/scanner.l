@@ -28,7 +28,6 @@ static int lexResolveComparison(const char *text);
 source													{return SOURCE;}
 pipe													{return PIPE;}
 sink													{return SINK;}
-filter													{return FILTER;}
 struct													{return STRUCT;}
 prod													{return PROD;}
 drop													{return DROP;}
