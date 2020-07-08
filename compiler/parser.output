@@ -1,0 +1,4542 @@
+Grammar
+
+    0 $accept: file $end
+
+    1 file: file_section
+
+    2 file_section: global_content
+    3             | file_section global_content
+
+    4 global_content: main_definition
+    5               | import_statement
+    6               | export_statement
+    7               | struct_definition
+    8               | source_definition
+    9               | pipe_definition
+   10               | sink_definition
+   11               | global_var_definition
+
+   12 main_definition: MAIN '{' statement_list '}'
+
+   13 import_statement: IMPORT NAME ';'
+
+   14 export_statement: EXPORT NAME ';'
+
+   15 struct_definition: STRUCT NAME '{' struct_field '}'
+
+   16 struct_field: single_argument
+   17             | struct_field ',' single_argument
+
+   18 type: TYPE
+   19     | moduled_name
+
+   20 moduled_name: NAME attribute_trail
+
+   21 attribute_trail: %empty
+   22                | attribute_trail '.' NAME
+
+   23 source_definition: SOURCE optional_name '(' possible_arg_list ')' ARROW type '{' statement_list '}'
+
+   24 pipe_definition: PIPE optional_name '(' single_argument ')' ARROW type '{' statement_list '}'
+
+   25 sink_definition: SINK optional_name '(' single_argument ')' '{' statement_list '}'
+
+   26 local_definition: LOCAL '(' single_argument ')' '{' statement_list '}'
+
+   27 global_var_definition: compilation_expression ARROW NAME ';'
+
+   28 optional_name: %empty
+   29              | NAME
+
+   30 possible_arg_list: %empty
+   31                  | arg_list
+
+   32 arg_list: arg_element
+   33         | arg_list ',' arg_element
+
+   34 arg_element: single_argument
+   35            | single_argument '=' compilation_expression
+
+   36 single_argument: NAME ':' type
+
+   37 compilation_expression: moduled_name
+   38                       | LITERAL attribute_trail
+   39                       | compilation_expression '[' compilation_expression ']' attribute_trail
+   40                       | '[' compilation_array_literal ']' attribute_trail
+   41                       | '(' compilation_expression ')' attribute_trail
+   42                       | function_call attribute_trail
+   43                       | compilation_expression AND compilation_expression
+   44                       | compilation_expression OR compilation_expression
+   45                       | NOT compilation_expression
+   46                       | compilation_expression '+' compilation_expression
+   47                       | compilation_expression '-' compilation_expression
+   48                       | compilation_expression '*' compilation_expression
+   49                       | compilation_expression '/' compilation_expression
+   50                       | compilation_expression '%' compilation_expression
+   51                       | compilation_expression '^' compilation_expression
+   52                       | compilation_expression '|' compilation_expression
+   53                       | compilation_expression '&' compilation_expression
+   54                       | compilation_expression LSHIFT compilation_expression
+   55                       | compilation_expression RSHIFT compilation_expression
+
+   56 expression: moduled_name
+   57           | LITERAL attribute_trail
+   58           | CONTEXT attribute_trail
+   59           | expression '[' expression ']' attribute_trail
+   60           | '[' array_literal ']' attribute_trail
+   61           | '(' expression ')' attribute_trail
+   62           | function_call attribute_trail
+   63           | expression AND expression
+   64           | expression OR expression
+   65           | NOT expression
+   66           | expression COMPARISON expression
+   67           | expression '+' expression
+   68           | expression '-' expression
+   69           | expression '*' expression
+   70           | expression '/' expression
+   71           | expression '%' expression
+   72           | expression '^' expression
+   73           | expression '|' expression
+   74           | expression '&' expression
+   75           | expression LSHIFT expression
+   76           | expression RSHIFT expression
+   77           | moduled_name IS type
+   78           | '(' expression ')' IS type
+   79           | '(' arrow_statement ')'
+
+   80 compilation_array_literal: %empty
+   81                          | compilation_array_element
+
+   82 compilation_array_element: compilation_expression
+   83                          | compilation_array_element ',' compilation_expression
+
+   84 array_literal: %empty
+   85              | array_element
+
+   86 array_element: expression
+   87              | array_element ',' expression
+
+   88 function_call: moduled_name '(' call_list ')'
+
+   89 call_list: %empty
+   90          | call_arg
+   91          | call_list ',' call_arg
+
+   92 call_arg: expression
+   93         | NAME '=' expression
+
+   94 statement_list: %empty
+   95               | actual_statement_list
+
+   96 actual_statement_list: general_statement
+   97                      | actual_statement_list general_statement
+
+   98 general_statement: ';'
+   99                  | statement ';'
+  100                  | if_section
+  101                  | while_section
+
+  102 if_section: IF expression '{' statement_list '}' eif_section else_section
+
+  103 eif_section: %empty
+  104            | eif_section EIF expression '{' statement_list '}'
+
+  105 else_section: %empty
+  106             | ELSE '{' statement_list '}'
+
+  107 while_section: WHILE expression '{' statement_list '}'
+
+  108 statement: PROD expression
+  109          | DROP
+  110          | END
+  111          | CONT
+  112          | BREAK
+  113          | ABORT expression
+  114          | VERIFY expression
+  115          | NAME AS type
+  116          | expression OPERATOR_ASSIGNMENT expression
+  117          | arrow_statement
+  118          | source_definition
+  119          | pipe_definition
+  120          | sink_definition
+
+  121 arrow_statement: arrow_sender ARROW arrow_receiver
+
+  122 arrow_sender: arrow_sender_item
+  123             | '(' arrow_sender_list ',' arrow_sender_item ')'
+
+  124 arrow_sender_item: expression
+  125                  | source_definition
+
+  126 arrow_sender_list: arrow_sender_item
+  127                  | arrow_sender_list ',' arrow_sender_item
+
+  128 arrow_receiver: arrow_receiver_item
+  129               | arrow_receiver ARROW arrow_receiver_item
+
+  130 arrow_receiver_item: moduled_name
+  131                    | moduled_name ':' NAME
+  132                    | TYPE attribute_trail
+  133                    | pipe_definition attribute_trail
+  134                    | sink_definition attribute_trail
+  135                    | sink_definition attribute_trail ':' NAME
+  136                    | local_definition attribute_trail
+
+
+Terminals, with rules where they appear
+
+$end (0) 0
+'%' (37) 50 71
+'&' (38) 53 74
+'(' (40) 23 24 25 26 41 61 78 79 88 123
+')' (41) 23 24 25 26 41 61 78 79 88 123
+'*' (42) 48 69
+'+' (43) 46 67
+',' (44) 17 33 83 87 91 123 127
+'-' (45) 47 68
+'.' (46) 22
+'/' (47) 49 70
+':' (58) 36 131 135
+';' (59) 13 14 27 98 99
+'=' (61) 35 93
+'[' (91) 39 40 59 60
+']' (93) 39 40 59 60
+'^' (94) 51 72
+'{' (123) 12 15 23 24 25 26 102 104 106 107
+'|' (124) 52 73
+'}' (125) 12 15 23 24 25 26 102 104 106 107
+error (256)
+SOURCE (258) 23
+PIPE (259) 24
+SINK (260) 25
+LOCAL (261) 26
+STRUCT (262) 15
+WHILE (263) 107
+IF (264) 102
+EIF (265) 104
+ELSE (266) 106
+PROD (267) 108
+DROP (268) 109
+END (269) 110
+NOT (270) 45 65
+CONT (271) 111
+BREAK (272) 112
+VERIFY (273) 114
+ABORT (274) 113
+IS (275) 77 78
+AS (276) 115
+IMPORT (277) 13
+EXPORT (278) 14
+MAIN (279) 12
+ARROW (280) 23 24 27 121 129
+LSHIFT (281) 54 75
+RSHIFT (282) 55 76
+AND (283) 43 63
+OR (284) 44 64
+NAME (285) 13 14 15 20 22 27 29 36 93 115 131 135
+LITERAL (286) 38 57
+TYPE (287) 18 132
+COMPARISON (288) 66
+OPERATOR_ASSIGNMENT (289) 116
+CONTEXT (290) 58
+
+
+Nonterminals, with rules where they appear
+
+$accept (55)
+    on left: 0
+file (56)
+    on left: 1, on right: 0
+file_section (57)
+    on left: 2 3, on right: 1 3
+global_content (58)
+    on left: 4 5 6 7 8 9 10 11, on right: 2 3
+main_definition (59)
+    on left: 12, on right: 4
+import_statement (60)
+    on left: 13, on right: 5
+export_statement (61)
+    on left: 14, on right: 6
+struct_definition (62)
+    on left: 15, on right: 7
+struct_field (63)
+    on left: 16 17, on right: 15 17
+type (64)
+    on left: 18 19, on right: 23 24 36 77 78 115
+moduled_name (65)
+    on left: 20, on right: 19 37 56 77 88 130 131
+attribute_trail (66)
+    on left: 21 22, on right: 20 22 38 39 40 41 42 57 58 59 60 61 62
+    132 133 134 135 136
+source_definition (67)
+    on left: 23, on right: 8 118 125
+pipe_definition (68)
+    on left: 24, on right: 9 119 133
+sink_definition (69)
+    on left: 25, on right: 10 120 134 135
+local_definition (70)
+    on left: 26, on right: 136
+global_var_definition (71)
+    on left: 27, on right: 11
+optional_name (72)
+    on left: 28 29, on right: 23 24 25
+possible_arg_list (73)
+    on left: 30 31, on right: 23
+arg_list (74)
+    on left: 32 33, on right: 31 33
+arg_element (75)
+    on left: 34 35, on right: 32 33
+single_argument (76)
+    on left: 36, on right: 16 17 24 25 26 34 35
+compilation_expression (77)
+    on left: 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54
+    55, on right: 27 35 39 41 43 44 45 46 47 48 49 50 51 52 53 54 55
+    82 83
+expression (78)
+    on left: 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73
+    74 75 76 77 78 79, on right: 59 61 63 64 65 66 67 68 69 70 71 72
+    73 74 75 76 78 86 87 92 93 102 104 107 108 113 114 116 124
+compilation_array_literal (79)
+    on left: 80 81, on right: 40
+compilation_array_element (80)
+    on left: 82 83, on right: 81 83
+array_literal (81)
+    on left: 84 85, on right: 60
+array_element (82)
+    on left: 86 87, on right: 85 87
+function_call (83)
+    on left: 88, on right: 42 62
+call_list (84)
+    on left: 89 90 91, on right: 88 91
+call_arg (85)
+    on left: 92 93, on right: 90 91
+statement_list (86)
+    on left: 94 95, on right: 12 23 24 25 26 102 104 106 107
+actual_statement_list (87)
+    on left: 96 97, on right: 95 97
+general_statement (88)
+    on left: 98 99 100 101, on right: 96 97
+if_section (89)
+    on left: 102, on right: 100
+eif_section (90)
+    on left: 103 104, on right: 102 104
+else_section (91)
+    on left: 105 106, on right: 102
+while_section (92)
+    on left: 107, on right: 101
+statement (93)
+    on left: 108 109 110 111 112 113 114 115 116 117 118 119 120, on right:
+    99
+arrow_statement (94)
+    on left: 121, on right: 79 117
+arrow_sender (95)
+    on left: 122 123, on right: 121
+arrow_sender_item (96)
+    on left: 124 125, on right: 122 123 126 127
+arrow_sender_list (97)
+    on left: 126 127, on right: 123 127
+arrow_receiver (98)
+    on left: 128 129, on right: 121 129
+arrow_receiver_item (99)
+    on left: 130 131 132 133 134 135 136, on right: 128 129
+
+
+State 0
+
+    0 $accept: . file $end
+
+    SOURCE   shift, and go to state 1
+    PIPE     shift, and go to state 2
+    SINK     shift, and go to state 3
+    STRUCT   shift, and go to state 4
+    NOT      shift, and go to state 5
+    IMPORT   shift, and go to state 6
+    EXPORT   shift, and go to state 7
+    MAIN     shift, and go to state 8
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    file                    go to state 13
+    file_section            go to state 14
+    global_content          go to state 15
+    main_definition         go to state 16
+    import_statement        go to state 17
+    export_statement        go to state 18
+    struct_definition       go to state 19
+    moduled_name            go to state 20
+    source_definition       go to state 21
+    pipe_definition         go to state 22
+    sink_definition         go to state 23
+    global_var_definition   go to state 24
+    compilation_expression  go to state 25
+    function_call           go to state 26
+
+
+State 1
+
+   23 source_definition: SOURCE . optional_name '(' possible_arg_list ')' ARROW type '{' statement_list '}'
+
+    NAME  shift, and go to state 27
+
+    $default  reduce using rule 28 (optional_name)
+
+    optional_name  go to state 28
+
+
+State 2
+
+   24 pipe_definition: PIPE . optional_name '(' single_argument ')' ARROW type '{' statement_list '}'
+
+    NAME  shift, and go to state 27
+
+    $default  reduce using rule 28 (optional_name)
+
+    optional_name  go to state 29
+
+
+State 3
+
+   25 sink_definition: SINK . optional_name '(' single_argument ')' '{' statement_list '}'
+
+    NAME  shift, and go to state 27
+
+    $default  reduce using rule 28 (optional_name)
+
+    optional_name  go to state 30
+
+
+State 4
+
+   15 struct_definition: STRUCT . NAME '{' struct_field '}'
+
+    NAME  shift, and go to state 31
+
+
+State 5
+
+   45 compilation_expression: NOT . compilation_expression
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    moduled_name            go to state 20
+    compilation_expression  go to state 32
+    function_call           go to state 26
+
+
+State 6
+
+   13 import_statement: IMPORT . NAME ';'
+
+    NAME  shift, and go to state 33
+
+
+State 7
+
+   14 export_statement: EXPORT . NAME ';'
+
+    NAME  shift, and go to state 34
+
+
+State 8
+
+   12 main_definition: MAIN . '{' statement_list '}'
+
+    '{'  shift, and go to state 35
+
+
+State 9
+
+   20 moduled_name: NAME . attribute_trail
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 36
+
+
+State 10
+
+   38 compilation_expression: LITERAL . attribute_trail
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 37
+
+
+State 11
+
+   40 compilation_expression: '[' . compilation_array_literal ']' attribute_trail
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    $default  reduce using rule 80 (compilation_array_literal)
+
+    moduled_name               go to state 20
+    compilation_expression     go to state 38
+    compilation_array_literal  go to state 39
+    compilation_array_element  go to state 40
+    function_call              go to state 26
+
+
+State 12
+
+   41 compilation_expression: '(' . compilation_expression ')' attribute_trail
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    moduled_name            go to state 20
+    compilation_expression  go to state 41
+    function_call           go to state 26
+
+
+State 13
+
+    0 $accept: file . $end
+
+    $end  shift, and go to state 42
+
+
+State 14
+
+    1 file: file_section .
+    3 file_section: file_section . global_content
+
+    SOURCE   shift, and go to state 1
+    PIPE     shift, and go to state 2
+    SINK     shift, and go to state 3
+    STRUCT   shift, and go to state 4
+    NOT      shift, and go to state 5
+    IMPORT   shift, and go to state 6
+    EXPORT   shift, and go to state 7
+    MAIN     shift, and go to state 8
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    $default  reduce using rule 1 (file)
+
+    global_content          go to state 43
+    main_definition         go to state 16
+    import_statement        go to state 17
+    export_statement        go to state 18
+    struct_definition       go to state 19
+    moduled_name            go to state 20
+    source_definition       go to state 21
+    pipe_definition         go to state 22
+    sink_definition         go to state 23
+    global_var_definition   go to state 24
+    compilation_expression  go to state 25
+    function_call           go to state 26
+
+
+State 15
+
+    2 file_section: global_content .
+
+    $default  reduce using rule 2 (file_section)
+
+
+State 16
+
+    4 global_content: main_definition .
+
+    $default  reduce using rule 4 (global_content)
+
+
+State 17
+
+    5 global_content: import_statement .
+
+    $default  reduce using rule 5 (global_content)
+
+
+State 18
+
+    6 global_content: export_statement .
+
+    $default  reduce using rule 6 (global_content)
+
+
+State 19
+
+    7 global_content: struct_definition .
+
+    $default  reduce using rule 7 (global_content)
+
+
+State 20
+
+   37 compilation_expression: moduled_name .
+   88 function_call: moduled_name . '(' call_list ')'
+
+    '('  shift, and go to state 44
+
+    $default  reduce using rule 37 (compilation_expression)
+
+
+State 21
+
+    8 global_content: source_definition .
+
+    $default  reduce using rule 8 (global_content)
+
+
+State 22
+
+    9 global_content: pipe_definition .
+
+    $default  reduce using rule 9 (global_content)
+
+
+State 23
+
+   10 global_content: sink_definition .
+
+    $default  reduce using rule 10 (global_content)
+
+
+State 24
+
+   11 global_content: global_var_definition .
+
+    $default  reduce using rule 11 (global_content)
+
+
+State 25
+
+   27 global_var_definition: compilation_expression . ARROW NAME ';'
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+
+    ARROW   shift, and go to state 45
+    LSHIFT  shift, and go to state 46
+    RSHIFT  shift, and go to state 47
+    AND     shift, and go to state 48
+    OR      shift, and go to state 49
+    '+'     shift, and go to state 50
+    '-'     shift, and go to state 51
+    '*'     shift, and go to state 52
+    '/'     shift, and go to state 53
+    '%'     shift, and go to state 54
+    '^'     shift, and go to state 55
+    '|'     shift, and go to state 56
+    '&'     shift, and go to state 57
+    '['     shift, and go to state 58
+
+
+State 26
+
+   42 compilation_expression: function_call . attribute_trail
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 59
+
+
+State 27
+
+   29 optional_name: NAME .
+
+    $default  reduce using rule 29 (optional_name)
+
+
+State 28
+
+   23 source_definition: SOURCE optional_name . '(' possible_arg_list ')' ARROW type '{' statement_list '}'
+
+    '('  shift, and go to state 60
+
+
+State 29
+
+   24 pipe_definition: PIPE optional_name . '(' single_argument ')' ARROW type '{' statement_list '}'
+
+    '('  shift, and go to state 61
+
+
+State 30
+
+   25 sink_definition: SINK optional_name . '(' single_argument ')' '{' statement_list '}'
+
+    '('  shift, and go to state 62
+
+
+State 31
+
+   15 struct_definition: STRUCT NAME . '{' struct_field '}'
+
+    '{'  shift, and go to state 63
+
+
+State 32
+
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   45                       | NOT compilation_expression .
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+
+    LSHIFT  shift, and go to state 46
+    RSHIFT  shift, and go to state 47
+    '+'     shift, and go to state 50
+    '-'     shift, and go to state 51
+    '*'     shift, and go to state 52
+    '/'     shift, and go to state 53
+    '%'     shift, and go to state 54
+    '^'     shift, and go to state 55
+    '|'     shift, and go to state 56
+    '&'     shift, and go to state 57
+    '['     shift, and go to state 58
+
+    $default  reduce using rule 45 (compilation_expression)
+
+
+State 33
+
+   13 import_statement: IMPORT NAME . ';'
+
+    ';'  shift, and go to state 64
+
+
+State 34
+
+   14 export_statement: EXPORT NAME . ';'
+
+    ';'  shift, and go to state 65
+
+
+State 35
+
+   12 main_definition: MAIN '{' . statement_list '}'
+
+    SOURCE   shift, and go to state 1
+    PIPE     shift, and go to state 2
+    SINK     shift, and go to state 3
+    WHILE    shift, and go to state 66
+    IF       shift, and go to state 67
+    PROD     shift, and go to state 68
+    DROP     shift, and go to state 69
+    END      shift, and go to state 70
+    NOT      shift, and go to state 71
+    CONT     shift, and go to state 72
+    BREAK    shift, and go to state 73
+    VERIFY   shift, and go to state 74
+    ABORT    shift, and go to state 75
+    NAME     shift, and go to state 76
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    ';'      shift, and go to state 80
+    '('      shift, and go to state 81
+
+    $default  reduce using rule 94 (statement_list)
+
+    moduled_name           go to state 82
+    source_definition      go to state 83
+    pipe_definition        go to state 84
+    sink_definition        go to state 85
+    expression             go to state 86
+    function_call          go to state 87
+    statement_list         go to state 88
+    actual_statement_list  go to state 89
+    general_statement      go to state 90
+    if_section             go to state 91
+    while_section          go to state 92
+    statement              go to state 93
+    arrow_statement        go to state 94
+    arrow_sender           go to state 95
+    arrow_sender_item      go to state 96
+
+
+State 36
+
+   20 moduled_name: NAME attribute_trail .
+   22 attribute_trail: attribute_trail . '.' NAME
+
+    '.'  shift, and go to state 97
+
+    $default  reduce using rule 20 (moduled_name)
+
+
+State 37
+
+   22 attribute_trail: attribute_trail . '.' NAME
+   38 compilation_expression: LITERAL attribute_trail .
+
+    '.'  shift, and go to state 97
+
+    $default  reduce using rule 38 (compilation_expression)
+
+
+State 38
+
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+   82 compilation_array_element: compilation_expression .
+
+    LSHIFT  shift, and go to state 46
+    RSHIFT  shift, and go to state 47
+    AND     shift, and go to state 48
+    OR      shift, and go to state 49
+    '+'     shift, and go to state 50
+    '-'     shift, and go to state 51
+    '*'     shift, and go to state 52
+    '/'     shift, and go to state 53
+    '%'     shift, and go to state 54
+    '^'     shift, and go to state 55
+    '|'     shift, and go to state 56
+    '&'     shift, and go to state 57
+    '['     shift, and go to state 58
+
+    $default  reduce using rule 82 (compilation_array_element)
+
+
+State 39
+
+   40 compilation_expression: '[' compilation_array_literal . ']' attribute_trail
+
+    ']'  shift, and go to state 98
+
+
+State 40
+
+   81 compilation_array_literal: compilation_array_element .
+   83 compilation_array_element: compilation_array_element . ',' compilation_expression
+
+    ','  shift, and go to state 99
+
+    $default  reduce using rule 81 (compilation_array_literal)
+
+
+State 41
+
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   41                       | '(' compilation_expression . ')' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+
+    LSHIFT  shift, and go to state 46
+    RSHIFT  shift, and go to state 47
+    AND     shift, and go to state 48
+    OR      shift, and go to state 49
+    '+'     shift, and go to state 50
+    '-'     shift, and go to state 51
+    '*'     shift, and go to state 52
+    '/'     shift, and go to state 53
+    '%'     shift, and go to state 54
+    '^'     shift, and go to state 55
+    '|'     shift, and go to state 56
+    '&'     shift, and go to state 57
+    '['     shift, and go to state 58
+    ')'     shift, and go to state 100
+
+
+State 42
+
+    0 $accept: file $end .
+
+    $default  accept
+
+
+State 43
+
+    3 file_section: file_section global_content .
+
+    $default  reduce using rule 3 (file_section)
+
+
+State 44
+
+   88 function_call: moduled_name '(' . call_list ')'
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 101
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    $default  reduce using rule 89 (call_list)
+
+    moduled_name   go to state 82
+    expression     go to state 103
+    function_call  go to state 87
+    call_list      go to state 104
+    call_arg       go to state 105
+
+
+State 45
+
+   27 global_var_definition: compilation_expression ARROW . NAME ';'
+
+    NAME  shift, and go to state 106
+
+
+State 46
+
+   54 compilation_expression: compilation_expression LSHIFT . compilation_expression
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    moduled_name            go to state 20
+    compilation_expression  go to state 107
+    function_call           go to state 26
+
+
+State 47
+
+   55 compilation_expression: compilation_expression RSHIFT . compilation_expression
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    moduled_name            go to state 20
+    compilation_expression  go to state 108
+    function_call           go to state 26
+
+
+State 48
+
+   43 compilation_expression: compilation_expression AND . compilation_expression
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    moduled_name            go to state 20
+    compilation_expression  go to state 109
+    function_call           go to state 26
+
+
+State 49
+
+   44 compilation_expression: compilation_expression OR . compilation_expression
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    moduled_name            go to state 20
+    compilation_expression  go to state 110
+    function_call           go to state 26
+
+
+State 50
+
+   46 compilation_expression: compilation_expression '+' . compilation_expression
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    moduled_name            go to state 20
+    compilation_expression  go to state 111
+    function_call           go to state 26
+
+
+State 51
+
+   47 compilation_expression: compilation_expression '-' . compilation_expression
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    moduled_name            go to state 20
+    compilation_expression  go to state 112
+    function_call           go to state 26
+
+
+State 52
+
+   48 compilation_expression: compilation_expression '*' . compilation_expression
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    moduled_name            go to state 20
+    compilation_expression  go to state 113
+    function_call           go to state 26
+
+
+State 53
+
+   49 compilation_expression: compilation_expression '/' . compilation_expression
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    moduled_name            go to state 20
+    compilation_expression  go to state 114
+    function_call           go to state 26
+
+
+State 54
+
+   50 compilation_expression: compilation_expression '%' . compilation_expression
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    moduled_name            go to state 20
+    compilation_expression  go to state 115
+    function_call           go to state 26
+
+
+State 55
+
+   51 compilation_expression: compilation_expression '^' . compilation_expression
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    moduled_name            go to state 20
+    compilation_expression  go to state 116
+    function_call           go to state 26
+
+
+State 56
+
+   52 compilation_expression: compilation_expression '|' . compilation_expression
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    moduled_name            go to state 20
+    compilation_expression  go to state 117
+    function_call           go to state 26
+
+
+State 57
+
+   53 compilation_expression: compilation_expression '&' . compilation_expression
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    moduled_name            go to state 20
+    compilation_expression  go to state 118
+    function_call           go to state 26
+
+
+State 58
+
+   39 compilation_expression: compilation_expression '[' . compilation_expression ']' attribute_trail
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    moduled_name            go to state 20
+    compilation_expression  go to state 119
+    function_call           go to state 26
+
+
+State 59
+
+   22 attribute_trail: attribute_trail . '.' NAME
+   42 compilation_expression: function_call attribute_trail .
+
+    '.'  shift, and go to state 97
+
+    $default  reduce using rule 42 (compilation_expression)
+
+
+State 60
+
+   23 source_definition: SOURCE optional_name '(' . possible_arg_list ')' ARROW type '{' statement_list '}'
+
+    NAME  shift, and go to state 120
+
+    $default  reduce using rule 30 (possible_arg_list)
+
+    possible_arg_list  go to state 121
+    arg_list           go to state 122
+    arg_element        go to state 123
+    single_argument    go to state 124
+
+
+State 61
+
+   24 pipe_definition: PIPE optional_name '(' . single_argument ')' ARROW type '{' statement_list '}'
+
+    NAME  shift, and go to state 120
+
+    single_argument  go to state 125
+
+
+State 62
+
+   25 sink_definition: SINK optional_name '(' . single_argument ')' '{' statement_list '}'
+
+    NAME  shift, and go to state 120
+
+    single_argument  go to state 126
+
+
+State 63
+
+   15 struct_definition: STRUCT NAME '{' . struct_field '}'
+
+    NAME  shift, and go to state 120
+
+    struct_field     go to state 127
+    single_argument  go to state 128
+
+
+State 64
+
+   13 import_statement: IMPORT NAME ';' .
+
+    $default  reduce using rule 13 (import_statement)
+
+
+State 65
+
+   14 export_statement: EXPORT NAME ';' .
+
+    $default  reduce using rule 14 (export_statement)
+
+
+State 66
+
+  107 while_section: WHILE . expression '{' statement_list '}'
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 129
+    function_call  go to state 87
+
+
+State 67
+
+  102 if_section: IF . expression '{' statement_list '}' eif_section else_section
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 130
+    function_call  go to state 87
+
+
+State 68
+
+  108 statement: PROD . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 131
+    function_call  go to state 87
+
+
+State 69
+
+  109 statement: DROP .
+
+    $default  reduce using rule 109 (statement)
+
+
+State 70
+
+  110 statement: END .
+
+    $default  reduce using rule 110 (statement)
+
+
+State 71
+
+   65 expression: NOT . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 132
+    function_call  go to state 87
+
+
+State 72
+
+  111 statement: CONT .
+
+    $default  reduce using rule 111 (statement)
+
+
+State 73
+
+  112 statement: BREAK .
+
+    $default  reduce using rule 112 (statement)
+
+
+State 74
+
+  114 statement: VERIFY . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 133
+    function_call  go to state 87
+
+
+State 75
+
+  113 statement: ABORT . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 134
+    function_call  go to state 87
+
+
+State 76
+
+   20 moduled_name: NAME . attribute_trail
+  115 statement: NAME . AS type
+
+    AS  shift, and go to state 135
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 36
+
+
+State 77
+
+   57 expression: LITERAL . attribute_trail
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 136
+
+
+State 78
+
+   58 expression: CONTEXT . attribute_trail
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 137
+
+
+State 79
+
+   60 expression: '[' . array_literal ']' attribute_trail
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    $default  reduce using rule 84 (array_literal)
+
+    moduled_name   go to state 82
+    expression     go to state 138
+    array_literal  go to state 139
+    array_element  go to state 140
+    function_call  go to state 87
+
+
+State 80
+
+   98 general_statement: ';' .
+
+    $default  reduce using rule 98 (general_statement)
+
+
+State 81
+
+   61 expression: '(' . expression ')' attribute_trail
+   78           | '(' . expression ')' IS type
+   79           | '(' . arrow_statement ')'
+  123 arrow_sender: '(' . arrow_sender_list ',' arrow_sender_item ')'
+
+    SOURCE   shift, and go to state 1
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 81
+
+    moduled_name       go to state 82
+    source_definition  go to state 141
+    expression         go to state 142
+    function_call      go to state 87
+    arrow_statement    go to state 143
+    arrow_sender       go to state 95
+    arrow_sender_item  go to state 144
+    arrow_sender_list  go to state 145
+
+
+State 82
+
+   56 expression: moduled_name .
+   77           | moduled_name . IS type
+   88 function_call: moduled_name . '(' call_list ')'
+
+    IS   shift, and go to state 146
+    '('  shift, and go to state 44
+
+    $default  reduce using rule 56 (expression)
+
+
+State 83
+
+  118 statement: source_definition .
+  125 arrow_sender_item: source_definition .
+
+    ARROW     reduce using rule 125 (arrow_sender_item)
+    $default  reduce using rule 118 (statement)
+
+
+State 84
+
+  119 statement: pipe_definition .
+
+    $default  reduce using rule 119 (statement)
+
+
+State 85
+
+  120 statement: sink_definition .
+
+    $default  reduce using rule 120 (statement)
+
+
+State 86
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+  116 statement: expression . OPERATOR_ASSIGNMENT expression
+  124 arrow_sender_item: expression .
+
+    LSHIFT               shift, and go to state 147
+    RSHIFT               shift, and go to state 148
+    AND                  shift, and go to state 149
+    OR                   shift, and go to state 150
+    COMPARISON           shift, and go to state 151
+    OPERATOR_ASSIGNMENT  shift, and go to state 152
+    '+'                  shift, and go to state 153
+    '-'                  shift, and go to state 154
+    '*'                  shift, and go to state 155
+    '/'                  shift, and go to state 156
+    '%'                  shift, and go to state 157
+    '^'                  shift, and go to state 158
+    '|'                  shift, and go to state 159
+    '&'                  shift, and go to state 160
+    '['                  shift, and go to state 161
+
+    $default  reduce using rule 124 (arrow_sender_item)
+
+
+State 87
+
+   62 expression: function_call . attribute_trail
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 162
+
+
+State 88
+
+   12 main_definition: MAIN '{' statement_list . '}'
+
+    '}'  shift, and go to state 163
+
+
+State 89
+
+   95 statement_list: actual_statement_list .
+   97 actual_statement_list: actual_statement_list . general_statement
+
+    SOURCE   shift, and go to state 1
+    PIPE     shift, and go to state 2
+    SINK     shift, and go to state 3
+    WHILE    shift, and go to state 66
+    IF       shift, and go to state 67
+    PROD     shift, and go to state 68
+    DROP     shift, and go to state 69
+    END      shift, and go to state 70
+    NOT      shift, and go to state 71
+    CONT     shift, and go to state 72
+    BREAK    shift, and go to state 73
+    VERIFY   shift, and go to state 74
+    ABORT    shift, and go to state 75
+    NAME     shift, and go to state 76
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    ';'      shift, and go to state 80
+    '('      shift, and go to state 81
+
+    $default  reduce using rule 95 (statement_list)
+
+    moduled_name       go to state 82
+    source_definition  go to state 83
+    pipe_definition    go to state 84
+    sink_definition    go to state 85
+    expression         go to state 86
+    function_call      go to state 87
+    general_statement  go to state 164
+    if_section         go to state 91
+    while_section      go to state 92
+    statement          go to state 93
+    arrow_statement    go to state 94
+    arrow_sender       go to state 95
+    arrow_sender_item  go to state 96
+
+
+State 90
+
+   96 actual_statement_list: general_statement .
+
+    $default  reduce using rule 96 (actual_statement_list)
+
+
+State 91
+
+  100 general_statement: if_section .
+
+    $default  reduce using rule 100 (general_statement)
+
+
+State 92
+
+  101 general_statement: while_section .
+
+    $default  reduce using rule 101 (general_statement)
+
+
+State 93
+
+   99 general_statement: statement . ';'
+
+    ';'  shift, and go to state 165
+
+
+State 94
+
+  117 statement: arrow_statement .
+
+    $default  reduce using rule 117 (statement)
+
+
+State 95
+
+  121 arrow_statement: arrow_sender . ARROW arrow_receiver
+
+    ARROW  shift, and go to state 166
+
+
+State 96
+
+  122 arrow_sender: arrow_sender_item .
+
+    $default  reduce using rule 122 (arrow_sender)
+
+
+State 97
+
+   22 attribute_trail: attribute_trail '.' . NAME
+
+    NAME  shift, and go to state 167
+
+
+State 98
+
+   40 compilation_expression: '[' compilation_array_literal ']' . attribute_trail
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 168
+
+
+State 99
+
+   83 compilation_array_element: compilation_array_element ',' . compilation_expression
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    moduled_name            go to state 20
+    compilation_expression  go to state 169
+    function_call           go to state 26
+
+
+State 100
+
+   41 compilation_expression: '(' compilation_expression ')' . attribute_trail
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 170
+
+
+State 101
+
+   20 moduled_name: NAME . attribute_trail
+   93 call_arg: NAME . '=' expression
+
+    '='  shift, and go to state 171
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 36
+
+
+State 102
+
+   61 expression: '(' . expression ')' attribute_trail
+   78           | '(' . expression ')' IS type
+   79           | '(' . arrow_statement ')'
+
+    SOURCE   shift, and go to state 1
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 81
+
+    moduled_name       go to state 82
+    source_definition  go to state 141
+    expression         go to state 142
+    function_call      go to state 87
+    arrow_statement    go to state 143
+    arrow_sender       go to state 95
+    arrow_sender_item  go to state 96
+
+
+State 103
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+   92 call_arg: expression .
+
+    LSHIFT      shift, and go to state 147
+    RSHIFT      shift, and go to state 148
+    AND         shift, and go to state 149
+    OR          shift, and go to state 150
+    COMPARISON  shift, and go to state 151
+    '+'         shift, and go to state 153
+    '-'         shift, and go to state 154
+    '*'         shift, and go to state 155
+    '/'         shift, and go to state 156
+    '%'         shift, and go to state 157
+    '^'         shift, and go to state 158
+    '|'         shift, and go to state 159
+    '&'         shift, and go to state 160
+    '['         shift, and go to state 161
+
+    $default  reduce using rule 92 (call_arg)
+
+
+State 104
+
+   88 function_call: moduled_name '(' call_list . ')'
+   91 call_list: call_list . ',' call_arg
+
+    ','  shift, and go to state 172
+    ')'  shift, and go to state 173
+
+
+State 105
+
+   90 call_list: call_arg .
+
+    $default  reduce using rule 90 (call_list)
+
+
+State 106
+
+   27 global_var_definition: compilation_expression ARROW NAME . ';'
+
+    ';'  shift, and go to state 174
+
+
+State 107
+
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   54                       | compilation_expression LSHIFT compilation_expression .
+   55                       | compilation_expression . RSHIFT compilation_expression
+
+    RSHIFT  shift, and go to state 47
+    '['     shift, and go to state 58
+
+    $default  reduce using rule 54 (compilation_expression)
+
+
+State 108
+
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+   55                       | compilation_expression RSHIFT compilation_expression .
+
+    '['  shift, and go to state 58
+
+    $default  reduce using rule 55 (compilation_expression)
+
+
+State 109
+
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   43                       | compilation_expression AND compilation_expression .
+   44                       | compilation_expression . OR compilation_expression
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+
+    LSHIFT  shift, and go to state 46
+    RSHIFT  shift, and go to state 47
+    '+'     shift, and go to state 50
+    '-'     shift, and go to state 51
+    '*'     shift, and go to state 52
+    '/'     shift, and go to state 53
+    '%'     shift, and go to state 54
+    '^'     shift, and go to state 55
+    '|'     shift, and go to state 56
+    '&'     shift, and go to state 57
+    '['     shift, and go to state 58
+
+    $default  reduce using rule 43 (compilation_expression)
+
+
+State 110
+
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   44                       | compilation_expression OR compilation_expression .
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+
+    LSHIFT  shift, and go to state 46
+    RSHIFT  shift, and go to state 47
+    '+'     shift, and go to state 50
+    '-'     shift, and go to state 51
+    '*'     shift, and go to state 52
+    '/'     shift, and go to state 53
+    '%'     shift, and go to state 54
+    '^'     shift, and go to state 55
+    '|'     shift, and go to state 56
+    '&'     shift, and go to state 57
+    '['     shift, and go to state 58
+
+    $default  reduce using rule 44 (compilation_expression)
+
+
+State 111
+
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   46                       | compilation_expression . '+' compilation_expression
+   46                       | compilation_expression '+' compilation_expression .
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+
+    LSHIFT  shift, and go to state 46
+    RSHIFT  shift, and go to state 47
+    '*'     shift, and go to state 52
+    '/'     shift, and go to state 53
+    '%'     shift, and go to state 54
+    '^'     shift, and go to state 55
+    '|'     shift, and go to state 56
+    '&'     shift, and go to state 57
+    '['     shift, and go to state 58
+
+    $default  reduce using rule 46 (compilation_expression)
+
+
+State 112
+
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   47                       | compilation_expression '-' compilation_expression .
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+
+    LSHIFT  shift, and go to state 46
+    RSHIFT  shift, and go to state 47
+    '*'     shift, and go to state 52
+    '/'     shift, and go to state 53
+    '%'     shift, and go to state 54
+    '^'     shift, and go to state 55
+    '|'     shift, and go to state 56
+    '&'     shift, and go to state 57
+    '['     shift, and go to state 58
+
+    $default  reduce using rule 47 (compilation_expression)
+
+
+State 113
+
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   48                       | compilation_expression '*' compilation_expression .
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+
+    LSHIFT  shift, and go to state 46
+    RSHIFT  shift, and go to state 47
+    '%'     shift, and go to state 54
+    '^'     shift, and go to state 55
+    '|'     shift, and go to state 56
+    '&'     shift, and go to state 57
+    '['     shift, and go to state 58
+
+    $default  reduce using rule 48 (compilation_expression)
+
+
+State 114
+
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   49                       | compilation_expression '/' compilation_expression .
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+
+    LSHIFT  shift, and go to state 46
+    RSHIFT  shift, and go to state 47
+    '%'     shift, and go to state 54
+    '^'     shift, and go to state 55
+    '|'     shift, and go to state 56
+    '&'     shift, and go to state 57
+    '['     shift, and go to state 58
+
+    $default  reduce using rule 49 (compilation_expression)
+
+
+State 115
+
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   50                       | compilation_expression '%' compilation_expression .
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+
+    LSHIFT  shift, and go to state 46
+    RSHIFT  shift, and go to state 47
+    '^'     shift, and go to state 55
+    '|'     shift, and go to state 56
+    '&'     shift, and go to state 57
+    '['     shift, and go to state 58
+
+    $default  reduce using rule 50 (compilation_expression)
+
+
+State 116
+
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   51                       | compilation_expression '^' compilation_expression .
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+
+    LSHIFT  shift, and go to state 46
+    RSHIFT  shift, and go to state 47
+    '['     shift, and go to state 58
+
+    $default  reduce using rule 51 (compilation_expression)
+
+
+State 117
+
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   52                       | compilation_expression '|' compilation_expression .
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+
+    LSHIFT  shift, and go to state 46
+    RSHIFT  shift, and go to state 47
+    '['     shift, and go to state 58
+
+    $default  reduce using rule 52 (compilation_expression)
+
+
+State 118
+
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   53                       | compilation_expression '&' compilation_expression .
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+
+    LSHIFT  shift, and go to state 46
+    RSHIFT  shift, and go to state 47
+    '['     shift, and go to state 58
+
+    $default  reduce using rule 53 (compilation_expression)
+
+
+State 119
+
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   39                       | compilation_expression '[' compilation_expression . ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+
+    LSHIFT  shift, and go to state 46
+    RSHIFT  shift, and go to state 47
+    AND     shift, and go to state 48
+    OR      shift, and go to state 49
+    '+'     shift, and go to state 50
+    '-'     shift, and go to state 51
+    '*'     shift, and go to state 52
+    '/'     shift, and go to state 53
+    '%'     shift, and go to state 54
+    '^'     shift, and go to state 55
+    '|'     shift, and go to state 56
+    '&'     shift, and go to state 57
+    '['     shift, and go to state 58
+    ']'     shift, and go to state 175
+
+
+State 120
+
+   36 single_argument: NAME . ':' type
+
+    ':'  shift, and go to state 176
+
+
+State 121
+
+   23 source_definition: SOURCE optional_name '(' possible_arg_list . ')' ARROW type '{' statement_list '}'
+
+    ')'  shift, and go to state 177
+
+
+State 122
+
+   31 possible_arg_list: arg_list .
+   33 arg_list: arg_list . ',' arg_element
+
+    ','  shift, and go to state 178
+
+    $default  reduce using rule 31 (possible_arg_list)
+
+
+State 123
+
+   32 arg_list: arg_element .
+
+    $default  reduce using rule 32 (arg_list)
+
+
+State 124
+
+   34 arg_element: single_argument .
+   35            | single_argument . '=' compilation_expression
+
+    '='  shift, and go to state 179
+
+    $default  reduce using rule 34 (arg_element)
+
+
+State 125
+
+   24 pipe_definition: PIPE optional_name '(' single_argument . ')' ARROW type '{' statement_list '}'
+
+    ')'  shift, and go to state 180
+
+
+State 126
+
+   25 sink_definition: SINK optional_name '(' single_argument . ')' '{' statement_list '}'
+
+    ')'  shift, and go to state 181
+
+
+State 127
+
+   15 struct_definition: STRUCT NAME '{' struct_field . '}'
+   17 struct_field: struct_field . ',' single_argument
+
+    ','  shift, and go to state 182
+    '}'  shift, and go to state 183
+
+
+State 128
+
+   16 struct_field: single_argument .
+
+    $default  reduce using rule 16 (struct_field)
+
+
+State 129
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+  107 while_section: WHILE expression . '{' statement_list '}'
+
+    LSHIFT      shift, and go to state 147
+    RSHIFT      shift, and go to state 148
+    AND         shift, and go to state 149
+    OR          shift, and go to state 150
+    COMPARISON  shift, and go to state 151
+    '+'         shift, and go to state 153
+    '-'         shift, and go to state 154
+    '*'         shift, and go to state 155
+    '/'         shift, and go to state 156
+    '%'         shift, and go to state 157
+    '^'         shift, and go to state 158
+    '|'         shift, and go to state 159
+    '&'         shift, and go to state 160
+    '['         shift, and go to state 161
+    '{'         shift, and go to state 184
+
+
+State 130
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+  102 if_section: IF expression . '{' statement_list '}' eif_section else_section
+
+    LSHIFT      shift, and go to state 147
+    RSHIFT      shift, and go to state 148
+    AND         shift, and go to state 149
+    OR          shift, and go to state 150
+    COMPARISON  shift, and go to state 151
+    '+'         shift, and go to state 153
+    '-'         shift, and go to state 154
+    '*'         shift, and go to state 155
+    '/'         shift, and go to state 156
+    '%'         shift, and go to state 157
+    '^'         shift, and go to state 158
+    '|'         shift, and go to state 159
+    '&'         shift, and go to state 160
+    '['         shift, and go to state 161
+    '{'         shift, and go to state 185
+
+
+State 131
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+  108 statement: PROD expression .
+
+    LSHIFT      shift, and go to state 147
+    RSHIFT      shift, and go to state 148
+    AND         shift, and go to state 149
+    OR          shift, and go to state 150
+    COMPARISON  shift, and go to state 151
+    '+'         shift, and go to state 153
+    '-'         shift, and go to state 154
+    '*'         shift, and go to state 155
+    '/'         shift, and go to state 156
+    '%'         shift, and go to state 157
+    '^'         shift, and go to state 158
+    '|'         shift, and go to state 159
+    '&'         shift, and go to state 160
+    '['         shift, and go to state 161
+
+    $default  reduce using rule 108 (statement)
+
+
+State 132
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   65           | NOT expression .
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+
+    LSHIFT      shift, and go to state 147
+    RSHIFT      shift, and go to state 148
+    COMPARISON  shift, and go to state 151
+    '+'         shift, and go to state 153
+    '-'         shift, and go to state 154
+    '*'         shift, and go to state 155
+    '/'         shift, and go to state 156
+    '%'         shift, and go to state 157
+    '^'         shift, and go to state 158
+    '|'         shift, and go to state 159
+    '&'         shift, and go to state 160
+    '['         shift, and go to state 161
+
+    $default  reduce using rule 65 (expression)
+
+
+State 133
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+  114 statement: VERIFY expression .
+
+    LSHIFT      shift, and go to state 147
+    RSHIFT      shift, and go to state 148
+    AND         shift, and go to state 149
+    OR          shift, and go to state 150
+    COMPARISON  shift, and go to state 151
+    '+'         shift, and go to state 153
+    '-'         shift, and go to state 154
+    '*'         shift, and go to state 155
+    '/'         shift, and go to state 156
+    '%'         shift, and go to state 157
+    '^'         shift, and go to state 158
+    '|'         shift, and go to state 159
+    '&'         shift, and go to state 160
+    '['         shift, and go to state 161
+
+    $default  reduce using rule 114 (statement)
+
+
+State 134
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+  113 statement: ABORT expression .
+
+    LSHIFT      shift, and go to state 147
+    RSHIFT      shift, and go to state 148
+    AND         shift, and go to state 149
+    OR          shift, and go to state 150
+    COMPARISON  shift, and go to state 151
+    '+'         shift, and go to state 153
+    '-'         shift, and go to state 154
+    '*'         shift, and go to state 155
+    '/'         shift, and go to state 156
+    '%'         shift, and go to state 157
+    '^'         shift, and go to state 158
+    '|'         shift, and go to state 159
+    '&'         shift, and go to state 160
+    '['         shift, and go to state 161
+
+    $default  reduce using rule 113 (statement)
+
+
+State 135
+
+  115 statement: NAME AS . type
+
+    NAME  shift, and go to state 9
+    TYPE  shift, and go to state 186
+
+    type          go to state 187
+    moduled_name  go to state 188
+
+
+State 136
+
+   22 attribute_trail: attribute_trail . '.' NAME
+   57 expression: LITERAL attribute_trail .
+
+    '.'  shift, and go to state 97
+
+    $default  reduce using rule 57 (expression)
+
+
+State 137
+
+   22 attribute_trail: attribute_trail . '.' NAME
+   58 expression: CONTEXT attribute_trail .
+
+    '.'  shift, and go to state 97
+
+    $default  reduce using rule 58 (expression)
+
+
+State 138
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+   86 array_element: expression .
+
+    LSHIFT      shift, and go to state 147
+    RSHIFT      shift, and go to state 148
+    AND         shift, and go to state 149
+    OR          shift, and go to state 150
+    COMPARISON  shift, and go to state 151
+    '+'         shift, and go to state 153
+    '-'         shift, and go to state 154
+    '*'         shift, and go to state 155
+    '/'         shift, and go to state 156
+    '%'         shift, and go to state 157
+    '^'         shift, and go to state 158
+    '|'         shift, and go to state 159
+    '&'         shift, and go to state 160
+    '['         shift, and go to state 161
+
+    $default  reduce using rule 86 (array_element)
+
+
+State 139
+
+   60 expression: '[' array_literal . ']' attribute_trail
+
+    ']'  shift, and go to state 189
+
+
+State 140
+
+   85 array_literal: array_element .
+   87 array_element: array_element . ',' expression
+
+    ','  shift, and go to state 190
+
+    $default  reduce using rule 85 (array_literal)
+
+
+State 141
+
+  125 arrow_sender_item: source_definition .
+
+    $default  reduce using rule 125 (arrow_sender_item)
+
+
+State 142
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   61           | '(' expression . ')' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+   78           | '(' expression . ')' IS type
+  124 arrow_sender_item: expression .
+
+    LSHIFT      shift, and go to state 147
+    RSHIFT      shift, and go to state 148
+    AND         shift, and go to state 149
+    OR          shift, and go to state 150
+    COMPARISON  shift, and go to state 151
+    '+'         shift, and go to state 153
+    '-'         shift, and go to state 154
+    '*'         shift, and go to state 155
+    '/'         shift, and go to state 156
+    '%'         shift, and go to state 157
+    '^'         shift, and go to state 158
+    '|'         shift, and go to state 159
+    '&'         shift, and go to state 160
+    '['         shift, and go to state 161
+    ')'         shift, and go to state 191
+
+    $default  reduce using rule 124 (arrow_sender_item)
+
+
+State 143
+
+   79 expression: '(' arrow_statement . ')'
+
+    ')'  shift, and go to state 192
+
+
+State 144
+
+  122 arrow_sender: arrow_sender_item .
+  126 arrow_sender_list: arrow_sender_item .
+
+    ','       reduce using rule 126 (arrow_sender_list)
+    $default  reduce using rule 122 (arrow_sender)
+
+
+State 145
+
+  123 arrow_sender: '(' arrow_sender_list . ',' arrow_sender_item ')'
+  127 arrow_sender_list: arrow_sender_list . ',' arrow_sender_item
+
+    ','  shift, and go to state 193
+
+
+State 146
+
+   77 expression: moduled_name IS . type
+
+    NAME  shift, and go to state 9
+    TYPE  shift, and go to state 186
+
+    type          go to state 194
+    moduled_name  go to state 188
+
+
+State 147
+
+   75 expression: expression LSHIFT . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 195
+    function_call  go to state 87
+
+
+State 148
+
+   76 expression: expression RSHIFT . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 196
+    function_call  go to state 87
+
+
+State 149
+
+   63 expression: expression AND . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 197
+    function_call  go to state 87
+
+
+State 150
+
+   64 expression: expression OR . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 198
+    function_call  go to state 87
+
+
+State 151
+
+   66 expression: expression COMPARISON . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 199
+    function_call  go to state 87
+
+
+State 152
+
+  116 statement: expression OPERATOR_ASSIGNMENT . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 200
+    function_call  go to state 87
+
+
+State 153
+
+   67 expression: expression '+' . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 201
+    function_call  go to state 87
+
+
+State 154
+
+   68 expression: expression '-' . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 202
+    function_call  go to state 87
+
+
+State 155
+
+   69 expression: expression '*' . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 203
+    function_call  go to state 87
+
+
+State 156
+
+   70 expression: expression '/' . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 204
+    function_call  go to state 87
+
+
+State 157
+
+   71 expression: expression '%' . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 205
+    function_call  go to state 87
+
+
+State 158
+
+   72 expression: expression '^' . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 206
+    function_call  go to state 87
+
+
+State 159
+
+   73 expression: expression '|' . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 207
+    function_call  go to state 87
+
+
+State 160
+
+   74 expression: expression '&' . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 208
+    function_call  go to state 87
+
+
+State 161
+
+   59 expression: expression '[' . expression ']' attribute_trail
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 209
+    function_call  go to state 87
+
+
+State 162
+
+   22 attribute_trail: attribute_trail . '.' NAME
+   62 expression: function_call attribute_trail .
+
+    '.'  shift, and go to state 97
+
+    $default  reduce using rule 62 (expression)
+
+
+State 163
+
+   12 main_definition: MAIN '{' statement_list '}' .
+
+    $default  reduce using rule 12 (main_definition)
+
+
+State 164
+
+   97 actual_statement_list: actual_statement_list general_statement .
+
+    $default  reduce using rule 97 (actual_statement_list)
+
+
+State 165
+
+   99 general_statement: statement ';' .
+
+    $default  reduce using rule 99 (general_statement)
+
+
+State 166
+
+  121 arrow_statement: arrow_sender ARROW . arrow_receiver
+
+    PIPE   shift, and go to state 2
+    SINK   shift, and go to state 3
+    LOCAL  shift, and go to state 210
+    NAME   shift, and go to state 9
+    TYPE   shift, and go to state 211
+
+    moduled_name         go to state 212
+    pipe_definition      go to state 213
+    sink_definition      go to state 214
+    local_definition     go to state 215
+    arrow_receiver       go to state 216
+    arrow_receiver_item  go to state 217
+
+
+State 167
+
+   22 attribute_trail: attribute_trail '.' NAME .
+
+    $default  reduce using rule 22 (attribute_trail)
+
+
+State 168
+
+   22 attribute_trail: attribute_trail . '.' NAME
+   40 compilation_expression: '[' compilation_array_literal ']' attribute_trail .
+
+    '.'  shift, and go to state 97
+
+    $default  reduce using rule 40 (compilation_expression)
+
+
+State 169
+
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+   83 compilation_array_element: compilation_array_element ',' compilation_expression .
+
+    LSHIFT  shift, and go to state 46
+    RSHIFT  shift, and go to state 47
+    AND     shift, and go to state 48
+    OR      shift, and go to state 49
+    '+'     shift, and go to state 50
+    '-'     shift, and go to state 51
+    '*'     shift, and go to state 52
+    '/'     shift, and go to state 53
+    '%'     shift, and go to state 54
+    '^'     shift, and go to state 55
+    '|'     shift, and go to state 56
+    '&'     shift, and go to state 57
+    '['     shift, and go to state 58
+
+    $default  reduce using rule 83 (compilation_array_element)
+
+
+State 170
+
+   22 attribute_trail: attribute_trail . '.' NAME
+   41 compilation_expression: '(' compilation_expression ')' attribute_trail .
+
+    '.'  shift, and go to state 97
+
+    $default  reduce using rule 41 (compilation_expression)
+
+
+State 171
+
+   93 call_arg: NAME '=' . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 218
+    function_call  go to state 87
+
+
+State 172
+
+   91 call_list: call_list ',' . call_arg
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 101
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 103
+    function_call  go to state 87
+    call_arg       go to state 219
+
+
+State 173
+
+   88 function_call: moduled_name '(' call_list ')' .
+
+    $default  reduce using rule 88 (function_call)
+
+
+State 174
+
+   27 global_var_definition: compilation_expression ARROW NAME ';' .
+
+    $default  reduce using rule 27 (global_var_definition)
+
+
+State 175
+
+   39 compilation_expression: compilation_expression '[' compilation_expression ']' . attribute_trail
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 220
+
+
+State 176
+
+   36 single_argument: NAME ':' . type
+
+    NAME  shift, and go to state 9
+    TYPE  shift, and go to state 186
+
+    type          go to state 221
+    moduled_name  go to state 188
+
+
+State 177
+
+   23 source_definition: SOURCE optional_name '(' possible_arg_list ')' . ARROW type '{' statement_list '}'
+
+    ARROW  shift, and go to state 222
+
+
+State 178
+
+   33 arg_list: arg_list ',' . arg_element
+
+    NAME  shift, and go to state 120
+
+    arg_element      go to state 223
+    single_argument  go to state 124
+
+
+State 179
+
+   35 arg_element: single_argument '=' . compilation_expression
+
+    NOT      shift, and go to state 5
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 10
+    '['      shift, and go to state 11
+    '('      shift, and go to state 12
+
+    moduled_name            go to state 20
+    compilation_expression  go to state 224
+    function_call           go to state 26
+
+
+State 180
+
+   24 pipe_definition: PIPE optional_name '(' single_argument ')' . ARROW type '{' statement_list '}'
+
+    ARROW  shift, and go to state 225
+
+
+State 181
+
+   25 sink_definition: SINK optional_name '(' single_argument ')' . '{' statement_list '}'
+
+    '{'  shift, and go to state 226
+
+
+State 182
+
+   17 struct_field: struct_field ',' . single_argument
+
+    NAME  shift, and go to state 120
+
+    single_argument  go to state 227
+
+
+State 183
+
+   15 struct_definition: STRUCT NAME '{' struct_field '}' .
+
+    $default  reduce using rule 15 (struct_definition)
+
+
+State 184
+
+  107 while_section: WHILE expression '{' . statement_list '}'
+
+    SOURCE   shift, and go to state 1
+    PIPE     shift, and go to state 2
+    SINK     shift, and go to state 3
+    WHILE    shift, and go to state 66
+    IF       shift, and go to state 67
+    PROD     shift, and go to state 68
+    DROP     shift, and go to state 69
+    END      shift, and go to state 70
+    NOT      shift, and go to state 71
+    CONT     shift, and go to state 72
+    BREAK    shift, and go to state 73
+    VERIFY   shift, and go to state 74
+    ABORT    shift, and go to state 75
+    NAME     shift, and go to state 76
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    ';'      shift, and go to state 80
+    '('      shift, and go to state 81
+
+    $default  reduce using rule 94 (statement_list)
+
+    moduled_name           go to state 82
+    source_definition      go to state 83
+    pipe_definition        go to state 84
+    sink_definition        go to state 85
+    expression             go to state 86
+    function_call          go to state 87
+    statement_list         go to state 228
+    actual_statement_list  go to state 89
+    general_statement      go to state 90
+    if_section             go to state 91
+    while_section          go to state 92
+    statement              go to state 93
+    arrow_statement        go to state 94
+    arrow_sender           go to state 95
+    arrow_sender_item      go to state 96
+
+
+State 185
+
+  102 if_section: IF expression '{' . statement_list '}' eif_section else_section
+
+    SOURCE   shift, and go to state 1
+    PIPE     shift, and go to state 2
+    SINK     shift, and go to state 3
+    WHILE    shift, and go to state 66
+    IF       shift, and go to state 67
+    PROD     shift, and go to state 68
+    DROP     shift, and go to state 69
+    END      shift, and go to state 70
+    NOT      shift, and go to state 71
+    CONT     shift, and go to state 72
+    BREAK    shift, and go to state 73
+    VERIFY   shift, and go to state 74
+    ABORT    shift, and go to state 75
+    NAME     shift, and go to state 76
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    ';'      shift, and go to state 80
+    '('      shift, and go to state 81
+
+    $default  reduce using rule 94 (statement_list)
+
+    moduled_name           go to state 82
+    source_definition      go to state 83
+    pipe_definition        go to state 84
+    sink_definition        go to state 85
+    expression             go to state 86
+    function_call          go to state 87
+    statement_list         go to state 229
+    actual_statement_list  go to state 89
+    general_statement      go to state 90
+    if_section             go to state 91
+    while_section          go to state 92
+    statement              go to state 93
+    arrow_statement        go to state 94
+    arrow_sender           go to state 95
+    arrow_sender_item      go to state 96
+
+
+State 186
+
+   18 type: TYPE .
+
+    $default  reduce using rule 18 (type)
+
+
+State 187
+
+  115 statement: NAME AS type .
+
+    $default  reduce using rule 115 (statement)
+
+
+State 188
+
+   19 type: moduled_name .
+
+    $default  reduce using rule 19 (type)
+
+
+State 189
+
+   60 expression: '[' array_literal ']' . attribute_trail
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 230
+
+
+State 190
+
+   87 array_element: array_element ',' . expression
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 231
+    function_call  go to state 87
+
+
+State 191
+
+   61 expression: '(' expression ')' . attribute_trail
+   78           | '(' expression ')' . IS type
+
+    IS  shift, and go to state 232
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 233
+
+
+State 192
+
+   79 expression: '(' arrow_statement ')' .
+
+    $default  reduce using rule 79 (expression)
+
+
+State 193
+
+  123 arrow_sender: '(' arrow_sender_list ',' . arrow_sender_item ')'
+  127 arrow_sender_list: arrow_sender_list ',' . arrow_sender_item
+
+    SOURCE   shift, and go to state 1
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name       go to state 82
+    source_definition  go to state 141
+    expression         go to state 234
+    function_call      go to state 87
+    arrow_sender_item  go to state 235
+
+
+State 194
+
+   77 expression: moduled_name IS type .
+
+    $default  reduce using rule 77 (expression)
+
+
+State 195
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   75           | expression LSHIFT expression .
+   76           | expression . RSHIFT expression
+
+    RSHIFT  shift, and go to state 148
+    '['     shift, and go to state 161
+
+    $default  reduce using rule 75 (expression)
+
+
+State 196
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+   76           | expression RSHIFT expression .
+
+    '['  shift, and go to state 161
+
+    $default  reduce using rule 76 (expression)
+
+
+State 197
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   63           | expression AND expression .
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+
+    LSHIFT      shift, and go to state 147
+    RSHIFT      shift, and go to state 148
+    COMPARISON  shift, and go to state 151
+    '+'         shift, and go to state 153
+    '-'         shift, and go to state 154
+    '*'         shift, and go to state 155
+    '/'         shift, and go to state 156
+    '%'         shift, and go to state 157
+    '^'         shift, and go to state 158
+    '|'         shift, and go to state 159
+    '&'         shift, and go to state 160
+    '['         shift, and go to state 161
+
+    $default  reduce using rule 63 (expression)
+
+
+State 198
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   64           | expression OR expression .
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+
+    LSHIFT      shift, and go to state 147
+    RSHIFT      shift, and go to state 148
+    COMPARISON  shift, and go to state 151
+    '+'         shift, and go to state 153
+    '-'         shift, and go to state 154
+    '*'         shift, and go to state 155
+    '/'         shift, and go to state 156
+    '%'         shift, and go to state 157
+    '^'         shift, and go to state 158
+    '|'         shift, and go to state 159
+    '&'         shift, and go to state 160
+    '['         shift, and go to state 161
+
+    $default  reduce using rule 64 (expression)
+
+
+State 199
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   66           | expression COMPARISON expression .
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+
+    LSHIFT  shift, and go to state 147
+    RSHIFT  shift, and go to state 148
+    '+'     shift, and go to state 153
+    '-'     shift, and go to state 154
+    '*'     shift, and go to state 155
+    '/'     shift, and go to state 156
+    '%'     shift, and go to state 157
+    '^'     shift, and go to state 158
+    '|'     shift, and go to state 159
+    '&'     shift, and go to state 160
+    '['     shift, and go to state 161
+
+    COMPARISON  error (nonassociative)
+
+    $default  reduce using rule 66 (expression)
+
+
+State 200
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+  116 statement: expression OPERATOR_ASSIGNMENT expression .
+
+    LSHIFT      shift, and go to state 147
+    RSHIFT      shift, and go to state 148
+    AND         shift, and go to state 149
+    OR          shift, and go to state 150
+    COMPARISON  shift, and go to state 151
+    '+'         shift, and go to state 153
+    '-'         shift, and go to state 154
+    '*'         shift, and go to state 155
+    '/'         shift, and go to state 156
+    '%'         shift, and go to state 157
+    '^'         shift, and go to state 158
+    '|'         shift, and go to state 159
+    '&'         shift, and go to state 160
+    '['         shift, and go to state 161
+
+    $default  reduce using rule 116 (statement)
+
+
+State 201
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   67           | expression '+' expression .
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+
+    LSHIFT  shift, and go to state 147
+    RSHIFT  shift, and go to state 148
+    '*'     shift, and go to state 155
+    '/'     shift, and go to state 156
+    '%'     shift, and go to state 157
+    '^'     shift, and go to state 158
+    '|'     shift, and go to state 159
+    '&'     shift, and go to state 160
+    '['     shift, and go to state 161
+
+    $default  reduce using rule 67 (expression)
+
+
+State 202
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   68           | expression '-' expression .
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+
+    LSHIFT  shift, and go to state 147
+    RSHIFT  shift, and go to state 148
+    '*'     shift, and go to state 155
+    '/'     shift, and go to state 156
+    '%'     shift, and go to state 157
+    '^'     shift, and go to state 158
+    '|'     shift, and go to state 159
+    '&'     shift, and go to state 160
+    '['     shift, and go to state 161
+
+    $default  reduce using rule 68 (expression)
+
+
+State 203
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   69           | expression '*' expression .
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+
+    LSHIFT  shift, and go to state 147
+    RSHIFT  shift, and go to state 148
+    '%'     shift, and go to state 157
+    '^'     shift, and go to state 158
+    '|'     shift, and go to state 159
+    '&'     shift, and go to state 160
+    '['     shift, and go to state 161
+
+    $default  reduce using rule 69 (expression)
+
+
+State 204
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   70           | expression '/' expression .
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+
+    LSHIFT  shift, and go to state 147
+    RSHIFT  shift, and go to state 148
+    '%'     shift, and go to state 157
+    '^'     shift, and go to state 158
+    '|'     shift, and go to state 159
+    '&'     shift, and go to state 160
+    '['     shift, and go to state 161
+
+    $default  reduce using rule 70 (expression)
+
+
+State 205
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   71           | expression '%' expression .
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+
+    LSHIFT  shift, and go to state 147
+    RSHIFT  shift, and go to state 148
+    '^'     shift, and go to state 158
+    '|'     shift, and go to state 159
+    '&'     shift, and go to state 160
+    '['     shift, and go to state 161
+
+    $default  reduce using rule 71 (expression)
+
+
+State 206
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   72           | expression '^' expression .
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+
+    LSHIFT  shift, and go to state 147
+    RSHIFT  shift, and go to state 148
+    '['     shift, and go to state 161
+
+    $default  reduce using rule 72 (expression)
+
+
+State 207
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   73           | expression '|' expression .
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+
+    LSHIFT  shift, and go to state 147
+    RSHIFT  shift, and go to state 148
+    '['     shift, and go to state 161
+
+    $default  reduce using rule 73 (expression)
+
+
+State 208
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   74           | expression '&' expression .
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+
+    LSHIFT  shift, and go to state 147
+    RSHIFT  shift, and go to state 148
+    '['     shift, and go to state 161
+
+    $default  reduce using rule 74 (expression)
+
+
+State 209
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   59           | expression '[' expression . ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+
+    LSHIFT      shift, and go to state 147
+    RSHIFT      shift, and go to state 148
+    AND         shift, and go to state 149
+    OR          shift, and go to state 150
+    COMPARISON  shift, and go to state 151
+    '+'         shift, and go to state 153
+    '-'         shift, and go to state 154
+    '*'         shift, and go to state 155
+    '/'         shift, and go to state 156
+    '%'         shift, and go to state 157
+    '^'         shift, and go to state 158
+    '|'         shift, and go to state 159
+    '&'         shift, and go to state 160
+    '['         shift, and go to state 161
+    ']'         shift, and go to state 236
+
+
+State 210
+
+   26 local_definition: LOCAL . '(' single_argument ')' '{' statement_list '}'
+
+    '('  shift, and go to state 237
+
+
+State 211
+
+  132 arrow_receiver_item: TYPE . attribute_trail
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 238
+
+
+State 212
+
+  130 arrow_receiver_item: moduled_name .
+  131                    | moduled_name . ':' NAME
+
+    ':'  shift, and go to state 239
+
+    $default  reduce using rule 130 (arrow_receiver_item)
+
+
+State 213
+
+  133 arrow_receiver_item: pipe_definition . attribute_trail
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 240
+
+
+State 214
+
+  134 arrow_receiver_item: sink_definition . attribute_trail
+  135                    | sink_definition . attribute_trail ':' NAME
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 241
+
+
+State 215
+
+  136 arrow_receiver_item: local_definition . attribute_trail
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 242
+
+
+State 216
+
+  121 arrow_statement: arrow_sender ARROW arrow_receiver .
+  129 arrow_receiver: arrow_receiver . ARROW arrow_receiver_item
+
+    ARROW  shift, and go to state 243
+
+    $default  reduce using rule 121 (arrow_statement)
+
+
+State 217
+
+  128 arrow_receiver: arrow_receiver_item .
+
+    $default  reduce using rule 128 (arrow_receiver)
+
+
+State 218
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+   93 call_arg: NAME '=' expression .
+
+    LSHIFT      shift, and go to state 147
+    RSHIFT      shift, and go to state 148
+    AND         shift, and go to state 149
+    OR          shift, and go to state 150
+    COMPARISON  shift, and go to state 151
+    '+'         shift, and go to state 153
+    '-'         shift, and go to state 154
+    '*'         shift, and go to state 155
+    '/'         shift, and go to state 156
+    '%'         shift, and go to state 157
+    '^'         shift, and go to state 158
+    '|'         shift, and go to state 159
+    '&'         shift, and go to state 160
+    '['         shift, and go to state 161
+
+    $default  reduce using rule 93 (call_arg)
+
+
+State 219
+
+   91 call_list: call_list ',' call_arg .
+
+    $default  reduce using rule 91 (call_list)
+
+
+State 220
+
+   22 attribute_trail: attribute_trail . '.' NAME
+   39 compilation_expression: compilation_expression '[' compilation_expression ']' attribute_trail .
+
+    '.'  shift, and go to state 97
+
+    $default  reduce using rule 39 (compilation_expression)
+
+
+State 221
+
+   36 single_argument: NAME ':' type .
+
+    $default  reduce using rule 36 (single_argument)
+
+
+State 222
+
+   23 source_definition: SOURCE optional_name '(' possible_arg_list ')' ARROW . type '{' statement_list '}'
+
+    NAME  shift, and go to state 9
+    TYPE  shift, and go to state 186
+
+    type          go to state 244
+    moduled_name  go to state 188
+
+
+State 223
+
+   33 arg_list: arg_list ',' arg_element .
+
+    $default  reduce using rule 33 (arg_list)
+
+
+State 224
+
+   35 arg_element: single_argument '=' compilation_expression .
+   39 compilation_expression: compilation_expression . '[' compilation_expression ']' attribute_trail
+   43                       | compilation_expression . AND compilation_expression
+   44                       | compilation_expression . OR compilation_expression
+   46                       | compilation_expression . '+' compilation_expression
+   47                       | compilation_expression . '-' compilation_expression
+   48                       | compilation_expression . '*' compilation_expression
+   49                       | compilation_expression . '/' compilation_expression
+   50                       | compilation_expression . '%' compilation_expression
+   51                       | compilation_expression . '^' compilation_expression
+   52                       | compilation_expression . '|' compilation_expression
+   53                       | compilation_expression . '&' compilation_expression
+   54                       | compilation_expression . LSHIFT compilation_expression
+   55                       | compilation_expression . RSHIFT compilation_expression
+
+    LSHIFT  shift, and go to state 46
+    RSHIFT  shift, and go to state 47
+    AND     shift, and go to state 48
+    OR      shift, and go to state 49
+    '+'     shift, and go to state 50
+    '-'     shift, and go to state 51
+    '*'     shift, and go to state 52
+    '/'     shift, and go to state 53
+    '%'     shift, and go to state 54
+    '^'     shift, and go to state 55
+    '|'     shift, and go to state 56
+    '&'     shift, and go to state 57
+    '['     shift, and go to state 58
+
+    $default  reduce using rule 35 (arg_element)
+
+
+State 225
+
+   24 pipe_definition: PIPE optional_name '(' single_argument ')' ARROW . type '{' statement_list '}'
+
+    NAME  shift, and go to state 9
+    TYPE  shift, and go to state 186
+
+    type          go to state 245
+    moduled_name  go to state 188
+
+
+State 226
+
+   25 sink_definition: SINK optional_name '(' single_argument ')' '{' . statement_list '}'
+
+    SOURCE   shift, and go to state 1
+    PIPE     shift, and go to state 2
+    SINK     shift, and go to state 3
+    WHILE    shift, and go to state 66
+    IF       shift, and go to state 67
+    PROD     shift, and go to state 68
+    DROP     shift, and go to state 69
+    END      shift, and go to state 70
+    NOT      shift, and go to state 71
+    CONT     shift, and go to state 72
+    BREAK    shift, and go to state 73
+    VERIFY   shift, and go to state 74
+    ABORT    shift, and go to state 75
+    NAME     shift, and go to state 76
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    ';'      shift, and go to state 80
+    '('      shift, and go to state 81
+
+    $default  reduce using rule 94 (statement_list)
+
+    moduled_name           go to state 82
+    source_definition      go to state 83
+    pipe_definition        go to state 84
+    sink_definition        go to state 85
+    expression             go to state 86
+    function_call          go to state 87
+    statement_list         go to state 246
+    actual_statement_list  go to state 89
+    general_statement      go to state 90
+    if_section             go to state 91
+    while_section          go to state 92
+    statement              go to state 93
+    arrow_statement        go to state 94
+    arrow_sender           go to state 95
+    arrow_sender_item      go to state 96
+
+
+State 227
+
+   17 struct_field: struct_field ',' single_argument .
+
+    $default  reduce using rule 17 (struct_field)
+
+
+State 228
+
+  107 while_section: WHILE expression '{' statement_list . '}'
+
+    '}'  shift, and go to state 247
+
+
+State 229
+
+  102 if_section: IF expression '{' statement_list . '}' eif_section else_section
+
+    '}'  shift, and go to state 248
+
+
+State 230
+
+   22 attribute_trail: attribute_trail . '.' NAME
+   60 expression: '[' array_literal ']' attribute_trail .
+
+    '.'  shift, and go to state 97
+
+    $default  reduce using rule 60 (expression)
+
+
+State 231
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+   87 array_element: array_element ',' expression .
+
+    LSHIFT      shift, and go to state 147
+    RSHIFT      shift, and go to state 148
+    AND         shift, and go to state 149
+    OR          shift, and go to state 150
+    COMPARISON  shift, and go to state 151
+    '+'         shift, and go to state 153
+    '-'         shift, and go to state 154
+    '*'         shift, and go to state 155
+    '/'         shift, and go to state 156
+    '%'         shift, and go to state 157
+    '^'         shift, and go to state 158
+    '|'         shift, and go to state 159
+    '&'         shift, and go to state 160
+    '['         shift, and go to state 161
+
+    $default  reduce using rule 87 (array_element)
+
+
+State 232
+
+   78 expression: '(' expression ')' IS . type
+
+    NAME  shift, and go to state 9
+    TYPE  shift, and go to state 186
+
+    type          go to state 249
+    moduled_name  go to state 188
+
+
+State 233
+
+   22 attribute_trail: attribute_trail . '.' NAME
+   61 expression: '(' expression ')' attribute_trail .
+
+    '.'  shift, and go to state 97
+
+    $default  reduce using rule 61 (expression)
+
+
+State 234
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+  124 arrow_sender_item: expression .
+
+    LSHIFT      shift, and go to state 147
+    RSHIFT      shift, and go to state 148
+    AND         shift, and go to state 149
+    OR          shift, and go to state 150
+    COMPARISON  shift, and go to state 151
+    '+'         shift, and go to state 153
+    '-'         shift, and go to state 154
+    '*'         shift, and go to state 155
+    '/'         shift, and go to state 156
+    '%'         shift, and go to state 157
+    '^'         shift, and go to state 158
+    '|'         shift, and go to state 159
+    '&'         shift, and go to state 160
+    '['         shift, and go to state 161
+
+    $default  reduce using rule 124 (arrow_sender_item)
+
+
+State 235
+
+  123 arrow_sender: '(' arrow_sender_list ',' arrow_sender_item . ')'
+  127 arrow_sender_list: arrow_sender_list ',' arrow_sender_item .
+
+    ')'  shift, and go to state 250
+
+    $default  reduce using rule 127 (arrow_sender_list)
+
+
+State 236
+
+   59 expression: expression '[' expression ']' . attribute_trail
+
+    $default  reduce using rule 21 (attribute_trail)
+
+    attribute_trail  go to state 251
+
+
+State 237
+
+   26 local_definition: LOCAL '(' . single_argument ')' '{' statement_list '}'
+
+    NAME  shift, and go to state 120
+
+    single_argument  go to state 252
+
+
+State 238
+
+   22 attribute_trail: attribute_trail . '.' NAME
+  132 arrow_receiver_item: TYPE attribute_trail .
+
+    '.'  shift, and go to state 97
+
+    $default  reduce using rule 132 (arrow_receiver_item)
+
+
+State 239
+
+  131 arrow_receiver_item: moduled_name ':' . NAME
+
+    NAME  shift, and go to state 253
+
+
+State 240
+
+   22 attribute_trail: attribute_trail . '.' NAME
+  133 arrow_receiver_item: pipe_definition attribute_trail .
+
+    '.'  shift, and go to state 97
+
+    $default  reduce using rule 133 (arrow_receiver_item)
+
+
+State 241
+
+   22 attribute_trail: attribute_trail . '.' NAME
+  134 arrow_receiver_item: sink_definition attribute_trail .
+  135                    | sink_definition attribute_trail . ':' NAME
+
+    '.'  shift, and go to state 97
+    ':'  shift, and go to state 254
+
+    $default  reduce using rule 134 (arrow_receiver_item)
+
+
+State 242
+
+   22 attribute_trail: attribute_trail . '.' NAME
+  136 arrow_receiver_item: local_definition attribute_trail .
+
+    '.'  shift, and go to state 97
+
+    $default  reduce using rule 136 (arrow_receiver_item)
+
+
+State 243
+
+  129 arrow_receiver: arrow_receiver ARROW . arrow_receiver_item
+
+    PIPE   shift, and go to state 2
+    SINK   shift, and go to state 3
+    LOCAL  shift, and go to state 210
+    NAME   shift, and go to state 9
+    TYPE   shift, and go to state 211
+
+    moduled_name         go to state 212
+    pipe_definition      go to state 213
+    sink_definition      go to state 214
+    local_definition     go to state 215
+    arrow_receiver_item  go to state 255
+
+
+State 244
+
+   23 source_definition: SOURCE optional_name '(' possible_arg_list ')' ARROW type . '{' statement_list '}'
+
+    '{'  shift, and go to state 256
+
+
+State 245
+
+   24 pipe_definition: PIPE optional_name '(' single_argument ')' ARROW type . '{' statement_list '}'
+
+    '{'  shift, and go to state 257
+
+
+State 246
+
+   25 sink_definition: SINK optional_name '(' single_argument ')' '{' statement_list . '}'
+
+    '}'  shift, and go to state 258
+
+
+State 247
+
+  107 while_section: WHILE expression '{' statement_list '}' .
+
+    $default  reduce using rule 107 (while_section)
+
+
+State 248
+
+  102 if_section: IF expression '{' statement_list '}' . eif_section else_section
+
+    $default  reduce using rule 103 (eif_section)
+
+    eif_section  go to state 259
+
+
+State 249
+
+   78 expression: '(' expression ')' IS type .
+
+    $default  reduce using rule 78 (expression)
+
+
+State 250
+
+  123 arrow_sender: '(' arrow_sender_list ',' arrow_sender_item ')' .
+
+    $default  reduce using rule 123 (arrow_sender)
+
+
+State 251
+
+   22 attribute_trail: attribute_trail . '.' NAME
+   59 expression: expression '[' expression ']' attribute_trail .
+
+    '.'  shift, and go to state 97
+
+    $default  reduce using rule 59 (expression)
+
+
+State 252
+
+   26 local_definition: LOCAL '(' single_argument . ')' '{' statement_list '}'
+
+    ')'  shift, and go to state 260
+
+
+State 253
+
+  131 arrow_receiver_item: moduled_name ':' NAME .
+
+    $default  reduce using rule 131 (arrow_receiver_item)
+
+
+State 254
+
+  135 arrow_receiver_item: sink_definition attribute_trail ':' . NAME
+
+    NAME  shift, and go to state 261
+
+
+State 255
+
+  129 arrow_receiver: arrow_receiver ARROW arrow_receiver_item .
+
+    $default  reduce using rule 129 (arrow_receiver)
+
+
+State 256
+
+   23 source_definition: SOURCE optional_name '(' possible_arg_list ')' ARROW type '{' . statement_list '}'
+
+    SOURCE   shift, and go to state 1
+    PIPE     shift, and go to state 2
+    SINK     shift, and go to state 3
+    WHILE    shift, and go to state 66
+    IF       shift, and go to state 67
+    PROD     shift, and go to state 68
+    DROP     shift, and go to state 69
+    END      shift, and go to state 70
+    NOT      shift, and go to state 71
+    CONT     shift, and go to state 72
+    BREAK    shift, and go to state 73
+    VERIFY   shift, and go to state 74
+    ABORT    shift, and go to state 75
+    NAME     shift, and go to state 76
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    ';'      shift, and go to state 80
+    '('      shift, and go to state 81
+
+    $default  reduce using rule 94 (statement_list)
+
+    moduled_name           go to state 82
+    source_definition      go to state 83
+    pipe_definition        go to state 84
+    sink_definition        go to state 85
+    expression             go to state 86
+    function_call          go to state 87
+    statement_list         go to state 262
+    actual_statement_list  go to state 89
+    general_statement      go to state 90
+    if_section             go to state 91
+    while_section          go to state 92
+    statement              go to state 93
+    arrow_statement        go to state 94
+    arrow_sender           go to state 95
+    arrow_sender_item      go to state 96
+
+
+State 257
+
+   24 pipe_definition: PIPE optional_name '(' single_argument ')' ARROW type '{' . statement_list '}'
+
+    SOURCE   shift, and go to state 1
+    PIPE     shift, and go to state 2
+    SINK     shift, and go to state 3
+    WHILE    shift, and go to state 66
+    IF       shift, and go to state 67
+    PROD     shift, and go to state 68
+    DROP     shift, and go to state 69
+    END      shift, and go to state 70
+    NOT      shift, and go to state 71
+    CONT     shift, and go to state 72
+    BREAK    shift, and go to state 73
+    VERIFY   shift, and go to state 74
+    ABORT    shift, and go to state 75
+    NAME     shift, and go to state 76
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    ';'      shift, and go to state 80
+    '('      shift, and go to state 81
+
+    $default  reduce using rule 94 (statement_list)
+
+    moduled_name           go to state 82
+    source_definition      go to state 83
+    pipe_definition        go to state 84
+    sink_definition        go to state 85
+    expression             go to state 86
+    function_call          go to state 87
+    statement_list         go to state 263
+    actual_statement_list  go to state 89
+    general_statement      go to state 90
+    if_section             go to state 91
+    while_section          go to state 92
+    statement              go to state 93
+    arrow_statement        go to state 94
+    arrow_sender           go to state 95
+    arrow_sender_item      go to state 96
+
+
+State 258
+
+   25 sink_definition: SINK optional_name '(' single_argument ')' '{' statement_list '}' .
+
+    $default  reduce using rule 25 (sink_definition)
+
+
+State 259
+
+  102 if_section: IF expression '{' statement_list '}' eif_section . else_section
+  104 eif_section: eif_section . EIF expression '{' statement_list '}'
+
+    EIF   shift, and go to state 264
+    ELSE  shift, and go to state 265
+
+    $default  reduce using rule 105 (else_section)
+
+    else_section  go to state 266
+
+
+State 260
+
+   26 local_definition: LOCAL '(' single_argument ')' . '{' statement_list '}'
+
+    '{'  shift, and go to state 267
+
+
+State 261
+
+  135 arrow_receiver_item: sink_definition attribute_trail ':' NAME .
+
+    $default  reduce using rule 135 (arrow_receiver_item)
+
+
+State 262
+
+   23 source_definition: SOURCE optional_name '(' possible_arg_list ')' ARROW type '{' statement_list . '}'
+
+    '}'  shift, and go to state 268
+
+
+State 263
+
+   24 pipe_definition: PIPE optional_name '(' single_argument ')' ARROW type '{' statement_list . '}'
+
+    '}'  shift, and go to state 269
+
+
+State 264
+
+  104 eif_section: eif_section EIF . expression '{' statement_list '}'
+
+    NOT      shift, and go to state 71
+    NAME     shift, and go to state 9
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    '('      shift, and go to state 102
+
+    moduled_name   go to state 82
+    expression     go to state 270
+    function_call  go to state 87
+
+
+State 265
+
+  106 else_section: ELSE . '{' statement_list '}'
+
+    '{'  shift, and go to state 271
+
+
+State 266
+
+  102 if_section: IF expression '{' statement_list '}' eif_section else_section .
+
+    $default  reduce using rule 102 (if_section)
+
+
+State 267
+
+   26 local_definition: LOCAL '(' single_argument ')' '{' . statement_list '}'
+
+    SOURCE   shift, and go to state 1
+    PIPE     shift, and go to state 2
+    SINK     shift, and go to state 3
+    WHILE    shift, and go to state 66
+    IF       shift, and go to state 67
+    PROD     shift, and go to state 68
+    DROP     shift, and go to state 69
+    END      shift, and go to state 70
+    NOT      shift, and go to state 71
+    CONT     shift, and go to state 72
+    BREAK    shift, and go to state 73
+    VERIFY   shift, and go to state 74
+    ABORT    shift, and go to state 75
+    NAME     shift, and go to state 76
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    ';'      shift, and go to state 80
+    '('      shift, and go to state 81
+
+    $default  reduce using rule 94 (statement_list)
+
+    moduled_name           go to state 82
+    source_definition      go to state 83
+    pipe_definition        go to state 84
+    sink_definition        go to state 85
+    expression             go to state 86
+    function_call          go to state 87
+    statement_list         go to state 272
+    actual_statement_list  go to state 89
+    general_statement      go to state 90
+    if_section             go to state 91
+    while_section          go to state 92
+    statement              go to state 93
+    arrow_statement        go to state 94
+    arrow_sender           go to state 95
+    arrow_sender_item      go to state 96
+
+
+State 268
+
+   23 source_definition: SOURCE optional_name '(' possible_arg_list ')' ARROW type '{' statement_list '}' .
+
+    $default  reduce using rule 23 (source_definition)
+
+
+State 269
+
+   24 pipe_definition: PIPE optional_name '(' single_argument ')' ARROW type '{' statement_list '}' .
+
+    $default  reduce using rule 24 (pipe_definition)
+
+
+State 270
+
+   59 expression: expression . '[' expression ']' attribute_trail
+   63           | expression . AND expression
+   64           | expression . OR expression
+   66           | expression . COMPARISON expression
+   67           | expression . '+' expression
+   68           | expression . '-' expression
+   69           | expression . '*' expression
+   70           | expression . '/' expression
+   71           | expression . '%' expression
+   72           | expression . '^' expression
+   73           | expression . '|' expression
+   74           | expression . '&' expression
+   75           | expression . LSHIFT expression
+   76           | expression . RSHIFT expression
+  104 eif_section: eif_section EIF expression . '{' statement_list '}'
+
+    LSHIFT      shift, and go to state 147
+    RSHIFT      shift, and go to state 148
+    AND         shift, and go to state 149
+    OR          shift, and go to state 150
+    COMPARISON  shift, and go to state 151
+    '+'         shift, and go to state 153
+    '-'         shift, and go to state 154
+    '*'         shift, and go to state 155
+    '/'         shift, and go to state 156
+    '%'         shift, and go to state 157
+    '^'         shift, and go to state 158
+    '|'         shift, and go to state 159
+    '&'         shift, and go to state 160
+    '['         shift, and go to state 161
+    '{'         shift, and go to state 273
+
+
+State 271
+
+  106 else_section: ELSE '{' . statement_list '}'
+
+    SOURCE   shift, and go to state 1
+    PIPE     shift, and go to state 2
+    SINK     shift, and go to state 3
+    WHILE    shift, and go to state 66
+    IF       shift, and go to state 67
+    PROD     shift, and go to state 68
+    DROP     shift, and go to state 69
+    END      shift, and go to state 70
+    NOT      shift, and go to state 71
+    CONT     shift, and go to state 72
+    BREAK    shift, and go to state 73
+    VERIFY   shift, and go to state 74
+    ABORT    shift, and go to state 75
+    NAME     shift, and go to state 76
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    ';'      shift, and go to state 80
+    '('      shift, and go to state 81
+
+    $default  reduce using rule 94 (statement_list)
+
+    moduled_name           go to state 82
+    source_definition      go to state 83
+    pipe_definition        go to state 84
+    sink_definition        go to state 85
+    expression             go to state 86
+    function_call          go to state 87
+    statement_list         go to state 274
+    actual_statement_list  go to state 89
+    general_statement      go to state 90
+    if_section             go to state 91
+    while_section          go to state 92
+    statement              go to state 93
+    arrow_statement        go to state 94
+    arrow_sender           go to state 95
+    arrow_sender_item      go to state 96
+
+
+State 272
+
+   26 local_definition: LOCAL '(' single_argument ')' '{' statement_list . '}'
+
+    '}'  shift, and go to state 275
+
+
+State 273
+
+  104 eif_section: eif_section EIF expression '{' . statement_list '}'
+
+    SOURCE   shift, and go to state 1
+    PIPE     shift, and go to state 2
+    SINK     shift, and go to state 3
+    WHILE    shift, and go to state 66
+    IF       shift, and go to state 67
+    PROD     shift, and go to state 68
+    DROP     shift, and go to state 69
+    END      shift, and go to state 70
+    NOT      shift, and go to state 71
+    CONT     shift, and go to state 72
+    BREAK    shift, and go to state 73
+    VERIFY   shift, and go to state 74
+    ABORT    shift, and go to state 75
+    NAME     shift, and go to state 76
+    LITERAL  shift, and go to state 77
+    CONTEXT  shift, and go to state 78
+    '['      shift, and go to state 79
+    ';'      shift, and go to state 80
+    '('      shift, and go to state 81
+
+    $default  reduce using rule 94 (statement_list)
+
+    moduled_name           go to state 82
+    source_definition      go to state 83
+    pipe_definition        go to state 84
+    sink_definition        go to state 85
+    expression             go to state 86
+    function_call          go to state 87
+    statement_list         go to state 276
+    actual_statement_list  go to state 89
+    general_statement      go to state 90
+    if_section             go to state 91
+    while_section          go to state 92
+    statement              go to state 93
+    arrow_statement        go to state 94
+    arrow_sender           go to state 95
+    arrow_sender_item      go to state 96
+
+
+State 274
+
+  106 else_section: ELSE '{' statement_list . '}'
+
+    '}'  shift, and go to state 277
+
+
+State 275
+
+   26 local_definition: LOCAL '(' single_argument ')' '{' statement_list '}' .
+
+    $default  reduce using rule 26 (local_definition)
+
+
+State 276
+
+  104 eif_section: eif_section EIF expression '{' statement_list . '}'
+
+    '}'  shift, and go to state 278
+
+
+State 277
+
+  106 else_section: ELSE '{' statement_list '}' .
+
+    $default  reduce using rule 106 (else_section)
+
+
+State 278
+
+  104 eif_section: eif_section EIF expression '{' statement_list '}' .
+
+    $default  reduce using rule 104 (eif_section)

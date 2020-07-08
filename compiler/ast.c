@@ -148,7 +148,6 @@ int nodeSplitSize(int nodeType) {
 		return 2;
 
 		case SINK:
-		case FILTER:
 		case EIF:
 		return 3;
 
