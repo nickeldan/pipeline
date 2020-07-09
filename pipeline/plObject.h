@@ -58,12 +58,10 @@ typedef struct plArray {
 	PL_ARRAY_HEADER
 } plArray;
 
-typedef uint32_t plModuleId_t;
-typedef uint16_t plStructId_t;
+typedef uint32_t plStructId_t;
 
 typedef struct plStruct {
 	PL_ARRAY_HEADER
-	plModuleId_t moduleId;
 	plStructId_t structId;
 } plStruct;
 

@@ -6,22 +6,8 @@
 #include "ast.h"
 #include "codeBlock.h"
 #include "plObject.h"
-#include "plModule.h"
 #include "plError.h"
-
-typedef struct contextStack {
-	int *values;
-	size_t capacity;
-	size_t length;
-} contextStack;
-
-#define CONTEXT_STACK_INITIAL_CAPACITY 10
-
-typedef struct compilationContext {
-	plModule module;
-	codeBlock block;
-	contextStack stack;
-} compilationContext;
+#include "plUtil.h"
 
 typedef uint32_t refFlags_t;
 
@@ -50,7 +36,6 @@ typedef uint32_t refFlags_t;
 
 typedef struct variableReferenceType {
 	refFlags_t flags;
-	plModuleId_t moduleId;
 	plStructId_t structId;
 } variableReferenceType;
 
@@ -60,174 +45,171 @@ typedef struct argumentSignature {
 	uint8_t hasDefaultValue;
 } argumentSignature;
 
-typedef struct functionSignature {
-	argumentSignature *args;
-	variableReferenceType returnType;
-	uint8_t numArgs;
-} functionSignature;
-
 typedef struct structSignature {
 	argumentSignature *fields;
 	uint8_t numFields;
 } structSignature;
 
+typedef struct sourceSignature {
+	argumentSignature *args;
+	variableReferenceType prodType;
+	uint8_t numArgs;
+} sourceSignature;
+
+typedef struct pipeSignature {
+	argumentSignature arg;
+	variableReferenceType prodType;
+} pipeSignature;
+
+typedef struct sinkSignature {
+	argumentSignature arg;
+} sinkSignature;
+
 typedef struct variableReference {
+	const char *name;
 	union {
-		functionSignature fSig;
-		structSignature sSig;
+		structSignature structSig;
+		sourceSignature sourceSig;
+		pipeSignature pipeSig;
+		sinkSignature sinkSig;
 	} extra;
 	variableReferenceType type;
 } variableReference;
 
-static int recursivelyCompileTree(const astNodePtr tree, compilationContext *ctx);
-static void pushContextToStack(int nodeType, contextStack *stack);
-static int popContextFromStack(contextStack *stack);
-static int compileStatementList(const astNodePtr tree, compilationContext *ctx, codeBlock *block);
-static void resolveReference(const astNodePtr node, const compilationContext *ctx, variableReference *ref);
-static int moduleAddMain(plModule *module, codeBlock *block);
-static int moduleAddImport(plModule *module, const char *name);
-static int moduleAddExport(plModule *module, const char *name);
-static int compileStructDefinition(astNodePtr tree, plModule *module);
-static int compileFunction(astNodePtr tree, compilationContext *ctx);
-static int resolveCompilationLiteral(const astNodePtr tree, plObject **object);
-static int moduleAddGlobalLiteral(plModule *module, plObject *object, const char *name);
+typedef struct referenceStack {
+	variableReference *refs;
+	size_t capacity;
+	size_t length;
+} referenceStack;
 
-void compileTree(astNodePtr tree) {
+typedef struct contextStack {
+	int *values;
+	size_t capacity;
+	size_t length;
+	size_t refStackOffset;
+} contextStack;
+
+#define STACK_INITIAL_CAPACITY 10
+
+typedef struct compilationContext {
+	plModule *module;
+	contextStack stack;
+	referenceStack refStack;
+} compilationContext;
+
+static int recursivelyParseGlobalContent(astNodePtr tree, compilationContext *ctx);
+static int addImport(const char *name, compilationContext *ctx);
+static int addExport(const char *name, compilationContext *ctx);
+static int parseStruct(astNodePtr tree, compilationContext *ctx);
+static int parseNamedSource(astNodePtr tree, compilationContext *ctx);
+static int parseNamedPipe(astNodePtr tree, compilationContext *ctx);
+static int parseNamedSink(astNodePtr tree, compilationContext *ctx);
+static void pushContextToStack(int nodeType, compilationContext *ctx);
+static int popContextFromStack(compilationContext *ctx);
+static const variableReference *resolveReference(const char *name, size_t len);
+
+int compileAstTree(astNodePtr tree, plModule *module) {
 	int ret;
 	compilationContext ctx;
 
 	memset(&ctx,0,sizeof(compilationContext));
-	moduleInit(&ctx.module);
+	ctx.module=module;
 
-	ret=recursivelyCompileTree(tree,&ctx);
-
-
+	ret=recursivelyParseglobalContent(tree,&ctx);
 }
 
-static int recursivelyCompileTree(const astNodePtr tree, compilationContext *ctx) {
-	int ret, nodeType;
-	plObject *object;
+static int recursivelyParseGlobalContent(astNodePtr tree, compilationContext *ctx) {
+	int ret;
 
 	if ( !tree ) {
 		return PL_ERROR_OK;
 	}
 
 	switch ( tree->nodeType ) {
-		case 'F':
-		ret=recursivelyCompileTree(tree->first,ctx);
-		tree->first=NULL;
+		case ';':
+		ret=recursivelyParseGlobalContent(tree->first,ctx);
 		if ( ret != PL_ERROR_OK ) {
-			goto done;
+			return ret;
 		}
-		ret=recursivelyCompileTree(tree->second,ctx);
-		tree->second=NULL;
-		break;
-
-		case MAIN:
-		ret=pushContextToStack(MAIN,&ctx->stack);
-		if ( ret != PL_ERROR_OK ) {
-			goto done;
-		}
-		ret=compileStatementList(tree->first,ctx,&ctx->block);
-		if ( ret != PL_ERROR_OK ) {
-			goto done;
-		}
-		ret=moduleAddMain(tree->first,&ctx->block);
-		freeCodeBlock(&ctx->block);
-		break;
+		return recursivelyParseGlobalContent(tree->second,ctx);
 
 		case IMPORT:
-		ret=moduleAddImport(&ctx->module,(const char*)tree->first);
-		break;
+		return addImport((const char*)tree->first->first,ctx);
 
 		case EXPORT:
-		ret=moduleAddExport(&ctx->module,(const char*)tree->first);
-		break;
+		return addExport((const char*)tree->first->first,ctx);
 
 		case STRUCT:
-		ret=compileStructDefinition(tree,&ctx->module);
-		break;
+		return parseStruct(tree,ctx);
 
 		case SOURCE:
+		return parseNamedSource(tree,ctx);
+
 		case PIPE:
+		return parseNamedPipe(tree,ctx);
+
 		case SINK:
-		case LOCAL:
-		ret=compileFunction(tree,ctx);
-		break;
+		return parseNamedSink(tree,ctx);
 
-		case 'G':
-		ret=resolveCompilationLiteral(tree->first,&object);
-		if ( ret != PL_ERROR_OK ) {
-			goto done;
-		}
-		ret=moduleAddGlobalLiteral(&ctx->module,object,(const char*)tree->second);
-		if ( ret != PL_ERROR_OK ) {
-			freeObject(object);
-		}
-		break;
+		case MAIN:
+		return parseMain(tree,ctx);
 
+		default:
+		ERROR_QUIT("Invalid nodeType: %i\n", tree->nodeType);
 	}
-
-	done:
-
-	return ret;
 }
 
-static void pushContextToStack(int nodeType, contextStack *stack) {
-	if ( stack->length >= stack->capacity ) {
+static void pushContextToStack(int nodeType, compilationContext *ctx) {
+	if ( ctx->stack.length >= ctx->stack.capacity ) {
 		size_t newCapacity;
 
-		newCapacity=( stack->capacity == 0 )? CONTEXT_STACK_INITIAL_CAPACITY : (stack->capacity + 1)*5/4;
-		stack->values=realloc(stack->values,sizeof(int)*newCapacity);
-		if ( !stack->values ) {
+		newCapacity=( ctx->stack.capacity == 0 )? STACK_INITIAL_CAPACITY : (ctx->stack.capacity + 1)*5/4;
+		ctx->stack.values=realloc(ctx->stack.values,sizeof(int)*newCapacity);
+		if ( !ctx->stack.values ) {
 			ERROR_QUIT("Failed to allocate %zu bytes", sizeof(int)*newCapacity);
 		}
-		stack->capacity=newCapacity;
+		ctx->stack.capacity=newCapacity;
 	}
 
-	stack->values[stack->length++]=nodeType;
+	ctx->stack.values[ctx->stack.length++]=nodeType;
 }
 
-static int popContextFromStack(contextStack *stack) {
-	if ( stack->length == 0 ) {
+static int popContextFromStack(compilationContext *ctx) {
+	if ( ctx->stack.length == 0 ) {
 		ERROR_QUIT("Tried to pop from an empty stack");
 	}
 
-	return stack->values[--stack->length];
+	return ctx->stack.values[--ctx->stack.length];
 }
 
-static int compileStatementList(const astNodePtr tree, compilationContext *ctx, codeBlock *block) {
-
-}
-
-static void resolveReference(const astNodePtr node, const compilationContext *ctx, variableReference *ref) {
+static int addImport(const char *name, compilationContext *ctx) {
 
 }
 
-static int moduleAddMain(plModule *module, codeBlock *block) {
+static int addExport(const char *name, compilationContext *ctx) {
 
 }
 
-static int moduleAddImport(plModule *module, const char *name) {
+static int parseStruct(astNodePtr tree, compilationContext *ctx) {
 
 }
 
-static int moduleAddExport(plModule *module, const char *name) {
+static int parseNamedSource(astNodePtr tree, compilationContext *ctx) {
 
 }
 
-static int compileStructDefinition(astNodePtr tree, plModule *module) {
+static int parseNamedPipe(astNodePtr tree, compilationContext *ctx) {
 
 }
 
-static int compileFunction(astNodePtr tree, compilationContext *ctx) {
+static int parseNamedSink(astNodePtr tree, compilationContext *ctx) {
 
 }
 
-static int resolveCompilationLiteral(const astNodePtr tree, plObject **object) {
+static int parseMain(astNodePtr tree, compilationContext *ctx) {
 
 }
 
-static int moduleAddGlobalLiteral(plModule *module, plObject *object, const char *name) {
+static const variableReference *resolveReference(const char *name, size_t len) {
 
 }

@@ -1,3 +1,4 @@
 #include "ast.h"
+#include "plModule.h"
 
-void compileTree(astNodePtr tree) __attribute__ ((noreturn));
+int compileAstTree(astNodePtr tree, plModule *module);

@@ -107,7 +107,6 @@ plObject *copyObject(const plObject *object) {
 			if ( (object->flags)&PL_OBJ_PRED_STRUCT ) {
 				plStruct *st=(plStruct*)new;
 
-				st->moduleId=((plStruct*)object)->moduleId;
 				st->structId=((plStruct*)object)->structId;
 			}
 
