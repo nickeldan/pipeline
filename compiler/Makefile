@@ -33,4 +33,4 @@ parser.tab.h parser.tab.c: parser.y
 	bison -dv $<
 
 clean:
-	rm -f *.o $(LIB_NAME).so $(LIB_NAME).a
+	rm -f parser.output *.o $(LIB_NAME).so $(LIB_NAME).a
