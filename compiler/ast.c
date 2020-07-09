@@ -83,7 +83,9 @@ astNodePtr createNode(int lineno, int nodeType, ...) {
 		branch=&node->first;
 		for (int k=0; k<splitSize; k++) {
 			*branch=va_arg(args,astNodePtr);
-			(*branch)->parent=node;
+			if ( *branch ) {
+				(*branch)->parent=node;
+			}
 			branch++;
 		}
 	}
@@ -93,6 +95,10 @@ astNodePtr createNode(int lineno, int nodeType, ...) {
 }
 
 void freeAstTree(astNodePtr root) {
+	if ( !root ) {
+		return;
+	}
+
 	switch ( nodeSplitSize(root->nodeType) ) {
 		case 4:
 		freeAstTree(root->fourth);
@@ -132,6 +138,7 @@ int nodeSplitSize(int nodeType) {
 		case CONT:
 		case BREAK:
 		case CONTEXT:
+		case '_':
 		return 0;
 
 		case PROD:

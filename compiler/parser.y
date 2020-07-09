@@ -282,6 +282,7 @@ arrow_receiver_item: moduled_name {$$=$1;}
 	| sink_definition attribute_trail {$$=resolveAttributes($1,$2);}
 	| sink_definition attribute_trail ':' NAME {$$=NODE(':',resolveAttributes($1,$2),$4);}
 	| local_definition attribute_trail {$$=resolveAttributes($1,$2);}
+	| '_' {$$=NODE('_');}
 	;
 
 %%

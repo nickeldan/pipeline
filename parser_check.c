@@ -36,7 +36,7 @@ void printTree(const astNodePtr tree, unsigned int margin) {
 	if ( tree->nodeType == NAME ) {
 		printf(" (%s)", (const char*)(tree->first));
 	}
-	printf(":\n");
+	printf("\n");
 
 	splitSize=nodeSplitSize(tree->nodeType);
 
@@ -56,8 +56,6 @@ void printTree(const astNodePtr tree, unsigned int margin) {
 		printMargin(margin);
 		printf("}\n");
 	}
-
-	printf("\n");
 }
 
 void printMargin(unsigned int margin) {

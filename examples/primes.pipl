@@ -47,12 +47,8 @@ sink doCount(x:Any) {
 	prod ?STORE+1;
 }
 
-sink doTake(x:Any) {
-	prod x; end;
-}
-
 pipe isPrime(n:Int) -> Bool {
-	prod (factor(n) -> doTake) == n;
+	prod (factor(n) -> _) == n;
 }
 
 main {

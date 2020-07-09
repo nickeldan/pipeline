@@ -58,7 +58,7 @@ export													{return EXPORT;}
 main													{return MAIN;}
 \?[A-Z]+/[^_a-z0-9]										{yylval.marker=lexResolveContext(yytext+1,yyleng-1); return CONTEXT;}
 "->"													{return ARROW;}
-[-+*/%^&|]/[^=]											{return yytext[0];}
+[-+*/%^&|_]/[^=]										{return yytext[0];}
 "<<"/[^=]												{return LSHIFT;}
 ">>"/[^=]												{return RSHIFT;}
 [-+*/%^&|]=/[^=]										{yylval.marker=yytext[0]; return OPERATOR_ASSIGNMENT;}
