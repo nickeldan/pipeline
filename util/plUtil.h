@@ -16,6 +16,9 @@
 
 #define BZERO(ptr,size) memset(ptr,0,size)
 
+// For Linux
+#define PATH_MAX 4096
+
 void errorQuit(const char *functionName, const char *format, ...) __attribute__((noreturn));
 #define ERROR_QUIT(format,...) errorQuit(__PRETTY_FUNCTION__,format,##__VA_ARGS__)
 

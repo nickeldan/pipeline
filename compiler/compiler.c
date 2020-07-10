@@ -1,7 +1,11 @@
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <errno.h>
+#include <unistd.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #include "ast.h"
 #include "plObject.h"
@@ -99,6 +103,8 @@ typedef struct compilationContext {
 
 static int recursivelyParseGlobalContent(astNodePtr tree, compilationContext *ctx);
 static int addImport(const char *name, compilationContext *ctx);
+static int importModuleFromDirectory(const char *directory, const char *name, compilationContext *ctx);
+static int addSubmodule(compilationCtx *ctx, plModule *submodule);
 static int addExport(const char *name, compilationContext *ctx);
 static int parseStruct(astNodePtr tree, compilationContext *ctx);
 static int parseNamedSource(astNodePtr tree, compilationContext *ctx);
@@ -184,6 +190,78 @@ static int popContextFromStack(compilationContext *ctx) {
 }
 
 static int addImport(const char *name, compilationContext *ctx) {
+	int ret;
+	FILE *f;
+	const char *pipelinePath;
+
+	ret=importModuleFromDirectory(NULL,name,ctx);
+	if ( ret != PL_ERROR_NOT_FOUND ) {
+		return ret;
+	}
+
+	pipelinePath=getenv("PIPELINE_LIBRARY_PATH");
+	if ( pipelinePath ) {
+		const char *colonPtr;
+
+		do {
+			char directory[PATH_MAX];
+			size_t len;
+
+			colonPtr=shrchrnul(pipelinePath,':');
+			len=colonPtr? colonPtr-pipelinePath : strlen(pipelinePath);
+			if ( len == 0 || len >= PATH_MAX ) {
+				goto iteration_done;
+			}
+			memcpy(directory,pipelinePath,len);
+			directory[len]='\0';
+			while ( len > 0 && directory[len-1] == '/' ) {
+				directory[--len]='\0';
+			}
+
+			ret=importModuleFromDirectory(directory,name,ctx);
+			if ( ret != PL_ERROR_NOT_FOUND ) {
+				return ret;
+			}
+
+			iteration_done:
+
+			pipelinePath=colonPtr+1;
+		} while ( colonPtr );
+	}
+
+	return PL_ERROR_NOT_FOUND;
+}
+
+static int importModuleFromDirectory(const char *directory, const char *name, compilationContext *ctx) {
+	int ret;
+	char fullPath[PATH_MAX];
+	int fd;
+	plModule submodule;
+
+	if ( directory ) {
+		if ( snprintf(fullPath,sizeof(fullPath),"%s/%s.cipl", directory, name) >= sizeof(fullPath) ) {
+			return PL_ERROR_NOT_FOUND;
+		}
+	else if ( snprintf(fullPath,sizeof(fullPath),"%s.cipl", name) >= sizeof(fullPath) ) {
+		return PL_ERROR_NOT_FOUND;
+	}
+
+	fd=open(fullPath,O_RDONLY);
+	if ( fd < 0 ) {
+		return PL_ERROR_NOT_FOUND;
+	}
+
+	// ciplLoad promises to close fd.
+	ret=ciplLoad(fd,&submodule);
+	if ( ret != PL_ERROR_OK ) {
+		fprintf(stderr,"Failed to load module from %s: %s\n", fullPath, plErrorString(ret));
+		return PL_ERROR_MODULE_LOAD;
+	}
+
+	return addSubmodule(ctx,&submodule);
+}
+
+static int addSubmodule(compilationCtx *ctx, plModule *submodule) {
 
 }
 
