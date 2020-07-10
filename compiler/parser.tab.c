@@ -74,10 +74,10 @@
 #include "plObject.h"
 #include "parserWrapper.h"
 
-int yylex(YYSTYPE *yylvalp, YYLTYPE *yylocp, yyscan_t scanner);
-void yyerror(YYLTYPE *yylocp, yyscan_t scanner, const char *format, ...);
+int yylex(YYSTYPE *yylvalp, YYLTYPE *yyllocp, yyscan_t scanner);
+void yyerror(YYLTYPE *yyllocp, yyscan_t scanner, const char *format, ...);
 
-static astNodePtr resolveAttributes(const YYLTYPE *yylocp, astNodePtr object, astNodePtr attributes);
+static astNodePtr resolveAttributes(const YYLTYPE *yyllocp, astNodePtr object, astNodePtr attributes);
 #define RESOLVE_ATTRIBUTES(object,attributes) resolveAttributes(&yylloc,object,attributes)
 
 #define NODE(...) createNode(&yylloc, __VA_ARGS__)
@@ -2949,17 +2949,17 @@ yyreturn:
 #line 295 "parser.y" /* yacc.c:1906  */
 
 
-void yyerror(YYLTYPE *yylocp, yyscan_t scanner, const char *format, ...) {
+void yyerror(YYLTYPE *yyllocp, yyscan_t scanner, const char *format, ...) {
 	(void)scanner;
 	va_list args;
 
-	fprintf(stderr,"Syntax error beginning on line %i: ", yylocp->first_line);
+	fprintf(stderr,"Syntax error beginning on line %i: ", yyllocp->first_line);
 	va_start(args,format);
 	vfprintf(stderr,format,args);
 	va_end(args);
 	fprintf(stderr,"\n");
 }
 
-static astNodePtr resolveAttributes(const YYLTYPE *yylocp, astNodePtr object, astNodePtr attributes) {
-	return attributes? createNode(yylocp,'.',object,attributes) : object;
+static astNodePtr resolveAttributes(const YYLTYPE *yyllocp, astNodePtr object, astNodePtr attributes) {
+	return attributes? createNode(yyllocp,'.',object,attributes) : object;
 }
