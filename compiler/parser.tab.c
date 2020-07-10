@@ -78,7 +78,7 @@ int yylex(YYSTYPE *yylvalp, YYLTYPE *yylocp, yyscan_t scanner);
 void yyerror(YYLTYPE *yylocp, yyscan_t scanner, const char *format, ...);
 
 static astNodePtr resolveAttributes(const YYLTYPE *yylocp, astNodePtr object, astNodePtr attributes);
-#define RESOLVE_ATTRIBUTES(object,attributes) resolveAttributes(&yyloc,object,attributes)
+#define RESOLVE_ATTRIBUTES(object,attributes) resolveAttributes(&yylloc,object,attributes)
 
 #define NODE(...) createNode(&yylloc, __VA_ARGS__)
 
