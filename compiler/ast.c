@@ -5,7 +5,8 @@
 #include "ast.h"
 #include "plUtil.h"
 #include "plObject.h"
-#include "parser.tab.h"
+#include "parserWrapper.h"
+#include "lex.yy.h"
 
 struct astZeroSplitNode {
 	AST_NODE_HEADER
@@ -29,7 +30,19 @@ struct astThreeSplitNode {
 	astNodePtr third;
 };
 
-astNodePtr createNode(int lineno, int nodeType, ...) {
+int formAstFromFile(FILE *infile, astNodePtr *programTree) {
+	int ret;
+	yyscan_t scaninfo;
+
+	yylex_init(&scaninfo);
+	yyset_in(infile,scaninfo);
+
+	ret=yyparse(programTree,scaninfo);
+	yylex_destroy(scaninfo);
+	return ret;
+}
+
+astNodePtr createNode(const YYLTYPE *locPtr, int nodeType, ...) {
 	astNodePtr node;
 	int splitSize;
 	size_t size;
@@ -65,7 +78,7 @@ astNodePtr createNode(int lineno, int nodeType, ...) {
 		ERROR_QUIT("Failed to allocate %zu bytes", size);
 	}
 
-	node->lineno=lineno;
+	memcpy(&node->location,locPtr,sizeof(YYLTYPE));
 	node->nodeType=nodeType;
 	node->parent=NULL;
 

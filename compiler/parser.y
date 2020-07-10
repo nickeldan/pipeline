@@ -3,19 +3,26 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "parserUtil.h"
+#include "ast.h"
 #include "marker.h"
 #include "nameTable.h"
 #include "plObject.h"
+#include "parserWrapper.h"
 
-void yyerror(const char *message, ...);
-int yylex(void);
+int yylex(YYSTYPE *yylvalp, YYLTYPE *yylocp, yyscan_t scanner);
+void yyerror(YYLTYPE *yylocp, yyscan_t scanner, const char *format, ...);
 
-static astNodePtr resolveAttributes(astNodePtr object, astNodePtr attributes);
+static astNodePtr resolveAttributes(const YYLTYPE *yylocp, astNodePtr object, astNodePtr attributes);
+#define RESOLVE_ATTRIBUTES(object,attributes) resolveAttributes(&yyloc,object,attributes)
 
-astNodePtr programTree;
+#define NODE(...) createNode(&yylloc, __VA_ARGS__)
+
 %}
 
+%define api.pure full
+%locations
+%parse-param { astNodePtr *programTree }
+%param { yyscan_t scanner }
 %define parse.error verbose
 %define parse.lac full
 
@@ -60,7 +67,7 @@ astNodePtr programTree;
 
 %%
 
-file: file_section {programTree=$1;}
+file: file_section {*programTree=$1;}
 	;
 
 file_section: global_content {$$=$1;}
@@ -97,7 +104,7 @@ type: TYPE {$$=NODE(TYPE); $$->marker=$1;}
 	| moduled_name {$$=$1;}
 	;
 
-moduled_name: NAME attribute_trail {$$=resolveAttributes($1,$2);}
+moduled_name: NAME attribute_trail {$$=RESOLVE_ATTRIBUTES($1,$2);}
 	;
 
 attribute_trail: {$$=NULL;}
@@ -139,11 +146,11 @@ single_argument: NAME ':' type {$$=NODE(':',$1,$3);}
 	;
 
 compilation_expression: moduled_name {$$=$1;}
-	| LITERAL attribute_trail {$$=resolveAttributes(NODE(LITERAL,$1),$2);}
-	| compilation_expression '[' compilation_expression ']' attribute_trail {$$=resolveAttributes(NODE('[',$1,$3),$5);}
-	| '[' compilation_array_literal ']' attribute_trail {$$=resolveAttributes(NODE('L',$2),$4);}
-	| '(' compilation_expression ')' attribute_trail {$$=resolveAttributes($2,$4);}
-	| function_call attribute_trail {$$=resolveAttributes($1,$2);}
+	| LITERAL attribute_trail {$$=RESOLVE_ATTRIBUTES(NODE(LITERAL,$1),$2);}
+	| compilation_expression '[' compilation_expression ']' attribute_trail {$$=RESOLVE_ATTRIBUTES(NODE('[',$1,$3),$5);}
+	| '[' compilation_array_literal ']' attribute_trail {$$=RESOLVE_ATTRIBUTES(NODE('L',$2),$4);}
+	| '(' compilation_expression ')' attribute_trail {$$=RESOLVE_ATTRIBUTES($2,$4);}
+	| function_call attribute_trail {$$=RESOLVE_ATTRIBUTES($1,$2);}
 	| compilation_expression AND compilation_expression {$$=NODE(AND,$1,$3);}
 	| compilation_expression OR compilation_expression {$$=NODE(OR,$1,$3);}
 	| NOT compilation_expression {$$=NODE(NOT,$2);}
@@ -160,12 +167,12 @@ compilation_expression: moduled_name {$$=$1;}
 	;
 
 expression: moduled_name {$$=$1;}
-	| LITERAL attribute_trail {$$=resolveAttributes(NODE(LITERAL,$1),$2);}
-	| CONTEXT attribute_trail {$$=NODE(CONTEXT); $$->marker=$1; if ( $2 ) {$$=resolveAttributes($$,$2);}}
-	| expression '[' expression ']' attribute_trail {$$=resolveAttributes(NODE('[',$1,$3),$5);}
-	| '[' array_literal ']' attribute_trail {$$=resolveAttributes(NODE('L',$2),$4);}
-	| '(' expression ')' attribute_trail {$$=resolveAttributes($2,$4);}
-	| function_call attribute_trail {$$=resolveAttributes($1,$2);}
+	| LITERAL attribute_trail {$$=RESOLVE_ATTRIBUTES(NODE(LITERAL,$1),$2);}
+	| CONTEXT attribute_trail {$$=NODE(CONTEXT); $$->marker=$1; if ( $2 ) {$$=RESOLVE_ATTRIBUTES($$,$2);}}
+	| expression '[' expression ']' attribute_trail {$$=RESOLVE_ATTRIBUTES(NODE('[',$1,$3),$5);}
+	| '[' array_literal ']' attribute_trail {$$=RESOLVE_ATTRIBUTES(NODE('L',$2),$4);}
+	| '(' expression ')' attribute_trail {$$=RESOLVE_ATTRIBUTES($2,$4);}
+	| function_call attribute_trail {$$=RESOLVE_ATTRIBUTES($1,$2);}
 	| expression AND expression {$$=NODE(AND,$1,$3);}
 	| expression OR expression {$$=NODE(OR,$1,$3);}
 	| NOT expression {$$=NODE(NOT,$2);}
@@ -277,26 +284,27 @@ arrow_receiver: arrow_receiver_item {$$=$1;}
 
 arrow_receiver_item: moduled_name {$$=$1;}
 	| moduled_name ':' NAME {$$=NODE(':',$1,$3);}
-	| TYPE attribute_trail {$$=NODE(TYPE); $$->marker=$1; $$=resolveAttributes($$,$2);}
-	| pipe_definition attribute_trail {$$=resolveAttributes($1,$2);}
-	| sink_definition attribute_trail {$$=resolveAttributes($1,$2);}
-	| sink_definition attribute_trail ':' NAME {$$=NODE(':',resolveAttributes($1,$2),$4);}
-	| local_definition attribute_trail {$$=resolveAttributes($1,$2);}
+	| TYPE attribute_trail {$$=NODE(TYPE); $$->marker=$1; $$=RESOLVE_ATTRIBUTES($$,$2);}
+	| pipe_definition attribute_trail {$$=RESOLVE_ATTRIBUTES($1,$2);}
+	| sink_definition attribute_trail {$$=RESOLVE_ATTRIBUTES($1,$2);}
+	| sink_definition attribute_trail ':' NAME {$$=NODE(':',RESOLVE_ATTRIBUTES($1,$2),$4);}
+	| local_definition attribute_trail {$$=RESOLVE_ATTRIBUTES($1,$2);}
 	| '_' {$$=NODE('_');}
 	;
 
 %%
 
-void yyerror(const char *format, ...) {
+void yyerror(YYLTYPE *yylocp, yyscan_t scanner, const char *format, ...) {
+	(void)scanner;
 	va_list args;
 
-	fprintf(stderr,"Syntax error on line %i: ", yylineno);
+	fprintf(stderr,"Syntax error beginning on line %i: ", yylocp->first_line);
 	va_start(args,format);
 	vfprintf(stderr,format,args);
 	va_end(args);
 	fprintf(stderr,"\n");
 }
 
-static astNodePtr resolveAttributes(astNodePtr object, astNodePtr attributes) {
-	return attributes? NODE('.',object,attributes) : object;
+static astNodePtr resolveAttributes(const YYLTYPE *yylocp, astNodePtr object, astNodePtr attributes) {
+	return attributes? createNode(yylocp,'.',object,attributes) : object;
 }

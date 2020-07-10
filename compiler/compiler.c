@@ -4,8 +4,8 @@
 #include <sys/types.h>
 
 #include "ast.h"
-#include "codeBlock.h"
 #include "plObject.h"
+#include "plModule.h"
 #include "plError.h"
 #include "plUtil.h"
 
@@ -92,7 +92,7 @@ typedef struct contextStack {
 #define STACK_INITIAL_CAPACITY 10
 
 typedef struct compilationContext {
-	plModule *module;
+	plModule module;
 	contextStack stack;
 	referenceStack refStack;
 } compilationContext;
@@ -108,14 +108,15 @@ static void pushContextToStack(int nodeType, compilationContext *ctx);
 static int popContextFromStack(compilationContext *ctx);
 static const variableReference *resolveReference(const char *name, size_t len);
 
-int compileAstTree(astNodePtr tree, plModule *module) {
+int compileSourceFile(const char *sourceFile) {
 	int ret;
+	astNodePtr programTree;
 	compilationContext ctx;
 
 	memset(&ctx,0,sizeof(compilationContext));
-	ctx.module=module;
+	moduleInit(&ctx.module);
 
-	ret=recursivelyParseglobalContent(tree,&ctx);
+	ret=recursivelyParseglobalContent(programTree,&ctx);
 }
 
 static int recursivelyParseGlobalContent(astNodePtr tree, compilationContext *ctx) {

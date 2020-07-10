@@ -1,6 +1,21 @@
 #ifndef __PIPELINE_AST_H__
 #define __PIPELINE_AST_H__
 
+#include <stdio.h>
+
+// copied from parser.tab.h
+#if !defined(YYLTYPE) && !defined(YYLTYPE_IS_DECLARED)
+#define YYLTYPE_IS_DECLARED 1
+#define YYLTYPE_IS_TRIVIAL 1
+
+typedef struct YYLTYPE {
+	int first_line;
+	int first_column;
+	int last_line;
+	int last_column;
+} YYLTYPE;
+#endif
+
 /*
 	Non-obvious nodetypes:
 
@@ -9,9 +24,9 @@
 */
 
 #define AST_NODE_HEADER \
+	YYLTYPE location;\
 	int nodeType; \
 	int marker; \
-	int lineno; \
 	struct astFourSplitNode *parent;
 
 typedef struct astFourSplitNode {
@@ -22,7 +37,8 @@ typedef struct astFourSplitNode {
 	struct astFourSplitNode *fourth;
 } *astNodePtr;
 
-astNodePtr createNode(int lineno, int nodeType, ...);
+int formAstFromFile(FILE *infile, astNodePtr *programTree);
+astNodePtr createNode(const YYLTYPE *locPtr, int nodeType, ...);
 void freeAstTree(astNodePtr root);
 int nodeSplitSize(int nodeType) __attribute__ ((pure));
 

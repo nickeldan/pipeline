@@ -2,9 +2,7 @@
 
 #include "ast.h"
 #include "plObject.h"
-#include "parser.tab.h"
-
-int yyparse(void);
+#include "parserWrapper.h"
 
 void printTree(const astNodePtr tree, unsigned int margin);
 void printMargin(unsigned int margin);
@@ -14,8 +12,9 @@ extern astNodePtr programTree;
 
 int main() {
 	int ret;
+	astNodePtr programTree;
 
-	ret=yyparse();
+	ret=formAstFromFile(stdin,&programTree);
 	if ( ret == 0 ) {
 		printTree(programTree,0);
 		freeAstTree(programTree);

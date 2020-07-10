@@ -8,25 +8,25 @@ LIB_NAME := libplcompiler
 
 all: $(LIB_NAME).so $(LIB_NAME).a
 
-$(LIB_NAME).so: scanner.o nameTable.o ast.o parser.tab.o
+$(LIB_NAME).so: lex.yy.o nameTable.o ast.o parser.tab.o
 	$(CC) -shared -o $@ $^
 
-$(LIB_NAME).a: scanner.o nameTable.o ast.o parser.tab.o
+$(LIB_NAME).a: lex.yy.o nameTable.o ast.o parser.tab.o
 	ar rcs $@ $^
 
-scanner.o: scanner.c parser.tab.h parserUtil.h ast.h marker.h ../util/plUtil.h ../util/plError.h ../pipeline/plObject.h
+lex.yy.o: lex.yy.c parserWrapper.h parser.tab.h ast.h marker.h ../util/plUtil.h ../util/plError.h ../pipeline/plObject.h
 	$(CC) $(COMPILER_FLAGS) $(INCLUDES) -c $<
 
-scanner.c: scanner.l
-	flex -o $@ $<
+lex.yy.c lex.yy.h: scanner.l
+	flex $<
 
 nameTable.o: nameTable.c nameTable.h ../util/plUtil.h
 	$(CC) $(COMPILER_FLAGS) $(INCLUDES) -c $<
 
-ast.o: ast.c ast.h parser.tab.h ../util/plUtil.h ../pipeline/plObject.h
+ast.o: ast.c ast.h parserWrapper.h parser.tab.h ../util/plUtil.h ../pipeline/plObject.h
 	$(CC) $(COMPILER_FLAGS) $(INCLUDES) -c $<
 
-parser.tab.o: parser.tab.c parser.tab.h parserUtil.h ast.h marker.h nameTable.h ../pipeline/plObject.h
+parser.tab.o: parser.tab.c parserWrapper.h parser.tab.h lex.yy.h ast.h marker.h nameTable.h ../pipeline/plObject.h
 	$(CC) $(COMPILER_FLAGS) $(INCLUDES) -c $<
 
 parser.tab.h parser.tab.c: parser.y

@@ -9,7 +9,7 @@ all: parser_check
 parser_check: parser_check.o compiler/libplcompiler.a pipeline/libplobject.a util/libplutil.a
 	$(CC) -o $@ $^
 
-parser_check.o: parser_check.c pipeline/plObject.h compiler/ast.h compiler/parser.tab.h
+parser_check.o: parser_check.c pipeline/plObject.h compiler/ast.h compiler/parserWrapper.h compiler/parser.tab.h
 	$(CC) $(COMPILER_FLAGS) $(INCLUDE_DIRS) -c $<
 
 compiler/libplcompiler.a compiler/parser.tab.h pipeline/libplobject.a util/libplutil.a:

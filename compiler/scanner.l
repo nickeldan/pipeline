@@ -1,26 +1,38 @@
-%option nodefault yylineno noyywrap
+%option nodefault yylineno noyywrap reentrant bison-bridge bison-locations
+%option header-file="lex.yy.h"
 
 %{
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 
-#include "parserUtil.h"
+#include "plObject.h"
+#include "ast.h"
 #include "marker.h"
 #include "nameTable.h"
 #include "plUtil.h"
-#include "plObject.h"
+#include "parserWrapper.h"
 
-#include "parser.tab.h"
+#define YY_USER_ACTION \
+	do { \
+		yylloc->first_line = yylloc->last_line; \
+		yylloc->first_column = yylloc->last_column; \
+		if ( yylloc->last_line == yylineno ) { \
+			yylloc->last_column += yyleng; \
+		} \
+		else { \
+			yylloc->last_line = yylineno; \
+			yylloc->last_column = yytext + yyleng - strrchr(yytext, '\n'); \
+		} \
+	} while (0);
 
-void yyerror(const char *format, ...);
-extern int yylineno;
+#define PARSE_CTX_ARG yyscan_t yyscanner
 
-static plObject *lexResolveSimpleLiteral(char firstChar) __attribute__((pure));
-static plObject *lexResolveHexLiteral(const char *text, size_t len);
-static plObject *lexResolveStringLiteral(const char *text, size_t len);
-static int lexResolveContext(const char *text, size_t len);
-static int lexResolveComparison(const char *text);
+static plObject *lexResolveSimpleLiteral(PARSE_CTX_ARG, char firstChar);
+static plObject *lexResolveHexLiteral(PARSE_CTX_ARG, const char *text, size_t len);
+static plObject *lexResolveStringLiteral(PARSE_CTX_ARG, const char *text, size_t len);
+static int lexResolveContext(PARSE_CTX_ARG, const char *text, size_t len);
+static int lexResolveComparison(PARSE_CTX_ARG, const char *text);
 %}
 
 %%
@@ -36,16 +48,16 @@ while													{return WHILE;}
 not														{return NOT;}
 and														{return AND;}
 or														{return OR;}
-true|false|blank|null									{yylval.object=lexResolveSimpleLiteral(yytext[0]); return LITERAL;}
+true|false|blank|null									{yylval->object=lexResolveSimpleLiteral(yyscanner,yytext[0]); return LITERAL;}
 if														{return IF;}
 eif														{return EIF;}
 else													{return ELSE;}
-Any														{yylval.marker=PL_MARKER_TYPE_ANY; return TYPE;}
-Int														{yylval.marker=PL_MARKER_TYPE_INT; return TYPE;}
-Float													{yylval.marker=PL_MARKER_TYPE_FLOAT; return TYPE;}
-Bool													{yylval.marker=PL_MARKER_TYPE_BOOL; return TYPE;}
-Bytes													{yylval.marker=PL_MARKER_TYPE_BYTES; return TYPE;}
-Array													{yylval.marker=PL_MARKER_TYPE_ARRAY; return TYPE;}
+Any														{yylval->marker=PL_MARKER_TYPE_ANY; return TYPE;}
+Int														{yylval->marker=PL_MARKER_TYPE_INT; return TYPE;}
+Float													{yylval->marker=PL_MARKER_TYPE_FLOAT; return TYPE;}
+Bool													{yylval->marker=PL_MARKER_TYPE_BOOL; return TYPE;}
+Bytes													{yylval->marker=PL_MARKER_TYPE_BYTES; return TYPE;}
+Array													{yylval->marker=PL_MARKER_TYPE_ARRAY; return TYPE;}
 cont													{return CONT;}
 break													{return BREAK;}
 verify													{return VERIFY;}
@@ -56,49 +68,48 @@ as														{return AS;}
 import													{return IMPORT;}
 export													{return EXPORT;}
 main													{return MAIN;}
-\?[A-Z]+/[^_a-z0-9]										{yylval.marker=lexResolveContext(yytext+1,yyleng-1); return CONTEXT;}
+\?[A-Z]+/[^_a-z0-9]										{yylval->marker=lexResolveContext(yyscanner,yytext+1,yyleng-1); return CONTEXT;}
 "->"													{return ARROW;}
 [-+*/%^&|_]/[^=]										{return yytext[0];}
 "<<"/[^=]												{return LSHIFT;}
 ">>"/[^=]												{return RSHIFT;}
-[-+*/%^&|]=/[^=]										{yylval.marker=yytext[0]; return OPERATOR_ASSIGNMENT;}
-"<<="													{yylval.marker=PL_MARKER_LSHIFT; return OPERATOR_ASSIGNMENT;}
-">>="													{yylval.marker=PL_MARKER_RSHIFT; return OPERATOR_ASSIGNMENT;}
+[-+*/%^&|]=/[^=]										{yylval->marker=yytext[0]; return OPERATOR_ASSIGNMENT;}
+"<<="													{yylval->marker=PL_MARKER_LSHIFT; return OPERATOR_ASSIGNMENT;}
+">>="													{yylval->marker=PL_MARKER_RSHIFT; return OPERATOR_ASSIGNMENT;}
 [=,:.(){}]												{return yytext[0];}
 "["|"]"													{return yytext[0];}
 ;+														{return ';';}
-[<>]=?|[!=]=											{yylval.marker=lexResolveComparison(yytext); return COMPARISON;}
-[_A-Za-z][_A-Za-z0-9]*									{yylval.node=NODE(NAME,registerName(yytext)); return NAME;}
--?([0-9]*\.?[0-9]+|[0-9]+\.)/[^.0-9A-Za-z_]				{	switch ( plIntegerFromString((plInteger**)&yylval.object,yytext,yyleng) )
+[<>]=?|[!=]=											{yylval->marker=lexResolveComparison(yyscanner,yytext); return COMPARISON;}
+[_A-Za-z][_A-Za-z0-9]*									{yylval->node=createNode(yylloc,NAME,registerName(yytext)); return NAME;}
+-?([0-9]*\.?[0-9]+|[0-9]+\.)/[^.0-9A-Za-z_]				{	int localErrnum=plIntegerFromString((plInteger**)&yylval->object,yytext,yyleng);
+															switch ( localErrnum )
 															{
 																case PL_ERROR_OK:
 																return LITERAL;
 
 																case PL_ERROR_OUT_OF_MEMORY:
-																yyerror("Memory allocation error on line %i", yylineno);
-																break;
+																ERROR_QUIT("Memory allocation error on line %i", yylineno);
 
 																case PL_ERROR_BAD_INPUT:
-																yyerror("Lexical error on line %i: Invalid integer literal: %s", yylineno, yytext);
-																break;
+																ERROR_QUIT("Lexical error on line %i: Invalid integer literal: %s", yylineno, yytext);
 
 																default:
-																break;
+																ERROR_QUIT("Unknown error (%i) on line %i", localErrnum, yylineno);
 															}
-
-															exit(1);
 														}
--?0x[A-Fa-f0-9]+/[^_G-Zg-z]								{yylval.object=lexResolveHexLiteral(yytext,yyleng); return LITERAL;}
-\"[^\"]*\"												{yylval.object=lexResolveStringLiteral(yytext,yyleng); return LITERAL;}
+-?0x[A-Fa-f0-9]+/[^_G-Zg-z]								{yylval->object=lexResolveHexLiteral(yyscanner,yytext,yyleng); return LITERAL;}
+\"[^\"]*\"												{yylval->object=lexResolveStringLiteral(yyscanner,yytext,yyleng); return LITERAL;}
 [ \t]+													{}
 "//".*													{}
 "/*"([^*]|[\r\n]|\*[^/]?)*"*/"							{}
 [\r\n]+													{}
-.														{yyerror("Lexical error on line %i: Invalid input: %s\n", yylineno, yytext);}
+.														{ERROR_QUIT("Lexical error on line %i: Invalid input: %s\n", yylineno, yytext);}
 
 %%
 
-static plObject *lexResolveSimpleLiteral(char firstChar) {
+static plObject *lexResolveSimpleLiteral(PARSE_CTX_ARG, char firstChar) {
+	struct yyguts_t *yyg __attribute__((unused))=(struct yyguts_t*)yyscanner;
+
 	switch ( firstChar ) {
 		case 't':
 		return &trueObject;
@@ -114,7 +125,8 @@ static plObject *lexResolveSimpleLiteral(char firstChar) {
 	}	
 }
 
-static plObject *lexResolveHexLiteral(const char *text, size_t len) {
+static plObject *lexResolveHexLiteral(PARSE_CTX_ARG, const char *text, size_t len) {
+	struct yyguts_t *yyg __attribute__((unused))=(struct yyguts_t*)yyscanner;
 	plInteger *integer;
 	unsigned int numExtraBlocks;
 	ssize_t i;
@@ -163,7 +175,8 @@ static plObject *lexResolveHexLiteral(const char *text, size_t len) {
 	return (plObject*)integer;
 }
 
-static plObject *lexResolveStringLiteral(const char *text, size_t len) {
+static plObject *lexResolveStringLiteral(PARSE_CTX_ARG, const char *text, size_t len) {
+	struct yyguts_t *yyg __attribute__((unused))=(struct yyguts_t*)yyscanner;
 	plByteArray *array;
 
 	array=malloc(sizeof(plByteArray));
@@ -184,7 +197,8 @@ static plObject *lexResolveStringLiteral(const char *text, size_t len) {
 	return (plObject*)array;
 }
 
-static int lexResolveContext(const char *text, size_t len) {
+static int lexResolveContext(PARSE_CTX_ARG, const char *text, size_t len) {
+	struct yyguts_t *yyg __attribute__((unused))=(struct yyguts_t*)yyscanner;
 	if ( strncmp(text,"STORE",len) == 0 ) {
 		return PL_MARKER_CONTEXT_STORE;
 	}
@@ -199,7 +213,8 @@ static int lexResolveContext(const char *text, size_t len) {
 	}
 }
 
-static int lexResolveComparison(const char *text) {
+static int lexResolveComparison(PARSE_CTX_ARG, const char *text) {
+	struct yyguts_t *yyg __attribute__((unused))=(struct yyguts_t*)yyscanner;
 	switch ( text[0] ) {
 		case '=':
  		return PL_MARKER_COMPARISON_EQ;
