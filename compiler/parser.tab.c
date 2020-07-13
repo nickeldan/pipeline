@@ -161,9 +161,9 @@ union YYSTYPE
 {
 #line 29 "parser.y" /* yacc.c:355  */
 
-	astNodePtr node;
-	plObject *object;
-	int marker;
+    astNodePtr node;
+    plObject *object;
+    int marker;
 
 #line 169 "parser.tab.c" /* yacc.c:355  */
 };
@@ -2950,16 +2950,16 @@ yyreturn:
 
 
 void yyerror(YYLTYPE *yyllocp, yyscan_t scanner, const char *format, ...) {
-	(void)scanner;
-	va_list args;
+    (void)scanner;
+    va_list args;
 
-	fprintf(stderr,"Syntax error beginning on line %i: ", yyllocp->first_line);
-	va_start(args,format);
-	vfprintf(stderr,format,args);
-	va_end(args);
-	fprintf(stderr,"\n");
+    fprintf(stderr,"Syntax error beginning on line %i: ", yyllocp->first_line);
+    va_start(args,format);
+    vfprintf(stderr,format,args);
+    va_end(args);
+    fprintf(stderr,"\n");
 }
 
 static astNodePtr resolveAttributes(const YYLTYPE *yyllocp, astNodePtr object, astNodePtr attributes) {
-	return attributes? createNode(yyllocp,'.',object,attributes) : object;
+    return attributes? createNode(yyllocp,'.',object,attributes) : object;
 }

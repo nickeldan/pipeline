@@ -39,66 +39,66 @@ typedef uint32_t refFlags_t;
 #define VAR_REF_UNRESOLVED 0x02000000
 
 typedef struct variableReferenceType {
-	refFlags_t flags;
-	plStructId_t structId;
+    refFlags_t flags;
+    plStructId_t structId;
 } variableReferenceType;
 
 typedef struct argumentSignature {
-	const char *name;
-	variableReferenceType type;
-	uint8_t hasDefaultValue;
+    const char *name;
+    variableReferenceType type;
+    uint8_t hasDefaultValue;
 } argumentSignature;
 
 typedef struct structSignature {
-	argumentSignature *fields;
-	uint8_t numFields;
+    argumentSignature *fields;
+    uint8_t numFields;
 } structSignature;
 
 typedef struct sourceSignature {
-	argumentSignature *args;
-	variableReferenceType prodType;
-	uint8_t numArgs;
+    argumentSignature *args;
+    variableReferenceType prodType;
+    uint8_t numArgs;
 } sourceSignature;
 
 typedef struct pipeSignature {
-	argumentSignature arg;
-	variableReferenceType prodType;
+    argumentSignature arg;
+    variableReferenceType prodType;
 } pipeSignature;
 
 typedef struct sinkSignature {
-	argumentSignature arg;
+    argumentSignature arg;
 } sinkSignature;
 
 typedef struct variableReference {
-	const char *name;
-	union {
-		structSignature structSig;
-		sourceSignature sourceSig;
-		pipeSignature pipeSig;
-		sinkSignature sinkSig;
-	} extra;
-	variableReferenceType type;
+    const char *name;
+    union {
+        structSignature structSig;
+        sourceSignature sourceSig;
+        pipeSignature pipeSig;
+        sinkSignature sinkSig;
+    } extra;
+    variableReferenceType type;
 } variableReference;
 
 typedef struct referenceStack {
-	variableReference *refs;
-	size_t capacity;
-	size_t length;
+    variableReference *refs;
+    size_t capacity;
+    size_t length;
 } referenceStack;
 
 typedef struct contextStack {
-	int *values;
-	size_t capacity;
-	size_t length;
-	size_t refStackOffset;
+    int *values;
+    size_t capacity;
+    size_t length;
+    size_t refStackOffset;
 } contextStack;
 
 #define STACK_INITIAL_CAPACITY 10
 
 typedef struct compilationContext {
-	plModule module;
-	contextStack stack;
-	referenceStack refStack;
+    plModule module;
+    contextStack stack;
+    referenceStack refStack;
 } compilationContext;
 
 static int recursivelyParseGlobalContent(astNodePtr tree, compilationContext *ctx);
@@ -115,150 +115,150 @@ static int popContextFromStack(compilationContext *ctx);
 static const variableReference *resolveReference(const char *name, size_t len);
 
 int compileSourceFile(const char *sourceFile) {
-	int ret;
-	astNodePtr programTree;
-	compilationContext ctx;
+    int ret;
+    astNodePtr programTree;
+    compilationContext ctx;
 
-	memset(&ctx,0,sizeof(compilationContext));
-	moduleInit(&ctx.module);
+    memset(&ctx,0,sizeof(compilationContext));
+    moduleInit(&ctx.module);
 
-	ret=recursivelyParseglobalContent(programTree,&ctx);
+    ret=recursivelyParseglobalContent(programTree,&ctx);
 }
 
 static int recursivelyParseGlobalContent(astNodePtr tree, compilationContext *ctx) {
-	int ret;
+    int ret;
 
-	if ( !tree ) {
-		return PL_ERROR_OK;
-	}
+    if ( !tree ) {
+        return PL_ERROR_OK;
+    }
 
-	switch ( tree->nodeType ) {
-		case ';':
-		ret=recursivelyParseGlobalContent(tree->first,ctx);
-		if ( ret != PL_ERROR_OK ) {
-			return ret;
-		}
-		return recursivelyParseGlobalContent(tree->second,ctx);
+    switch ( tree->nodeType ) {
+        case ';':
+        ret=recursivelyParseGlobalContent(tree->first,ctx);
+        if ( ret != PL_ERROR_OK ) {
+            return ret;
+        }
+        return recursivelyParseGlobalContent(tree->second,ctx);
 
-		case IMPORT:
-		return addImport((const char*)tree->first->first,ctx);
+        case IMPORT:
+        return addImport((const char*)tree->first->first,ctx);
 
-		case EXPORT:
-		return addExport((const char*)tree->first->first,ctx);
+        case EXPORT:
+        return addExport((const char*)tree->first->first,ctx);
 
-		case STRUCT:
-		return parseStruct(tree,ctx);
+        case STRUCT:
+        return parseStruct(tree,ctx);
 
-		case SOURCE:
-		return parseNamedSource(tree,ctx);
+        case SOURCE:
+        return parseNamedSource(tree,ctx);
 
-		case PIPE:
-		return parseNamedPipe(tree,ctx);
+        case PIPE:
+        return parseNamedPipe(tree,ctx);
 
-		case SINK:
-		return parseNamedSink(tree,ctx);
+        case SINK:
+        return parseNamedSink(tree,ctx);
 
-		case MAIN:
-		return parseMain(tree,ctx);
+        case MAIN:
+        return parseMain(tree,ctx);
 
-		default:
-		ERROR_QUIT("Invalid nodeType: %i\n", tree->nodeType);
-	}
+        default:
+        ERROR_QUIT("Invalid nodeType: %i\n", tree->nodeType);
+    }
 }
 
 static void pushContextToStack(int nodeType, compilationContext *ctx) {
-	if ( ctx->stack.length >= ctx->stack.capacity ) {
-		size_t newCapacity;
+    if ( ctx->stack.length >= ctx->stack.capacity ) {
+        size_t newCapacity;
 
-		newCapacity=( ctx->stack.capacity == 0 )? STACK_INITIAL_CAPACITY : (ctx->stack.capacity + 1)*5/4;
-		ctx->stack.values=realloc(ctx->stack.values,sizeof(int)*newCapacity);
-		if ( !ctx->stack.values ) {
-			ERROR_QUIT("Failed to allocate %zu bytes", sizeof(int)*newCapacity);
-		}
-		ctx->stack.capacity=newCapacity;
-	}
+        newCapacity=( ctx->stack.capacity == 0 )? STACK_INITIAL_CAPACITY : (ctx->stack.capacity + 1)*5/4;
+        ctx->stack.values=realloc(ctx->stack.values,sizeof(int)*newCapacity);
+        if ( !ctx->stack.values ) {
+            ERROR_QUIT("Failed to allocate %zu bytes", sizeof(int)*newCapacity);
+        }
+        ctx->stack.capacity=newCapacity;
+    }
 
-	ctx->stack.values[ctx->stack.length++]=nodeType;
+    ctx->stack.values[ctx->stack.length++]=nodeType;
 }
 
 static int popContextFromStack(compilationContext *ctx) {
-	if ( ctx->stack.length == 0 ) {
-		ERROR_QUIT("Tried to pop from an empty stack");
-	}
+    if ( ctx->stack.length == 0 ) {
+        ERROR_QUIT("Tried to pop from an empty stack");
+    }
 
-	return ctx->stack.values[--ctx->stack.length];
+    return ctx->stack.values[--ctx->stack.length];
 }
 
 static int addImport(const char *name, compilationContext *ctx) {
-	int ret;
-	FILE *f;
-	const char *pipelinePath;
+    int ret;
+    FILE *f;
+    const char *pipelinePath;
 
-	ret=importModuleFromDirectory(NULL,name,ctx);
-	if ( ret != PL_ERROR_NOT_FOUND ) {
-		return ret;
-	}
+    ret=importModuleFromDirectory(NULL,name,ctx);
+    if ( ret != PL_ERROR_NOT_FOUND ) {
+        return ret;
+    }
 
-	pipelinePath=getenv("PIPELINE_LIBRARY_PATH");
-	if ( pipelinePath ) {
-		const char *colonPtr;
+    pipelinePath=getenv("PIPELINE_LIBRARY_PATH");
+    if ( pipelinePath ) {
+        const char *colonPtr;
 
-		do {
-			char directory[PATH_MAX];
-			size_t len;
+        do {
+            char directory[PATH_MAX];
+            size_t len;
 
-			colonPtr=shrchrnul(pipelinePath,':');
-			len=colonPtr? colonPtr-pipelinePath : strlen(pipelinePath);
-			if ( len == 0 || len >= PATH_MAX ) {
-				goto iteration_done;
-			}
-			memcpy(directory,pipelinePath,len);
-			directory[len]='\0';
-			while ( len > 0 && directory[len-1] == '/' ) {
-				directory[--len]='\0';
-			}
+            colonPtr=shrchrnul(pipelinePath,':');
+            len=colonPtr? colonPtr-pipelinePath : strlen(pipelinePath);
+            if ( len == 0 || len >= PATH_MAX ) {
+                goto iteration_done;
+            }
+            memcpy(directory,pipelinePath,len);
+            directory[len]='\0';
+            while ( len > 0 && directory[len-1] == '/' ) {
+                directory[--len]='\0';
+            }
 
-			ret=importModuleFromDirectory(directory,name,ctx);
-			if ( ret != PL_ERROR_NOT_FOUND ) {
-				return ret;
-			}
+            ret=importModuleFromDirectory(directory,name,ctx);
+            if ( ret != PL_ERROR_NOT_FOUND ) {
+                return ret;
+            }
 
-			iteration_done:
+            iteration_done:
 
-			pipelinePath=colonPtr+1;
-		} while ( colonPtr );
-	}
+            pipelinePath=colonPtr+1;
+        } while ( colonPtr );
+    }
 
-	return PL_ERROR_NOT_FOUND;
+    return PL_ERROR_NOT_FOUND;
 }
 
 static int importModuleFromDirectory(const char *directory, const char *name, compilationContext *ctx) {
-	int ret;
-	char fullPath[PATH_MAX];
-	int fd;
-	plModule submodule;
+    int ret;
+    char fullPath[PATH_MAX];
+    int fd;
+    plModule submodule;
 
-	if ( directory ) {
-		if ( snprintf(fullPath,sizeof(fullPath),"%s/%s.cipl", directory, name) >= sizeof(fullPath) ) {
-			return PL_ERROR_NOT_FOUND;
-		}
-	else if ( snprintf(fullPath,sizeof(fullPath),"%s.cipl", name) >= sizeof(fullPath) ) {
-		return PL_ERROR_NOT_FOUND;
-	}
+    if ( directory ) {
+        if ( snprintf(fullPath,sizeof(fullPath),"%s/%s.cipl", directory, name) >= sizeof(fullPath) ) {
+            return PL_ERROR_NOT_FOUND;
+        }
+    else if ( snprintf(fullPath,sizeof(fullPath),"%s.cipl", name) >= sizeof(fullPath) ) {
+        return PL_ERROR_NOT_FOUND;
+    }
 
-	fd=open(fullPath,O_RDONLY);
-	if ( fd < 0 ) {
-		return PL_ERROR_NOT_FOUND;
-	}
+    fd=open(fullPath,O_RDONLY);
+    if ( fd < 0 ) {
+        return PL_ERROR_NOT_FOUND;
+    }
 
-	// ciplLoad promises to close fd.
-	ret=ciplLoad(fd,&submodule);
-	if ( ret != PL_ERROR_OK ) {
-		fprintf(stderr,"Failed to load module from %s: %s\n", fullPath, plErrorString(ret));
-		return PL_ERROR_MODULE_LOAD;
-	}
+    // ciplLoad promises to close fd.
+    ret=ciplLoad(fd,&submodule);
+    if ( ret != PL_ERROR_OK ) {
+        fprintf(stderr,"Failed to load module from %s: %s\n", fullPath, plErrorString(ret));
+        return PL_ERROR_MODULE_LOAD;
+    }
 
-	return addSubmodule(ctx,&submodule);
+    return addSubmodule(ctx,&submodule);
 }
 
 static int addSubmodule(compilationCtx *ctx, plModule *submodule) {

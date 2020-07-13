@@ -20,7 +20,7 @@ lex.yy.o: lex.yy.c parserWrapper.h parser.tab.h ast.h marker.h ../util/plUtil.h 
 lex.yy.c lex.yy.h: scanner.l
 	flex $<
 
-nameTable.o: nameTable.c nameTable.h ../util/plUtil.h
+nameTable.o: nameTable.c ../util/plUtil.h
 	$(CC) $(COMPILER_FLAGS) $(INCLUDES) -c $<
 
 ast.o: ast.c ast.h parserWrapper.h parser.tab.h ../util/plUtil.h ../pipeline/plObject.h

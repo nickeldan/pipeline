@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define PL_OBJECT_HEADER \
-	uint32_t flags;
+    uint32_t flags;
 
 #define PL_OBJ_TYPE_NULL 0x00000000
 #define PL_OBJ_TYPE_INT 0x00000001
@@ -28,7 +28,7 @@
 #define PL_OBJ_FLAG_STATIC_BYTES 0x00020000
 
 typedef struct plObject {
-	PL_OBJECT_HEADER
+    PL_OBJECT_HEADER
 } plObject;
 
 #define OBJ_TYPE(ptr) (((plObject*)ptr)->flags&0x000000ff)
@@ -37,46 +37,46 @@ typedef struct plObject {
 #define PL_INTEGER_MAX_DIGITS 2467
 
 typedef struct plInteger {
-	PL_OBJECT_HEADER
-	uint32_t firstBlock;
-	uint32_t *blocks;
-	uint8_t numExtraBlocks;
+    PL_OBJECT_HEADER
+    uint32_t firstBlock;
+    uint32_t *blocks;
+    uint8_t numExtraBlocks;
 } plInteger;
 
 typedef struct plFloat {
-	plInteger intPart;
-	double decimal;
+    plInteger intPart;
+    double decimal;
 } plFloat;
 
 #define PL_ARRAY_HEADER \
-	PL_OBJECT_HEADER \
-	uint32_t length; \
-	plObject **objects; \
-	uint32_t capacity;
+    PL_OBJECT_HEADER \
+    uint32_t length; \
+    plObject **objects; \
+    uint32_t capacity;
 
 typedef struct plArray {
-	PL_ARRAY_HEADER
+    PL_ARRAY_HEADER
 } plArray;
 
 typedef uint32_t plStructId_t;
 
 typedef struct plStruct {
-	PL_ARRAY_HEADER
-	plStructId_t structId;
+    PL_ARRAY_HEADER
+    plStructId_t structId;
 } plStruct;
 
 typedef struct plByteArray {
-	PL_OBJECT_HEADER
-	uint32_t length;
-	uint8_t *bytes;
-	uint32_t capacity;
+    PL_OBJECT_HEADER
+    uint32_t length;
+    uint8_t *bytes;
+    uint32_t capacity;
 } plByteArray;
 
 typedef struct plGenArray {
-	PL_OBJECT_HEADER
-	uint32_t length;
-	void *opaque;
-	uint32_t capacity;
+    PL_OBJECT_HEADER
+    uint32_t length;
+    void *opaque;
+    uint32_t capacity;
 } *plGenArrayPtr;
 
 void freeObject(plObject *object);

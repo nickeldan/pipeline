@@ -88,9 +88,9 @@ union YYSTYPE
 {
 #line 29 "parser.y" /* yacc.c:1909  */
 
-	astNodePtr node;
-	plObject *object;
-	int marker;
+    astNodePtr node;
+    plObject *object;
+    int marker;
 
 #line 96 "parser.tab.h" /* yacc.c:1909  */
 };
