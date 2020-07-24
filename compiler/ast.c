@@ -173,6 +173,7 @@ int nodeSplitSize(int nodeType) {
 
         case SINK:
         case EIF:
+        case 'I':
         return 3;
 
         case SOURCE:
