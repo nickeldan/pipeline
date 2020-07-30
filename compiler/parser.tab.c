@@ -75,7 +75,7 @@
 #include "parserWrapper.h"
 
 int yylex(YYSTYPE *yylvalp, YYLTYPE *yyllocp, yyscan_t scanner);
-void yyerror(YYLTYPE *yyllocp, yyscan_t scanner, const char *format, ...);
+void yyerror(YYLTYPE *yyllocp, yyscan_t yyscanner, const char *format, ...);
 
 static astNodePtr resolveAttributes(const YYLTYPE *yyllocp, astNodePtr object, astNodePtr attributes);
 #define RESOLVE_ATTRIBUTES(object,attributes) resolveAttributes(&yylloc,object,attributes)
@@ -2694,7 +2694,7 @@ yyreduce:
 
   case 138:
 #line 292 "parser.y" /* yacc.c:1646  */
-    {(yyval.node)=NODE('_');}
+    {(yyval.node)=NULL;}
 #line 2699 "parser.tab.c" /* yacc.c:1646  */
     break;
 
@@ -2949,8 +2949,8 @@ yyreturn:
 #line 295 "parser.y" /* yacc.c:1906  */
 
 
-void yyerror(YYLTYPE *yyllocp, yyscan_t scanner, const char *format, ...) {
-    (void)scanner;
+void yyerror(YYLTYPE *yyllocp, yyscan_t yyscanner, const char *format, ...) {
+    SETUP_SCANNER;
     va_list args;
 
     fprintf(stderr,"Syntax error beginning on line %i: ", yyllocp->first_line);

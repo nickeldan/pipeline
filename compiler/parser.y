@@ -10,7 +10,7 @@
 #include "parserWrapper.h"
 
 int yylex(YYSTYPE *yylvalp, YYLTYPE *yyllocp, yyscan_t scanner);
-void yyerror(YYLTYPE *yyllocp, yyscan_t scanner, const char *format, ...);
+void yyerror(YYLTYPE *yyllocp, yyscan_t yyscanner, const char *format, ...);
 
 static astNodePtr resolveAttributes(const YYLTYPE *yyllocp, astNodePtr object, astNodePtr attributes);
 #define RESOLVE_ATTRIBUTES(object,attributes) resolveAttributes(&yylloc,object,attributes)
@@ -256,8 +256,6 @@ statement: PROD expression {$$=NODE(PROD,$2);}
     | ABORT expression {$$=NODE(ABORT,$2);}
     | VERIFY expression {$$=NODE(VERIFY,$2);}
     | NAME AS type {$$=NODE(AS,$1,$3);}
-    | NAME IS moduled_name AS type {$$=NODE('I',$1,$3,$5);}
-    | '_' IS moduled_name AS type {$$=NODE('I',NULL,$3,$5);}
     | expression OPERATOR_ASSIGNMENT expression {$$=NODE(OPERATOR_ASSIGNMENT,$1,$3); $$->marker=$2;}
     | arrow_statement {$$=$1;}
     | source_definition {$$=$1;}
@@ -296,7 +294,7 @@ arrow_receiver_item: moduled_name {$$=$1;}
 
 %%
 
-void yyerror(YYLTYPE *yyllocp, yyscan_t scanner, const char *format, ...) {
+void yyerror(YYLTYPE *yyllocp, yyscan_t yyscanner, const char *format, ...) {
     SETUP_SCANNER;
     va_list args;
 

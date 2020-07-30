@@ -23,7 +23,6 @@ Non-obvious nodetypes:
 
 C: FUNCTION_CALL
 L: ARRAY_LITERAL
-I: IS_AS
 */
 
 #ifdef AST_NODE_HAS_PARENT
