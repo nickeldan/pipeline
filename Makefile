@@ -1,5 +1,5 @@
 CC := gcc
-COMPILER_FLAGS := -std=gnu99 -O3 -g
+COMPILER_FLAGS := -std=gnu99 -O3 -g -Wall
 INCLUDE_DIRS := -I./compiler -I./pipeline -I./util
 
 .PHONY: all clean

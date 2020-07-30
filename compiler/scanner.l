@@ -154,6 +154,9 @@ static plObject *lexResolveHexLiteral(yyscan_t yyscanner, const char *text, size
         integer->numExtraBlocks=numExtraBlocks;
         integer->blocks=SAFE_MALLOC(sizeof(uint32_t)*numExtraBlocks);
     }
+    else {
+        numExtraBlocks=0;
+    }
 
     i=MAX((ssize_t)len-4,0);
     memcpy(buffer,text+i,len-i);

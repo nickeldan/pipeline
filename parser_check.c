@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <errno.h>
 
 #include "ast.h"
 #include "plObject.h"
@@ -8,13 +9,26 @@ void printTree(const astNodePtr tree, unsigned int margin);
 void printMargin(unsigned int margin);
 const char *nodeTypeName(int nodeType);
 
-extern astNodePtr programTree;
-
-int main() {
+int main(int argc, char **argv) {
     int ret;
+    FILE *f;
     astNodePtr programTree;
 
-    ret=formAstFromFile(stdin,&programTree);
+    if ( argc == 1 ) {
+        f=stdin;
+    }
+    else {
+        f=fopen(argv[1],"r");
+        if ( !f ) {
+            perror("fopen");
+            return -1;
+        }
+    }
+
+    ret=formAstFromFile(f,&programTree);
+    if ( argc > 1 ) {
+        fclose(f);
+    }
     if ( ret == 0 ) {
         printTree(programTree,0);
         freeAstTree(programTree);
