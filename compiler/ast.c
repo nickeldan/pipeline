@@ -155,7 +155,6 @@ int nodeSplitSize(int nodeType) {
         case CONT:
         case BREAK:
         case CONTEXT:
-        case '_':
         return 0;
 
         case PROD:

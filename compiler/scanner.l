@@ -106,7 +106,7 @@ main                                                    {return MAIN;}
 %%
 
 static plObject *lexResolveSimpleLiteral(yyscan_t yyscanner, char firstChar) {
-    struct yyguts_t *yyg __attribute__((unused))=(struct yyguts_t*)yyscanner;
+    SETUP_SCANNER;
 
     switch ( firstChar ) {
         case 't':
@@ -124,7 +124,7 @@ static plObject *lexResolveSimpleLiteral(yyscan_t yyscanner, char firstChar) {
 }
 
 static plObject *lexResolveHexLiteral(yyscan_t yyscanner, const char *text, size_t len) {
-    struct yyguts_t *yyg __attribute__((unused))=(struct yyguts_t*)yyscanner;
+    SETUP_SCANNER;
     plInteger *integer;
     unsigned int numExtraBlocks;
     ssize_t i;
@@ -174,7 +174,7 @@ static plObject *lexResolveHexLiteral(yyscan_t yyscanner, const char *text, size
 }
 
 static plObject *lexResolveStringLiteral(yyscan_t yyscanner, const char *text, size_t len) {
-    struct yyguts_t *yyg __attribute__((unused))=(struct yyguts_t*)yyscanner;
+    SETUP_SCANNER;
     plByteArray *array;
 
     array=malloc(sizeof(plByteArray));
@@ -196,7 +196,8 @@ static plObject *lexResolveStringLiteral(yyscan_t yyscanner, const char *text, s
 }
 
 static int lexResolveContext(yyscan_t yyscanner, const char *text, size_t len) {
-    struct yyguts_t *yyg __attribute__((unused))=(struct yyguts_t*)yyscanner;
+    SETUP_SCANNER;
+
     if ( strncmp(text,"STORE",len) == 0 ) {
         return PL_MARKER_CONTEXT_STORE;
     }
@@ -212,7 +213,8 @@ static int lexResolveContext(yyscan_t yyscanner, const char *text, size_t len) {
 }
 
 static int lexResolveComparison(yyscan_t yyscanner, const char *text) {
-    struct yyguts_t *yyg __attribute__((unused))=(struct yyguts_t*)yyscanner;
+    SETUP_SCANNER;
+
     switch ( text[0] ) {
         case '=':
          return PL_MARKER_COMPARISON_EQ;

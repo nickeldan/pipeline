@@ -257,7 +257,7 @@ statement: PROD expression {$$=NODE(PROD,$2);}
     | VERIFY expression {$$=NODE(VERIFY,$2);}
     | NAME AS type {$$=NODE(AS,$1,$3);}
     | NAME IS moduled_name AS type {$$=NODE('I',$1,$3,$5);}
-    | '_' IS moduled_name AS type {$$=NODE('I',NODE('_'),$3,$5);}
+    | '_' IS moduled_name AS type {$$=NODE('I',NULL,$3,$5);}
     | expression OPERATOR_ASSIGNMENT expression {$$=NODE(OPERATOR_ASSIGNMENT,$1,$3); $$->marker=$2;}
     | arrow_statement {$$=$1;}
     | source_definition {$$=$1;}
@@ -291,13 +291,13 @@ arrow_receiver_item: moduled_name {$$=$1;}
     | sink_definition attribute_trail {$$=RESOLVE_ATTRIBUTES($1,$2);}
     | sink_definition attribute_trail ':' NAME {$$=NODE(':',RESOLVE_ATTRIBUTES($1,$2),$4);}
     | local_definition attribute_trail {$$=RESOLVE_ATTRIBUTES($1,$2);}
-    | '_' {$$=NODE('_');}
+    | '_' {$$=NULL;}
     ;
 
 %%
 
 void yyerror(YYLTYPE *yyllocp, yyscan_t scanner, const char *format, ...) {
-    (void)scanner;
+    SETUP_SCANNER;
     va_list args;
 
     fprintf(stderr,"Syntax error beginning on line %i: ", yyllocp->first_line);

@@ -28,6 +28,8 @@ I: IS_AS
 
 #ifdef AST_NODE_HAS_PARENT
 #define AST_PARENT_DECL struct astFourSplitNode *parent;
+#else
+#define AST_PARENT_DECL
 #endif
 
 #define AST_NODE_HEADER \
