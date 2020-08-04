@@ -78,7 +78,7 @@ void printMargin(unsigned int margin) {
 }
 
 const char *nodeTypeName(int nodeType) {
-    static char string[2];
+    static char string[2]={0};
 
     switch ( nodeType ) {
         case SOURCE: return "SOURCE";
@@ -116,7 +116,6 @@ const char *nodeTypeName(int nodeType) {
         case CONTEXT: return "CONTEXT";
         default:
             string[0]=nodeType;
-            string[1]='\0';
             return string;
     }
 }

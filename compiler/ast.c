@@ -78,7 +78,8 @@ astNodePtr createNode(const YYLTYPE *locPtr, int nodeType, ...) {
         ERROR_QUIT("Failed to allocate %zu bytes", size);
     }
 
-    memcpy(&node->location,locPtr,sizeof(YYLTYPE));
+    node->firstLine=locPtr->first_line;
+    node->firstColumn=locPtr->first_column;
     node->nodeType=nodeType;
 #ifdef AST_NODE_HAS_PARENT
     node->parent=NULL;
@@ -131,6 +132,9 @@ void freeAstTree(astNodePtr root) {
 
         case 1:
         freeAstTree(root->first);
+        // Intentional fall-through
+
+        case 0:
         break;
 
         default:
