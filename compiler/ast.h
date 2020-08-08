@@ -35,6 +35,8 @@ struct astFourSplitNode {
     astNodePtr fourth;
 };
 
+typedef struct YYLTYPE YYLTYPE;
+
 int formAstFromFile(FILE *infile, astNodePtr *programTree);
 astNodePtr createNode(const YYLTYPE *locPtr, int nodeType, ...);
 void freeAstTree(astNodePtr root);
