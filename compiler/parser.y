@@ -41,7 +41,7 @@ static astNodePtr resolveAttributes(const YYLTYPE *yyllocp, astNodePtr object, a
 %token <marker> TYPE COMPARISON OPERATOR_ASSIGNMENT CONTEXT
 
 %type <node> file file_section global_content main_definition import_statement export_statement
-%type <node> struct_definition global_var_definition struct_field type attribute_trail moduled_name
+%type <node> struct_definition global_var_definition struct_field_list struct_field type attribute_trail moduled_name
 %type <node> source_definition pipe_definition sink_definition local_definition
 %type <node> optional_name possible_arg_list arg_list arg_element single_argument
 %type <node> compilation_expression compilation_array_literal compilation_array_element
@@ -93,11 +93,15 @@ import_statement: IMPORT NAME ';' {$$=NODE(IMPORT,$2);}
 export_statement: EXPORT NAME ';' {$$=NODE(EXPORT,$2);}
     ;
 
-struct_definition: STRUCT NAME '{' struct_field '}' {$$=NODE(STRUCT,$2,$4);}
+struct_definition: STRUCT NAME '{' struct_field_list '}' {$$=NODE(STRUCT,$2,$4);}
+    ;
+
+struct_field_list: struct_field {$$=$1;}
+    | struct_field_list ',' struct_field {$$=NODE(',',$1,$3);}
     ;
 
 struct_field: single_argument {$$=$1;}
-    | struct_field ',' single_argument {$$=NODE(',',$1,$3);}
+    | NAME ':' STRUCT '{' struct_field_list '}' {$$=NODE(STRUCT,$1,$5);}
     ;
 
 type: TYPE {$$=NODE(TYPE); $$->marker=$1;}

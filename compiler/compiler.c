@@ -208,7 +208,7 @@ static int addImport(const char *name, compilationContext *ctx) {
             size_t len;
 
             colonPtr=shrchrnul(pipelinePath,':');
-            len=colonPtr? colonPtr-pipelinePath : strlen(pipelinePath);
+            len=colonPtr-pipelinePath;
             if ( len == 0 || len >= PATH_MAX ) {
                 goto iteration_done;
             }
@@ -226,7 +226,7 @@ static int addImport(const char *name, compilationContext *ctx) {
             iteration_done:
 
             pipelinePath=colonPtr+1;
-        } while ( colonPtr );
+        } while ( *colonPtr );
     }
 
     return PL_ERROR_NOT_FOUND;
@@ -270,7 +270,23 @@ static int addExport(const char *name, compilationContext *ctx) {
 }
 
 static int parseStruct(astNodePtr tree, compilationContext *ctx) {
+    structSignature sig;
+    unsigned int numFields=0;
 
+    for (astNodePtr traverse=tree->second; traverse; traverse=traverse->first) {
+        numFields++;
+
+        if ( traverse->nodeType != ',' ) {
+            break;
+        }
+    }
+
+    if ( numFields > 255 ) {
+        fprintf(stderr,"struct %s has too many fields (%u): Max. of 255 are allowed\n", (char*)(tree->first), numFields);
+        return PL_ERROR_BAD_INPUT;
+    }
+
+    
 }
 
 static int parseNamedSource(astNodePtr tree, compilationContext *ctx) {
