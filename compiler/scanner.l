@@ -79,7 +79,7 @@ main                                                    {return MAIN;}
 ;+                                                        {return ';';}
 [<>]=?|[!=]=                                            {yylval->marker=lexResolveComparison(yyscanner,yytext); return COMPARISON;}
 [_A-Za-z][_A-Za-z0-9]*                                    {yylval->node=createNode(yylloc,NAME,registerName(yytext)); return NAME;}
--?([0-9]*\.?[0-9]+|[0-9]+\.)/[^.0-9A-Za-z_]                {    int localErrnum=plIntegerFromString((plInteger**)&yylval->object,yytext,yyleng);
+-?([0-9]*\.?[0-9]+|[0-9]+\.)/[^.0-9A-Za-z_]                {    int localErrnum=plNumFromString((plInteger**)&yylval->object,yytext,yyleng);
                                                             switch ( localErrnum )
                                                             {
                                                                 case PL_ERROR_OK:
@@ -90,6 +90,9 @@ main                                                    {return MAIN;}
 
                                                                 case PL_ERROR_BAD_INPUT:
                                                                 ERROR_QUIT("Lexical error on line %i: Invalid integer literal: %s", yylineno, yytext);
+
+                                                                case PL_ERROR_INTEGER_OVERFLOW:
+                                                                ERROR_QUIT("Lexical error on line %i: Integer literal out of range: %s", yylineno, yytext);
 
                                                                 default:
                                                                 ERROR_QUIT("Unknown error (%i) on line %i", localErrnum, yylineno);

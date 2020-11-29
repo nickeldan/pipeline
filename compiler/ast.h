@@ -21,10 +21,10 @@ typedef struct astFourSplitNode *astNodePtr;
 #endif
 
 #define AST_NODE_HEADER \
-    int nodeType; \
-    int marker; \
-    int firstLine; \
-    int firstColumn; \
+    int nodeType;       \
+    int marker;         \
+    int firstLine;      \
+    int firstColumn;    \
     AST_PARENT_DECL
 
 struct astFourSplitNode {
@@ -37,9 +37,16 @@ struct astFourSplitNode {
 
 typedef struct YYLTYPE YYLTYPE;
 
-int formAstFromFile(FILE *infile, astNodePtr *programTree);
-astNodePtr createNode(const YYLTYPE *locPtr, int nodeType, ...);
-void freeAstTree(astNodePtr root);
-int nodeSplitSize(int nodeType) __attribute__ ((pure));
+int
+formAstFromFile(FILE *infile, astNodePtr *programTree);
 
-#endif // __PIPELINE_AST_H__
+astNodePtr
+createNode(const YYLTYPE *locPtr, int nodeType, ...);
+
+void
+freeAstTree(astNodePtr root);
+
+int
+nodeSplitSize(int nodeType) __attribute__((pure));
+
+#endif  // __PIPELINE_AST_H__

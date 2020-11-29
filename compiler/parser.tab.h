@@ -31,10 +31,10 @@
    version 2.2 of Bison.  */
 
 #ifndef YY_YY_PARSER_TAB_H_INCLUDED
-# define YY_YY_PARSER_TAB_H_INCLUDED
+#define YY_YY_PARSER_TAB_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
-# define YYDEBUG 0
+#define YYDEBUG 0
 #endif
 #if YYDEBUG
 extern int yydebug;
@@ -42,9 +42,8 @@ extern int yydebug;
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
-# define YYTOKENTYPE
-  enum yytokentype
-  {
+#define YYTOKENTYPE
+enum yytokentype {
     SOURCE = 258,
     PIPE = 259,
     SINK = 260,
@@ -78,14 +77,13 @@ extern int yydebug;
     COMPARISON = 288,
     OPERATOR_ASSIGNMENT = 289,
     CONTEXT = 290
-  };
+};
 #endif
 
 /* Value type.  */
-#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
+#if !defined YYSTYPE && !defined YYSTYPE_IS_DECLARED
 
-union YYSTYPE
-{
+union YYSTYPE {
 #line 29 "parser.y" /* yacc.c:1909  */
 
     astNodePtr node;
@@ -96,26 +94,24 @@ union YYSTYPE
 };
 
 typedef union YYSTYPE YYSTYPE;
-# define YYSTYPE_IS_TRIVIAL 1
-# define YYSTYPE_IS_DECLARED 1
+#define YYSTYPE_IS_TRIVIAL  1
+#define YYSTYPE_IS_DECLARED 1
 #endif
 
 /* Location type.  */
-#if ! defined YYLTYPE && ! defined YYLTYPE_IS_DECLARED
+#if !defined YYLTYPE && !defined YYLTYPE_IS_DECLARED
 typedef struct YYLTYPE YYLTYPE;
-struct YYLTYPE
-{
-  int first_line;
-  int first_column;
-  int last_line;
-  int last_column;
+struct YYLTYPE {
+    int first_line;
+    int first_column;
+    int last_line;
+    int last_column;
 };
-# define YYLTYPE_IS_DECLARED 1
-# define YYLTYPE_IS_TRIVIAL 1
+#define YYLTYPE_IS_DECLARED 1
+#define YYLTYPE_IS_TRIVIAL  1
 #endif
 
-
-
-int yyparse (astNodePtr *programTree, yyscan_t scanner);
+int
+yyparse(astNodePtr *programTree, yyscan_t scanner);
 
 #endif /* !YY_YY_PARSER_TAB_H_INCLUDED  */

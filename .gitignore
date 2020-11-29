@@ -1,3 +1,4 @@
+parser_check
 *.o
 *.a
 *.so

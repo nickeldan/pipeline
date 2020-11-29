@@ -25,4 +25,4 @@ enum plMarkerValue {
     PL_MARKER_CONTEXT_LINE,
 };
 
-#endif // __PIPELINE_MARKER_H__
+#endif  // __PIPELINE_MARKER_H__

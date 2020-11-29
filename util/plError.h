@@ -9,10 +9,11 @@ enum plErrorValue {
     PL_ERROR_NAME_TOO_LONG,
     PL_ERROR_BAD_INPUT,
     PL_ERROR_MODULE_LOAD,
-    
+
     PL_ERROR_INVALID_ERRNO,
 };
 
-const char *plErrorString(int code);
+const char*
+plErrorString(int code);
 
 #endif

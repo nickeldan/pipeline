@@ -1,10 +1,13 @@
 #ifndef __PIPELINE_NAME_TABLE_H__
 #define __PIPELINE_NAME_TABLE_H__
 
-void nameTableSetup(void);
+void
+nameTableSetup(void);
 
-char *registerName(const char *name);
+char *
+registerName(const char *name);
 
-void removeReference(const char *name);
+void
+removeReference(const char *name);
 
-#endif // __PIPELINE_NAME_TABLE_H__
+#endif  // __PIPELINE_NAME_TABLE_H__

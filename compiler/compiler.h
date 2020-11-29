@@ -1,1 +1,2 @@
-int compileSourceFile(const char *sourceFile);
+int
+compileSourceFile(const char *sourceFile);
