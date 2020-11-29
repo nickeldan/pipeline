@@ -20,15 +20,15 @@
 #define PATH_MAX 4096
 
 void
-errorQuit(const char* functionName, const char* format, ...) __attribute__((noreturn));
+errorQuit(const char *functionName, const char *format, ...) __attribute__((noreturn));
 #define ERROR_QUIT(format, ...) errorQuit(__PRETTY_FUNCTION__, format, ##__VA_ARGS__)
 
-void*
-safeMalloc(const char* functionName, size_t size);
+void *
+safeMalloc(const char *functionName, size_t size);
 #define SAFE_MALLOC(size) safeMalloc(__PRETTY_FUNCTION__, size)
 
-void*
-safeCalloc(const char* functionName, size_t nmemb, size_t size);
+void *
+safeCalloc(const char *functionName, size_t nmemb, size_t size);
 #define SAFE_CALLOC(nmemb, size) safeCalloc(__PRETTY_FUNCTION__, nmemb, size)
 
 #endif  // __PIPELINE_UTIL_H__

@@ -1,8 +1,9 @@
-/* A Bison parser, made by GNU Bison 3.0.4.  */
+/* A Bison parser, made by GNU Bison 3.5.1.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2020 Free Software Foundation,
+   Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,11 +31,14 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
+/* Undocumented macros, especially those whose name start with YY_,
+   are private implementation details.  Do not rely on them.  */
+
 #ifndef YY_YY_PARSER_TAB_H_INCLUDED
-#define YY_YY_PARSER_TAB_H_INCLUDED
+# define YY_YY_PARSER_TAB_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
-#define YYDEBUG 0
+# define YYDEBUG 0
 #endif
 #if YYDEBUG
 extern int yydebug;
@@ -42,8 +46,9 @@ extern int yydebug;
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
-#define YYTOKENTYPE
-enum yytokentype {
+# define YYTOKENTYPE
+  enum yytokentype
+  {
     SOURCE = 258,
     PIPE = 259,
     SINK = 260,
@@ -77,41 +82,43 @@ enum yytokentype {
     COMPARISON = 288,
     OPERATOR_ASSIGNMENT = 289,
     CONTEXT = 290
-};
+  };
 #endif
 
 /* Value type.  */
-#if !defined YYSTYPE && !defined YYSTYPE_IS_DECLARED
-
-union YYSTYPE {
-#line 29 "parser.y" /* yacc.c:1909  */
+#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
+union YYSTYPE
+{
+#line 30 "parser.y"
 
     astNodePtr node;
     plObject *object;
     int marker;
 
-#line 96 "parser.tab.h" /* yacc.c:1909  */
-};
+#line 99 "parser.tab.h"
 
+};
 typedef union YYSTYPE YYSTYPE;
-#define YYSTYPE_IS_TRIVIAL  1
-#define YYSTYPE_IS_DECLARED 1
+# define YYSTYPE_IS_TRIVIAL 1
+# define YYSTYPE_IS_DECLARED 1
 #endif
 
 /* Location type.  */
-#if !defined YYLTYPE && !defined YYLTYPE_IS_DECLARED
+#if ! defined YYLTYPE && ! defined YYLTYPE_IS_DECLARED
 typedef struct YYLTYPE YYLTYPE;
-struct YYLTYPE {
-    int first_line;
-    int first_column;
-    int last_line;
-    int last_column;
+struct YYLTYPE
+{
+  int first_line;
+  int first_column;
+  int last_line;
+  int last_column;
 };
-#define YYLTYPE_IS_DECLARED 1
-#define YYLTYPE_IS_TRIVIAL  1
+# define YYLTYPE_IS_DECLARED 1
+# define YYLTYPE_IS_TRIVIAL 1
 #endif
 
-int
-yyparse(astNodePtr *programTree, yyscan_t scanner);
+
+
+int yyparse (astNodePtr *programTree, yyscan_t scanner);
 
 #endif /* !YY_YY_PARSER_TAB_H_INCLUDED  */

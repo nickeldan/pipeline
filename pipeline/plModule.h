@@ -2,7 +2,7 @@ typedef struct plModule {
 } plModule;
 
 void
-moduleInit(plModule* module);
+moduleInit(plModule *module);
 
 int
-ciplLoad(int fd, plModule* module);
+ciplLoad(int fd, plModule *module);

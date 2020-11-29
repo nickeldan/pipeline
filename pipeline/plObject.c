@@ -17,7 +17,8 @@ static size_t
 objectSize(uint32_t flags) __attribute__((pure));
 
 void
-freeObject(plObject* object) {
+freeObject(plObject *object)
+{
     uint32_t flags;
 
     if (!object) {
@@ -27,9 +28,9 @@ freeObject(plObject* object) {
     flags = object->flags;
 
     if (flags & PL_OBJ_PRED_TRUE_ARRAY) {
-        plArray* array;
+        plArray *array;
 
-        array = (plArray*)object;
+        array = (plArray *)object;
         if (array->objects) {
             uint32_t length;
 
@@ -40,22 +41,25 @@ freeObject(plObject* object) {
 
             free(array->objects);
         }
-    } else if (flags & PL_OBJ_PRED_BYTE_ARRAY) {
+    }
+    else if (flags & PL_OBJ_PRED_BYTE_ARRAY) {
         if (!(flags & PL_OBJ_FLAG_STATIC_BYTES)) {
-            free(((plByteArray*)object)->bytes);
+            free(((plByteArray *)object)->bytes);
         }
     }
 
     if (!(flags & PL_OBJ_FLAG_STATIC)) {
         free(object);
-    } else if (flags & (PL_OBJ_PRED_NUM | PL_OBJ_PRED_GEN_ARRAY)) {
-        BZERO((void*)object + sizeof(plObject), objectSize(flags) - sizeof(plObject));
+    }
+    else if (flags & (PL_OBJ_PRED_NUM | PL_OBJ_PRED_GEN_ARRAY)) {
+        BZERO((void *)object + sizeof(plObject), objectSize(flags) - sizeof(plObject));
     }
 }
 
-plObject*
-copyObject(const plObject* object) {
-    plObject* new;
+plObject *
+copyObject(const plObject *object)
+{
+    plObject *new;
 
     new = calloc(1, objectSize(object->flags));
     if (!new) {
@@ -71,35 +75,37 @@ copyObject(const plObject* object) {
         array->capacity = ((plGenArrayPtr)object)->capacity;
 
         if ((object->flags) & PL_OBJ_PRED_BYTE_ARRAY) {
-            plByteArray* bytes = (plByteArray*)new;
+            plByteArray *bytes = (plByteArray *)new;
 
             bytes->bytes = malloc(bytes->capacity);
             if (!bytes->bytes) {
                 goto error;
             }
-            memcpy(bytes->bytes, ((plByteArray*)object)->bytes, bytes->length);
-        } else {
-            plArray* trueArray = (plArray*)new;
+            memcpy(bytes->bytes, ((plByteArray *)object)->bytes, bytes->length);
+        }
+        else {
+            plArray *trueArray = (plArray *)new;
             uint32_t length = trueArray->length;
 
             if ((object->flags) & PL_OBJ_PRED_STRUCT) {
-                plStruct* st = (plStruct*)new;
+                plStruct *st = (plStruct *)new;
 
-                st->structId = ((plStruct*)object)->structId;
+                st->structId = ((plStruct *)object)->structId;
             }
 
-            trueArray->objects = calloc(trueArray->length, sizeof(plObject*));
+            trueArray->objects = calloc(trueArray->length, sizeof(plObject *));
             if (!trueArray->objects) {
                 goto error;
             }
             for (uint32_t k = 0; k < length; k++) {
-                trueArray->objects[k] = copyObject(((plArray*)object)->objects[k]);
+                trueArray->objects[k] = copyObject(((plArray *)object)->objects[k]);
                 if (!trueArray->objects[k]) {
                     goto error;
                 }
             }
         }
-    } else {
+    }
+    else {
         memcpy(new, object, objectSize(object->flags));
     }
 
@@ -113,7 +119,8 @@ error:
 }
 
 int
-plNumFromString(plInteger** num, const char* string, size_t len) {
+plNumFromString(plInteger **num, const char *string, size_t len)
+{
     int ret;
     char *terminatedString, *period, *temp;
 
@@ -138,7 +145,7 @@ plNumFromString(plInteger** num, const char* string, size_t len) {
         period[0] = '.';
 
         errno = 0;
-        ((plFloat*)*num)->decimal = strtod(period, &temp);
+        ((plFloat *)*num)->decimal = strtod(period, &temp);
         if (errno != 0 || temp[0] != '\0') {
             goto error;
         }
@@ -155,7 +162,8 @@ error:
 }
 
 static size_t
-objectSize(uint32_t flags) {
+objectSize(uint32_t flags)
+{
     switch (flags & 0x000000ff) {
     case PL_OBJ_TYPE_INT: return sizeof(plInteger);
 

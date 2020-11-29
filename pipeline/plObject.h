@@ -28,8 +28,8 @@ typedef struct plObject {
     PL_OBJECT_HEADER
 } plObject;
 
-#define OBJ_TYPE(ptr) (((plObject*)ptr)->flags & 0x000000ff)
-#define TRUTHY(ptr)   (((plObject*)ptr)->flags & PL_OBJ_FLAG_TRUTHY)
+#define OBJ_TYPE(ptr) (((plObject *)ptr)->flags & 0x000000ff)
+#define TRUTHY(ptr)   (((plObject *)ptr)->flags & PL_OBJ_FLAG_TRUTHY)
 
 typedef struct plInteger {
     PL_OBJECT_HEADER
@@ -44,7 +44,7 @@ typedef struct plFloat {
 #define PL_ARRAY_HEADER \
     PL_OBJECT_HEADER    \
     uint32_t length;    \
-    plObject** objects; \
+    plObject **objects; \
     uint32_t capacity;
 
 typedef struct plArray {
@@ -61,23 +61,25 @@ typedef struct plStruct {
 typedef struct plByteArray {
     PL_OBJECT_HEADER
     uint32_t length;
-    uint8_t* bytes;
+    uint8_t *bytes;
     uint32_t capacity;
 } plByteArray;
 
 typedef struct plGenArray {
     PL_OBJECT_HEADER
     uint32_t length;
-    void* opaque;
+    void *opaque;
     uint32_t capacity;
 } * plGenArrayPtr;
 
 void
-freeObject(plObject* object);
-plObject*
-copyObject(const plObject* object);
+freeObject(plObject *object);
+
+plObject *
+copyObject(const plObject *object);
+
 int
-plNumFromString(plInteger** num, const char* string, size_t len);
+plNumFromString(plInteger **num, const char *string, size_t len);
 
 extern plObject trueObject;
 extern plObject falseObject;

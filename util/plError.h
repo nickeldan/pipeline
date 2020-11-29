@@ -13,7 +13,7 @@ enum plErrorValue {
     PL_ERROR_INVALID_ERRNO,
 };
 
-const char*
+const char *
 plErrorString(int code);
 
 #endif

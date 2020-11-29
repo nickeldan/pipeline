@@ -15,7 +15,8 @@ const char *
 nodeTypeName(int nodeType);
 
 int
-main(int argc, char **argv) {
+main(int argc, char **argv)
+{
     int ret;
     FILE *f;
     astNodePtr programTree;
@@ -44,7 +45,8 @@ main(int argc, char **argv) {
 }
 
 void
-printTree(const astNodePtr tree, unsigned int margin) {
+printTree(const astNodePtr tree, unsigned int margin)
+{
     int splitSize;
 
     printMargin(margin);
@@ -79,14 +81,16 @@ printTree(const astNodePtr tree, unsigned int margin) {
 }
 
 void
-printMargin(unsigned int margin) {
+printMargin(unsigned int margin)
+{
     for (unsigned int k = 0; k < margin; k++) {
         printf("\t");
     }
 }
 
 const char *
-nodeTypeName(int nodeType) {
+nodeTypeName(int nodeType)
+{
     static char string[2] = {0};
 
     switch (nodeType) {

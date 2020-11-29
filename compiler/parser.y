@@ -10,6 +10,7 @@
 #include "parserWrapper.h"
 
 int yylex(YYSTYPE *yylvalp, YYLTYPE *yyllocp, yyscan_t scanner);
+
 void yyerror(YYLTYPE *yyllocp, yyscan_t yyscanner, const char *format, ...);
 
 static astNodePtr resolveAttributes(const YYLTYPE *yyllocp, astNodePtr object, astNodePtr attributes);
