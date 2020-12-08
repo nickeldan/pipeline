@@ -40,7 +40,7 @@ createFamily(astNode *parent, ...)
 }
 
 static int
-parseImportExport(plLexicalScanner *scanner, plAstNode **tree, plNameTable *table)
+parseImportExport(plLexicalScanner *scanner, plAstNode **node)
 {
     plLexicalMarker_t marker;
     plLexicalToken token;
@@ -48,7 +48,7 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **tree, plNameTable *tabl
 
     marker = scanner->last_marker;
 
-    if ( TERMINAL_LMARKER(plTokenRead(scanner, &token, table)) ) {
+    if ( TERMINAL_LMARKER(plTokenRead(scanner, &token)) ) {
         return translateTerminalMarker(scanner->last_marker);
     }
 
@@ -58,32 +58,16 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **tree, plNameTable *tabl
         return PL_RET_BAD_DATA;
     }
 
-    node = plAstNew(marker, token.line_no, token.ctx.name);
-    if ( !node ) {
+    *node = plAstNew(marker, token.line_no, token.ctx.name);
+    if ( !*node ) {
         return PL_RET_OUT_OF_MEMORY;
-    }
-
-    if ( *tree ) {
-        plAstNode *parent;
-
-        parent = plAstNew('F', 0, NULL);
-        if ( !parent ) {
-            plAstFree(node);
-            return PL_RET_OUT_OF_MEMORY;
-        }
-
-        createFamily(parent, *tree, node);
-        *tree = parent;
-    }
-    else {
-        *tree = node;
     }
 
     return PL_RET_OK;
 }
 
 static int
-parseFunction(plLexicalScanner *scanner, plAstNode **tree, plNameTable *table, plLexicalMarker_t marker, bool allow_anonymous)
+parseFunction(plLexicalScanner *scanner, plAstNode **tree, plLexicalMarker_t marker, bool allow_anonymous)
 {
     int ret = PL_RET_BAD_DATA;
     unsigned int starting_line_no;
@@ -93,14 +77,14 @@ parseFunction(plLexicalScanner *scanner, plAstNode **tree, plNameTable *table, p
 
     starting_line_no = scanner->line_no;
 
-    if ( TERMINAL_LMARKER(plTokenRead(scanner, &token, table)) ) {
+    if ( TERMINAL_LMARKER(plTokenRead(scanner, &token)) ) {
         return translateTerminalMarker(scanner->last_marker);
     }
 
     if ( token.marker == PL_LMARKER_NAME ) {
         name = token.ctx.name;
 
-        if ( TERMINAL_LMARKER(plTokenRead(scanner, &token, table)) ) {
+        if ( TERMINAL_LMARKER(plTokenRead(scanner, &token)) ) {
             goto error;
         }
     }
@@ -110,7 +94,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **tree, plNameTable *table, p
         return PL_RET_BAD_DATA;
     }
 
-    if ( TERMINAL_LMARKER(plTokenRead(scanner, &token, table)) ) {
+    if ( TERMINAL_LMARKER(plTokenRead(scanner, &token)) ) {
         goto error;
     }
 
@@ -126,7 +110,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **tree, plNameTable *table, p
 
 error:
 
-    plUnregisterName(table, name);
+    plUnregisterName(scanner->table, name);
     plAstFree(arg_list);
 
     if ( TERMINAL_LMARKER(scanner->last_marker) ) {
@@ -138,26 +122,26 @@ error:
 }
 
 static int
-parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree, plNameTable *table)
+parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
 {
     int ret;
     plLexicalToken token;
 
-    while ( !TERMINAL_LMARKER(plTokenRead(scanner, &token, table)) ) {
+    while ( !TERMINAL_LMARKER(plTokenRead(scanner, &token)) ) {
         switch ( scanner->last_marker ) {
         case PL_LMARKER_IMPORT:
         case PL_LMARKER_EXPORT:
-            ret = parseImportExport(scanner, tree, table, scanner->last_marker);
+            ret = parseImportExport(scanner, tree, scanner->last_marker);
             break;
 
         case PL_LMARKER_SOURCE:
         case PL_LMARKER_PIPE:
         case PL_LMARKER_SINK:
-            ret = parseFunction(scanner, tree, table, scanner->last_marker, false);
+            ret = parseFunction(scanner, tree, scanner->last_marker, false);
             break;
 
         case PL_LMARKER_MAIN:
-            ret = parseMain(scanner, tree, table);
+            ret = parseMain(scanner, tree);
             break;
 
         default:
@@ -195,10 +179,10 @@ plFileParse(FILE *in, const char *file_name, plAstNode **tree, plNameTable **tab
         return PL_RET_OUT_OF_MEMORY;
     }
 
-    plScannerInit(&scanner, in, file_name);
+    plScannerInit(&scanner, in, file_name, *table);
     VASQ_INFO("Parsing %s", scanner.file_name);
 
-    ret = parseGlobalSpace(&scanner, tree, *table);
+    ret = parseGlobalSpace(&scanner, tree);
     if ( ret != PL_RET_OK ) {
         plAstFree(*tree);
         plNameTableFree(*table);

@@ -4,6 +4,12 @@
 
 #include "scanner.h"
 
+#ifdef DEBUG
+#define LL_USE VASQ_LL_DEBUG
+#else
+#define LL_USE VASQ_LL_RAWONLY
+#endif
+
 int main(int argc, char **argv) {
     int ret;
     unsigned int line_no = 1;
@@ -12,7 +18,7 @@ int main(int argc, char **argv) {
     plNameTable *table;
     plLexicalToken token;
 
-    if ( VASQ_LOG_INIT(VASQ_LL_DEBUG, STDERR_FILENO, false) != VASQ_RET_OK ) {
+    if ( VASQ_LOG_INIT(LL_USE, STDERR_FILENO, false) != VASQ_RET_OK ) {
         return 1;
     }
 
@@ -27,15 +33,15 @@ int main(int argc, char **argv) {
         }
     }
 
-    plScannerInit(&scanner, f, argv[1]);
-
     table = plNameTableNew();
     if ( !table ) {
         ret = 3;
         goto done;
     }
 
-    while ( !TERMINAL_LMARKER(plTokenRead(&scanner, &token, table)) ) {
+    plScannerInit(&scanner, f, argv[1], table);
+
+    while ( !TERMINAL_LMARKER(plTokenRead(&scanner, &token)) ) {
         if ( scanner.line_no > line_no ) {
             printf("\n");
             line_no = scanner.line_no;

@@ -91,15 +91,16 @@ typedef struct plLexicalToken {
     union {
         const char *name;
         plObject *object;
+        plLexicalSubmarker_t submarker;
     } ctx;
     unsigned int line_no;
     plLexicalMarker_t marker;
-    plLexicalSubmarker_t submarker;
 } plLexicalToken;
 
 typedef struct plLexicalScanner {
     FILE *file;
     const char *file_name;
+    plNameTable *table;
     char *line;
     unsigned int line_no;
     unsigned int comment_block_line_no;
@@ -110,13 +111,13 @@ typedef struct plLexicalScanner {
 } plLexicalScanner;
 
 void
-plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name);
+plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plNameTable *table);
 
 plLexicalMarker_t
-plTokenRead(plLexicalScanner *scanner, plLexicalToken *token, plNameTable *table);
+plTokenRead(plLexicalScanner *scanner, plLexicalToken *token);
 
 void
-plTokenCleanup(
+plTokenCleanup(plLexicalToken *token, plNameTable *table);
 
 const char *
 plLexicalMarkerName(plLexicalMarker_t marker);

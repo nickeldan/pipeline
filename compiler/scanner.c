@@ -282,15 +282,16 @@ error:
 }
 
 void
-plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name)
+plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plNameTable *table)
 {
-    if (!scanner || !file) {
-        VASQ_ERROR("scanner and file cannot be NULL");
+    if (!scanner || !file || !table) {
+        VASQ_ERROR("scanner, file, and table cannot be NULL");
         return;
     }
 
     scanner->file = file;
     scanner->file_name = file_name ? file_name : "<anonymous file>";
+    scanner->table = table;
     scanner->line_no = 0;
     scanner->line_length = 0;
     scanner->inside_comment_block = false;
@@ -300,7 +301,7 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name)
 }
 
 plLexicalMarker_t
-plTokenRead(plLexicalScanner *scanner, plLexicalToken *token, plNameTable *table)
+plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
 {
     unsigned int consumed;
 
@@ -361,7 +362,7 @@ read_token:
     case '&':
         if (scanner->line[1] == '=') {
             scanner->last_marker = PL_LMARKER_REASSIGNMENT;
-            token->submarker = resolveArithmetic(scanner->line[0]);
+            token->ctx.submarker = resolveArithmetic(scanner->line[0]);
             consumed = 2;
         }
         else if (scanner->line[0] == '-' && scanner->line[1] == '>') {
@@ -394,7 +395,7 @@ read_token:
         }
         else {
             scanner->last_marker = PL_LMARKER_ARITHMETIC;
-            token->submarker = resolveArithmetic(scanner->line[0]);
+            token->ctx.submarker = resolveArithmetic(scanner->line[0]);
         }
 
         goto done;
@@ -403,7 +404,7 @@ read_token:
     case '!':
         if ( scanner->line[1] == '=' ) {
             scanner->last_marker = PL_LMARKER_COMPARISON;
-            token->submarker = ( scanner->line[0] == '=' )? PL_LSUBMARKER_EQUAL : PL_LSUBMARKER_NOT_EQUAL;
+            token->ctx.submarker = ( scanner->line[0] == '=' )? PL_LSUBMARKER_EQUAL : PL_LSUBMARKER_NOT_EQUAL;
             consumed = 2;
             goto done;
         }
@@ -425,16 +426,16 @@ read_token:
                 consumed = 2;
             }
 
-            token->submarker = (scanner->line[0] == '<') ? PL_LSUBMARKER_LSHIFT : PL_LSUBMARKER_RSHIFT;
+            token->ctx.submarker = (scanner->line[0] == '<') ? PL_LSUBMARKER_LSHIFT : PL_LSUBMARKER_RSHIFT;
         }
         else {
             if (scanner->line[1] == '=') {
-                token->submarker =
+                token->ctx.submarker =
                     (scanner->line[0] == '<') ? PL_LSUBMARKER_LESS_THAN_EQ : PL_LSUBMARKER_GREATER_THAN_EQ;
                 consumed = 2;
             }
             else {
-                token->submarker =
+                token->ctx.submarker =
                     (scanner->line[0] == '<') ? PL_LSUBMARKER_LESS_THAN : PL_LSUBMARKER_GREATER_THAN;
             }
 
@@ -449,7 +450,7 @@ read_token:
             for (unsigned int k = 0; k < ARRAY_LENGTH(options); k++) {
                 if (strncmp(scanner->line + 1, options[k].word, options[k].len) == 0) {
                     scanner->last_marker = PL_LMARKER_OPTION;
-                    token->submarker = options[k].submarker;
+                    token->ctx.submarker = options[k].submarker;
                     consumed = 1 + options[k].len;
                     goto done;
                 }
@@ -475,10 +476,10 @@ read_token:
                 token->ctx.object = resolveStaticLiteral(scanner->line[0]);
             }
             else if (scanner->last_marker == PL_LMARKER_LOGICAL) {
-                token->submarker = (scanner->line[0] == 'o') ? PL_LSUBMARKER_OR : PL_LSUBMARKER_AND;
+                token->ctx.submarker = (scanner->line[0] == 'o') ? PL_LSUBMARKER_OR : PL_LSUBMARKER_AND;
             }
             else if (scanner->last_marker == PL_LMARKER_TYPE) {
-                token->submarker = resolveType(scanner->line);
+                token->ctx.submarker = resolveType(scanner->line);
             }
 
             consumed = keywords[k].len;
@@ -553,7 +554,7 @@ read_token:
             scanner->last_marker = PL_LMARKER_UNDERSCORE;
         }
         else {
-            token->ctx.name = plRegisterName(table, scanner->line, consumed, NULL);
+            token->ctx.name = plRegisterName(scanner->table, scanner->line, consumed, NULL);
             if (!token->ctx.name) {
                 scanner->last_marker = PL_LMARKER_OUT_OF_MEMORY;
                 goto return_marker;
@@ -608,6 +609,8 @@ plTokenCleanup(plLexicalToken *token, plNameTable *table)
     case PL_LMARKER_LITERAL:
         plFreeObject(token->ctx.object);
         break;
+
+    default: break;
     }
 }
 

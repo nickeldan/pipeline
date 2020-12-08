@@ -4,9 +4,9 @@ debug ?= no
 INCLUDE_DIRS := ./pipeline ./compiler vanilla_squad/include
 ACTUAL_INCLUDE_DIRS := ./pipeline ./compiler vanilla_squad/include/vasq
 
-COMPILER_FLAGS := -std=gnu11 -fdiagnostics-color -Wall -Wextra
+COMPILER_FLAGS := -std=gnu11 -fdiagnostics-color -Wall -Wextra -DVASQ_ENABLE_LOGGING
 ifeq ($(debug),yes)
-	COMPILER_FLAGS += -O0 -g -DDEBUG -DVASQ_ENABLE_LOGGING
+	COMPILER_FLAGS += -O0 -g -DDEBUG
 else
 	COMPILER_FLAGS += -O3 -DNDEBUG
 endif
@@ -15,7 +15,7 @@ endif
 
 all: token_check
 
-token_check: token_check.o pipeline/libpipeline.a compiler/libplcompiler.a $(VASQ_DIR)/libvanillasquad.a
+token_check: token_check.o pipeline/libpipeline.a compiler/libplcompiler.a vanilla_squad/libvanillasquad.a
 	$(CC) -o $@ $^
 
 %.o: %.c $(patsubst %, %/*.h, $(ACTUAL_INCLUDE_DIRS))

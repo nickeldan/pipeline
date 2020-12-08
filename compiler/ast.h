@@ -1,5 +1,7 @@
 #pragma once
 
+#include "scanner.h"
+
 #define AST_HAS_PARENT
 
 #ifdef AST_HAS_PARENT
@@ -10,9 +12,7 @@
 
 #define AST_HEADER \
     AST_PARENT_DECL \
-    void *ctx; \
-    int node_type; \
-    unsigned int line_no;
+    plLexicalToken token;
 
 typedef struct plAstNode {
     AST_HEADER
@@ -41,7 +41,7 @@ typedef struct plAstFourSplitNode {
 typedef plAstFourSplitNode plAstMaxSplitNode;
 
 plAstNode *
-plAstNew(int node_type, unsigned int line_no, void *ctx);
+plAstNew(const plLexicalToken *token);
 
 void
 plAstFree(astNode *node);
