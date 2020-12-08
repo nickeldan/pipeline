@@ -1,9 +1,8 @@
 CC ?= gcc
 debug ?= no
 
-VASQ_DIR := ../vanilla_squad
-INCLUDE_DIRS := ./pipeline ./compiler $(VASQ_DIR)/include
-ACTUAL_INCLUDE_DIRS := ./pipeline ./compiler $(VASQ_DIR)/include/vasq
+INCLUDE_DIRS := ./pipeline ./compiler vanilla_squad/include
+ACTUAL_INCLUDE_DIRS := ./pipeline ./compiler vanilla_squad/include/vasq
 
 COMPILER_FLAGS := -std=gnu11 -fdiagnostics-color -Wall -Wextra
 ifeq ($(debug),yes)
@@ -29,3 +28,4 @@ clean:
 	rm -f token_check *.o
 	cd pipeline && make clean
 	cd compiler && make clean
+	cd vanilla_squad && make clean
