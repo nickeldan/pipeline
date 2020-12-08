@@ -9,10 +9,10 @@ This is a multi-line comment block.
 export factor;
 export isPrime;
 
-import os;
+import sys;
 import math;
 
-source icount(start:Int, finish:Int, step:Int=1) -> Int {
+source icount(start:Int, finish:Int, step:Int) -> Int {
     start -> n;
     while n <= finish {
         prod n;
@@ -20,7 +20,7 @@ source icount(start:Int, finish:Int, step:Int=1) -> Int {
     }
 }
 
-source forever(start:Int, step:Int=1) -> Int {
+source forever(start:Int, step:Int) -> Int {
     start -> n;
     while true {
         prod n;
@@ -30,7 +30,7 @@ source forever(start:Int, step:Int=1) -> Int {
 
 source factor(n:Int) -> Int {
     verify (n -> x -> math.sqrt -> s);
-    (2, forever(3,step=2)) -> local (i:Int) {
+    (2, forever(3,2)) -> local (i:Int) {
         false -> recompute;
         while x%i == 0 {
             prod i;
@@ -52,9 +52,10 @@ pipe isPrime(n:Int) -> Bool {
 }
 
 main {
-    verify (1 -> os.argv -> Int -> start);
-    verify (2 -> os.argv -> Int -> finish);
-    icount(start,finish) -> isPrime.filter -> doCount.detour:numPrimes -> doPrintLn;
+    verify (1 -> sys.argv -> Int -> start);
+    verify (2 -> sys.argv -> Int -> finish);
+    icount(start,finish,1) -> isPrime.filter -> doCount.detour:numPrimes -> doPrintLn;
+    "hello" -> doPrintLn;
     ("There were ", numPrimes, " primes found.\n") -> doPrint;
 
     prod 0;

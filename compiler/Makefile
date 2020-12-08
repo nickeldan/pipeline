@@ -1,36 +1,30 @@
-CC := gcc
-COMPILER_FLAGS := -std=gnu99 -O3 -g -fpic -Wall
-INCLUDES := -I../util -I../pipeline
+CC ?= gcc
+debug ?= no
 
-LIB_NAME := libplcompiler
+VASQ_DIR := ../../vanilla_squad
+
+COMPILER_FLAGS := -std=gnu11 -fpic -fdiagnostics-color -Wall -Wextra
+ifeq ($(debug),yes)
+	COMPILER_FLAGS += -O0 -g -DDEBUG -DVASQ_ENABLE_LOGGING
+else
+	COMPILER_FLAGS += -O3 -DNDEBUG
+endif
+
+LIBNAME := plcompiler
+OBJECT_FILES := scanner.o nameTable.o
 
 .PHONY: all clean
 
-all: $(LIB_NAME).so $(LIB_NAME).a
+all: lib$(LIBNAME).so lib$(LIBNAME).a
 
-$(LIB_NAME).so: lex.yy.o nameTable.o ast.o parser.tab.o
+lib$(LIBNAME).so: $(OBJECT_FILES)
 	$(CC) -shared -o $@ $^
 
-$(LIB_NAME).a: lex.yy.o nameTable.o ast.o parser.tab.o
+lib$(LIBNAME).a: $(OBJECT_FILES)
 	ar rcs $@ $^
 
-lex.yy.o: lex.yy.c parserWrapper.h parser.tab.h ast.h marker.h ../util/plUtil.h ../util/plError.h ../pipeline/plObject.h
-	$(CC) $(COMPILER_FLAGS) $(INCLUDES) -c $<
-
-lex.yy.c lex.yy.h: scanner.l
-	flex $<
-
-nameTable.o: nameTable.c ../util/plUtil.h
-	$(CC) $(COMPILER_FLAGS) $(INCLUDES) -c $<
-
-ast.o: ast.c ast.h parserWrapper.h parser.tab.h ../util/plUtil.h ../pipeline/plObject.h
-	$(CC) $(COMPILER_FLAGS) $(INCLUDES) -c $<
-
-parser.tab.o: parser.tab.c parserWrapper.h parser.tab.h lex.yy.h ast.h marker.h nameTable.h ../pipeline/plObject.h
-	$(CC) $(COMPILER_FLAGS) $(INCLUDES) -c $<
-
-parser.tab.h parser.tab.c: parser.y
-	bison -dv $<
+%.o: %.c *.h ../pipeline/*.h $(VASQ_DIR)/include/vasq/*.h
+	$(CC) $(COMPILER_FLAGS) -I../pipeline -I$(VASQ_DIR)/include -c $<
 
 clean:
-	rm -f parser.output *.o $(LIB_NAME).so $(LIB_NAME).a
+	rm -f lib$(LIBNAME).so lib$(LIBNAME).a $(OBJECT_FILES)

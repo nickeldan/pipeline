@@ -1,13 +1,23 @@
-#ifndef __PIPELINE_NAME_TABLE_H__
-#define __PIPELINE_NAME_TABLE_H__
+#pragma once
+
+#include <stdbool.h>
+
+typedef struct plNameTable plNameTable;
+
+plNameTable *
+plNameTableNew(void);
 
 void
-nameTableSetup(void);
+plNameTableFree(plNameTable *table);
 
-char *
-registerName(const char *name);
+const char *
+plRegisterName(plNameTable *table, const char *name, unsigned int length, void *ctx);
 
 void
-removeReference(const char *name);
+plUnregisterName(plNameTable *table, const char *name);
 
-#endif  // __PIPELINE_NAME_TABLE_H__
+bool
+plLookupName(const plNameTable *table, const char *name, void **ctx);
+
+bool
+plUpdateNameContext(const plNameTable *table, const char *name, void *new_ctx);

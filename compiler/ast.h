@@ -1,52 +1,50 @@
-#ifndef __PIPELINE_AST_H__
-#define __PIPELINE_AST_H__
+#pragma once
 
-#define AST_NODE_HAS_PARENT
+#define AST_HAS_PARENT
 
-#include <stdio.h>
-
-/*
-Non-obvious nodetypes:
-
-C: FUNCTION_CALL
-L: ARRAY_LITERAL
-*/
-
-typedef struct astFourSplitNode *astNodePtr;
-
-#ifdef AST_NODE_HAS_PARENT
-#define AST_PARENT_DECL astNodePtr parent;
+#ifdef AST_HAS_PARENT
+#define AST_PARENT_DECL struct plAstNode *parent;
 #else
 #define AST_PARENT_DECL
 #endif
 
-#define AST_NODE_HEADER \
-    int nodeType;       \
-    int marker;         \
-    int firstLine;      \
-    int firstColumn;    \
-    AST_PARENT_DECL
+#define AST_HEADER \
+    AST_PARENT_DECL \
+    void *ctx; \
+    int node_type; \
+    unsigned int line_no;
 
-struct astFourSplitNode {
-    AST_NODE_HEADER
-    astNodePtr first;
-    astNodePtr second;
-    astNodePtr third;
-    astNodePtr fourth;
-};
+typedef struct plAstNode {
+    AST_HEADER
+} plAstNode;
 
-typedef struct YYLTYPE YYLTYPE;
+typedef struct plAstOneSplitNode {
+    AST_HEADER
+    plAstNode *nodes[1];
+} plAstOneSplitNode;
 
-int
-formAstFromFile(FILE *infile, astNodePtr *programTree);
+typedef struct plAstTwoSplitNode {
+    AST_HEADER
+    plAstNode *nodes[2];
+} plAstTwoSplitNode;
 
-astNodePtr
-createNode(const YYLTYPE *locPtr, int nodeType, ...);
+typedef struct plAstThreeSplitNode {
+    AST_HEADER
+    plAstNode *nodes[3];
+} plAstThreeSplitNode;
+
+typedef struct plAstFourSplitNode {
+    AST_HEADER
+    plAstNode *nodes[4];
+} plAstFourSplitNode;
+
+typedef plAstFourSplitNode plAstMaxSplitNode;
+
+plAstNode *
+plAstNew(int node_type, unsigned int line_no, void *ctx);
 
 void
-freeAstTree(astNodePtr root);
+plAstFree(astNode *node);
 
-int
-nodeSplitSize(int nodeType) __attribute__((pure));
-
-#endif  // __PIPELINE_AST_H__
+unsigned int
+plAstSplitSize(int node_type) __attribute__ ((pure));
