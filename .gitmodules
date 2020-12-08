@@ -1,0 +1,3 @@
+[submodule "vanilla_squad"]
+	path = vanilla_squad
+	url = https://github.com/nickeldan/vanilla_squad

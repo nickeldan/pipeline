@@ -2,7 +2,8 @@
 #define __PIPELINE_PLOBJECT_H__
 
 #include <stdint.h>
-#include <sys/types.h>
+
+#include "plUtil.h"
 
 #define PL_OBJECT_HEADER uint32_t flags;
 
@@ -20,25 +21,31 @@
 #define PL_OBJ_TYPE_BYTE_ARRAY (PL_OBJ_PRED_GEN_ARRAY | PL_OBJ_PRED_BYTE_ARRAY)
 #define PL_OBJ_TYPE_BLANK      0x00000080
 
-#define PL_OBJ_FLAG_ORPHAN       0x00000100
-#define PL_OBJ_FLAG_STATIC       0x00000200
-#define PL_OBJ_FLAG_STATIC_BYTES 0x00000400
+#define PL_OBJ_FLAG_TRUE         0x00000100
+#define PL_OBJ_FLAG_ORPHAN       0x00000200
+#define PL_OBJ_FLAG_STATIC       0x00000400
+#define PL_OBJ_FLAG_STATIC_BYTES 0x00000800
+#define PL_OBJ_FLAG_COW_BYTES    0x00001000
 
 typedef struct plObject {
     PL_OBJECT_HEADER
 } plObject;
 
 #define OBJ_TYPE(ptr) (((plObject *)ptr)->flags & 0x000000ff)
-#define TRUTHY(ptr)   (((plObject *)ptr)->flags & PL_OBJ_FLAG_TRUTHY)
 
 typedef struct plInteger {
     PL_OBJECT_HEADER
     int64_t value;
 } plInteger;
 
+#define PL_INTEGER_BYTE_SIZE 8
+#define PL_INTEGER_MAX_LENGTH 20 // The length of -1 * (1 << 63).
+#define PL_MAX_INTEGER  9223372036854775807L
+#define PL_MIN_INTEGER -9223372036854775808L
+
 typedef struct plFloat {
-    plInteger intPart;
-    double decimal;
+    plInteger integer_part;
+    double decimal_part;
 } plFloat;
 
 #define PL_ARRAY_HEADER \
@@ -51,11 +58,13 @@ typedef struct plArray {
     PL_ARRAY_HEADER
 } plArray;
 
-typedef uint32_t plStructId_t;
+typedef uintptr_t plModuleId_t;
+typedef uint16_t plStructId_t;
 
 typedef struct plStruct {
     PL_ARRAY_HEADER
-    plStructId_t structId;
+    plModuleId_t module_id;
+    plStructId_t struct_id;
 } plStruct;
 
 typedef struct plByteArray {
@@ -73,17 +82,38 @@ typedef struct plGenArray {
 } * plGenArrayPtr;
 
 void
-freeObject(plObject *object);
+plFreeObject(plObject *object);
 
 plObject *
-copyObject(const plObject *object);
+plCopyObject(const plObject *object);
+
+plObject *
+plNewInteger(void);
+
+plObject *
+plNewFloat(void);
+
+plObject *
+plNewArray(void);
+
+plObject *
+plNewByteArray(void);
 
 int
-plNumFromString(plInteger **num, const char *string, size_t len);
+plIntegerFromString(const char *string, unsigned int length, plObject **object);
 
-extern plObject trueObject;
-extern plObject falseObject;
-extern plObject blankObject;
-extern plObject nullObject;
+int
+plPopulateIntegerFromString(const char *string, unsigned int length, plInteger *integer);
+
+int
+plFloatFromString(const char *string, unsigned int length, plObject **object);
+
+int
+plIntegerFromHexString(const char *string, unsigned int length, plObject **object);
+
+extern plObject true_object;
+extern plObject false_object;
+extern plObject blank_object;
+extern plObject null_object;
 
 #endif  // __PIPELINE_OBJECT_H__

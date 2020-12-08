@@ -1,20 +1,30 @@
-CC := gcc
-COMPILER_FLAGS := -std=gnu99 -O3 -g -fpic -Wall
+CC ?= gcc
+debug ?= no
 
-LIB_NAME := libplobject
+VASQ_DIR := ../../vanilla_squad
+
+COMPILER_FLAGS := -std=gnu11 -fpic -fdiagnostics-color -Wall -Wextra
+ifeq ($(debug),yes)
+	COMPILER_FLAGS += -O0 -g -DDEBUG -DVASQ_ENABLE_LOGGING
+else
+	COMPILER_FLAGS += -O3 -DNDEBUG
+endif
+
+LIBNAME := pipeline
+OBJECT_FILES := plObject.o
 
 .PHONY: all clean
 
-all: $(LIB_NAME).so $(LIB_NAME).a
+all: lib$(LIBNAME).so lib$(LIBNAME).a
 
-$(LIB_NAME).so: plObject.o
-	$(CC) -shared -o $@ $<
+lib$(LIBNAME).so: $(OBJECT_FILES)
+	$(CC) -shared -o $@ $^
 
-$(LIB_NAME).a: plObject.o
+lib$(LIBNAME).a: $(OBJECT_FILES)
 	ar rcs $@ $^
 
-plObject.o: plObject.c plObject.h ../util/plUtil.h ../util/plError.h
-	$(CC) $(COMPILER_FLAGS) -I../util -c $<
+%.o: %.c *.h $(VASQ_DIR)/include/vasq/*.h
+	$(CC) $(COMPILER_FLAGS) -I$(VASQ_DIR)/include -c $<
 
 clean:
-	rm -f *.o $(LIB_NAME).so $(LIB_NAME).a
+	rm -f lib$(LIBNAME).so lib$(LIBNAME).a $(OBJECT_FILES)

@@ -1,24 +1,31 @@
-CC := gcc
-COMPILER_FLAGS := -std=gnu99 -O3 -g -Wall
-INCLUDE_DIRS := -I./compiler -I./pipeline -I./util
+CC ?= gcc
+debug ?= no
+
+INCLUDE_DIRS := ./pipeline ./compiler vanilla_squad/include
+ACTUAL_INCLUDE_DIRS := ./pipeline ./compiler vanilla_squad/include/vasq
+
+COMPILER_FLAGS := -std=gnu11 -fdiagnostics-color -Wall -Wextra
+ifeq ($(debug),yes)
+	COMPILER_FLAGS += -O0 -g -DDEBUG -DVASQ_ENABLE_LOGGING
+else
+	COMPILER_FLAGS += -O3 -DNDEBUG
+endif
 
 .PHONY: all clean FORCE
 
-all: parser_check
+all: token_check
 
-parser_check: parser_check.o compiler/libplcompiler.a pipeline/libplobject.a util/libplutil.a
+token_check: token_check.o pipeline/libpipeline.a compiler/libplcompiler.a $(VASQ_DIR)/libvanillasquad.a
 	$(CC) -o $@ $^
 
-parser_check.o: parser_check.c pipeline/plObject.h compiler/ast.h compiler/parserWrapper.h compiler/parser.tab.h
-	$(CC) $(COMPILER_FLAGS) $(INCLUDE_DIRS) -c $<
+%.o: %.c $(patsubst %, %/*.h, $(ACTUAL_INCLUDE_DIRS))
+	$(CC) $(COMPILER_FLAGS) $(patsubst %, -I%, $(INCLUDE_DIRS)) -c $<
 
-compiler/libplcompiler.a compiler/parser.tab.h pipeline/libplobject.a util/libplutil.a: FORCE
-	cd $(dir $@) && make $(notdir $@)
+%.a: FORCE
+	cd $(dir $@) && make $(notdir $@) CC=$(CC) debug=$(debug)
 
 clean:
-	rm -f parser_check parser_check.o
-	cd compiler && make clean
+	rm -f token_check *.o
 	cd pipeline && make clean
-	cd util && make clean
-
-FORCE:
+	cd compiler && make clean
+	cd vanilla_squad && make clean
