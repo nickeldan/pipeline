@@ -5,7 +5,7 @@ LIBNAME := plcompiler
 INCLUDE_DIRS := ../pipeline ../vanilla_squad/include
 ACTUAL_INCLUDE_DIRS := ../pipeline ../vanilla_squad/include/vasq
 
-COMPILER_FLAGS := -std=gnu11 -fpic -fdiagnostics-color -Wall -Wextra -DVASQ_ENABLE_LOGGING
+COMPILER_FLAGS := -std=gnu11 -fpic -ffunction-sections -fdiagnostics-color -Wall -Wextra -DVASQ_ENABLE_LOGGING
 ifeq ($(debug),yes)
 	COMPILER_FLAGS += -O0 -g -DDEBUG
 else

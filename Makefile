@@ -1,8 +1,8 @@
 CC ?= gcc
 debug ?= no
 
-INCLUDE_DIRS := ./pipeline ./compiler vanilla_squad/include
-ACTUAL_INCLUDE_DIRS := ./pipeline ./compiler vanilla_squad/include/vasq
+INCLUDE_DIRS := ./pipeline ./compiler ./vanilla_squad/include
+ACTUAL_INCLUDE_DIRS := ./pipeline ./compiler ./vanilla_squad/include/vasq
 
 COMPILER_FLAGS := -std=gnu11 -fdiagnostics-color -Wall -Wextra -DVASQ_ENABLE_LOGGING
 ifeq ($(debug),yes)

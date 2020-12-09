@@ -67,16 +67,21 @@ plFreeObject(plObject *object)
 }
 
 plObject *
-copyObject(const plObject *object)
+plCopyObject(const plObject *object)
 {
     plObject *new;
+
+    if ( !object ) {
+        VASQ_ERROR("object cannot be NULL");
+        return NULL;
+    }
 
     new = VASQ_CALLOC(1, objectSize(object->flags));
     if (!new) {
         return NULL;
     }
     new->flags = object->flags;
-    new->flags &= ~(PL_OBJ_FLAG_STATIC | PL_OBJ_FLAG_STATIC_BYTES);
+    new->flags &= ~(PL_OBJ_FLAG_STATIC | PL_OBJ_FLAG_STATIC_BYTES | PL_OBJ_FLAG_ORPHAN);
 
     if ((object->flags) & PL_OBJ_PRED_GEN_ARRAY) {
         plGenArrayPtr array = (plGenArrayPtr) new;
@@ -109,7 +114,7 @@ copyObject(const plObject *object)
                 goto error;
             }
             for (uint32_t k = 0; k < length; k++) {
-                trueArray->objects[k] = copyObject(((plArray *)object)->objects[k]);
+                trueArray->objects[k] = plCopyObject(((plArray *)object)->objects[k]);
                 if (!trueArray->objects[k]) {
                     goto error;
                 }

@@ -1,5 +1,4 @@
-#ifndef __PIPELINE_PLOBJECT_H__
-#define __PIPELINE_PLOBJECT_H__
+#pragma once
 
 #include <stdint.h>
 
@@ -25,7 +24,6 @@
 #define PL_OBJ_FLAG_ORPHAN       0x00000200
 #define PL_OBJ_FLAG_STATIC       0x00000400
 #define PL_OBJ_FLAG_STATIC_BYTES 0x00000800
-#define PL_OBJ_FLAG_COW_BYTES    0x00001000
 
 typedef struct plObject {
     PL_OBJECT_HEADER
@@ -115,5 +113,3 @@ extern plObject true_object;
 extern plObject false_object;
 extern plObject blank_object;
 extern plObject null_object;
-
-#endif  // __PIPELINE_OBJECT_H__
