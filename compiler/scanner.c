@@ -8,13 +8,13 @@
 struct keywordRecord {
     const char *word;
     unsigned int len;
-    plLexicalMarker_t marker;
+    int marker;
 };
 
 struct optionRecord {
     const char *word;
     unsigned int len;
-    plLexicalSubmarker_t submarker;
+    int submarker;
 };
 
 #define SCANNER_ERROR(format, ...)                                                               \
@@ -75,7 +75,7 @@ resolveStaticLiteral(char c)
     }
 }
 
-static plLexicalSubmarker_t
+static int
 resolveType(const char *word)
 {
     switch (word[0]) {
@@ -89,7 +89,7 @@ resolveType(const char *word)
     }
 }
 
-static plLexicalSubmarker_t
+static int
 resolveArithmetic(char c)
 {
     switch (c) {
@@ -172,7 +172,7 @@ prepLine(plLexicalScanner *scanner)
     return true;
 }
 
-static plLexicalMarker_t
+static int
 readByteString(plLexicalScanner *scanner, plObject **object)
 {
     plByteArray *array;
@@ -301,7 +301,7 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plNa
     scanner->line = scanner->buffer;
 }
 
-plLexicalMarker_t
+int
 plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
 {
     unsigned int consumed;
@@ -612,7 +612,7 @@ plTokenCleanup(plLexicalToken *token, plNameTable *table)
 }
 
 const char *
-plLexicalMarkerName(plLexicalMarker_t marker)
+plLexicalMarkerName(int marker)
 {
     switch (marker) {
     case PL_LMARKER_ARROW: return "ARROW";

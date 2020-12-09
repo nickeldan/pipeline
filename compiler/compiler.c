@@ -6,7 +6,7 @@
     VASQ_RAWLOG("%s:%u: " format "\n", scanner->file_name, scanner->line_no, ##__VA_ARGS__)
 
 static int
-translateTerminalMarker(plLexicalMarker_t marker)
+translateTerminalMarker(int marker)
 {
     switch (marker) {
     case PL_LMARKER_BAD_ARGS: return PL_RET_BAD_ARGS;
@@ -43,7 +43,7 @@ createFamily(plAstNode *parent, ...)
 static int
 parseImportExport(plLexicalScanner *scanner, plAstNode **node)
 {
-    plLexicalMarker_t marker;
+    int marker;
     plLexicalToken token;
     plAstNode *node;
 
@@ -68,7 +68,7 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
 }
 
 static int
-parseFunction(plLexicalScanner *scanner, plAstNode **tree, plLexicalMarker_t marker, bool allow_anonymous)
+parseFunction(plLexicalScanner *scanner, plAstNode **node, int marker, bool allow_anonymous)
 {
     int ret = PL_RET_BAD_DATA;
     unsigned int starting_line_no;
@@ -83,7 +83,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **tree, plLexicalMarker_t mar
     }
 
     if (token.marker == PL_LMARKER_NAME) {
-        if ( marker == PL_LMARKER_LOCAL ) {
+        if (marker == PL_LMARKER_LOCAL) {
             PARSER_ERROR("LOCAL cannot be named");
             return PL_RET_BAD_DATA;
         }
@@ -132,15 +132,17 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
     plLexicalToken token;
 
     while (!TERMINAL_LMARKER(plTokenRead(scanner, &token))) {
+        plAstNode *node;
+
         switch (scanner->last_marker) {
         case PL_LMARKER_IMPORT:
-        case PL_LMARKER_EXPORT: ret = parseImportExport(scanner, tree, scanner->last_marker); break;
+        case PL_LMARKER_EXPORT: ret = parseImportExport(scanner, &node, scanner->last_marker); break;
 
         case PL_LMARKER_SOURCE:
         case PL_LMARKER_PIPE:
-        case PL_LMARKER_SINK: ret = parseFunction(scanner, tree, scanner->last_marker, false); break;
+        case PL_LMARKER_SINK: ret = parseFunction(scanner, &node, scanner->last_marker, false); break;
 
-        case PL_LMARKER_MAIN: ret = parseMain(scanner, tree); break;
+        case PL_LMARKER_MAIN: ret = parseMain(scanner, &node); break;
 
         default:
             PARSER_ERROR("Invalid token in global namespace: %s", plLexicalMarkerName(token.marker));
@@ -150,6 +152,10 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
 
         if (ret != PL_RET_OK) {
             return ret;
+        }
+
+        if (*tree) {
+            plAstNode *parent;
         }
     }
 

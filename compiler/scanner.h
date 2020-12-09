@@ -6,9 +6,7 @@
 #include "nameTable.h"
 #include "plObject.h"
 
-typedef enum plLexicalMarker {
-    PL_LMARKER_UNUSED = 0,
-
+enum plLexicalMarker {
     PL_LMARKER_BAD_ARGS = 256,
     PL_LMARKER_READ_FAILURE,
     PL_LMARKER_BAD_DATA,
@@ -59,11 +57,10 @@ typedef enum plLexicalMarker {
     PL_LMARKER_REASSIGNMENT,
     PL_LMARKER_COMPARISON,
     PL_LMARKER_OPTION,
-} plLexicalMarker_t;
-
+};
 #define TERMINAL_LMARKER(marker) ((marker) <= PL_LMARKER_EOF)
 
-typedef enum plLexicalSubmarker {
+enum plLexicalSubmarker {
     PL_LSUBMARKER_OR = 0,
     PL_LSUBMARKER_AND,
     PL_LSUBMARKER_INT,
@@ -87,16 +84,16 @@ typedef enum plLexicalSubmarker {
     PL_LSUBMARKER_GREATER_THAN,
     PL_LSUBMARKER_GREATER_THAN_EQ,
     PL_LSUBMARKER_STORE,
-} plLexicalSubmarker_t;
+};
 
 typedef struct plLexicalToken {
     union {
         const char *name;
         plObject *object;
-        plLexicalSubmarker_t submarker;
+        int submarker;
     } ctx;
+    int marker;
     unsigned int line_no;
-    plLexicalMarker_t marker;
 } plLexicalToken;
 
 typedef struct plLexicalScanner {
@@ -107,7 +104,7 @@ typedef struct plLexicalScanner {
     unsigned int line_no;
     unsigned int comment_block_line_no;
     unsigned int line_length;
-    plLexicalMarker_t last_marker;
+    int last_marker;
     bool inside_comment_block;
     char buffer[200];
 } plLexicalScanner;
@@ -115,11 +112,11 @@ typedef struct plLexicalScanner {
 void
 plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plNameTable *table);
 
-plLexicalMarker_t
+int
 plTokenRead(plLexicalScanner *scanner, plLexicalToken *token);
 
 void
 plTokenCleanup(plLexicalToken *token, plNameTable *table);
 
 const char *
-plLexicalMarkerName(plLexicalMarker_t marker);
+plLexicalMarkerName(int marker);

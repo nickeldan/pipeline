@@ -55,7 +55,6 @@ main {
     verify (1 -> sys.argv -> Int -> start);
     verify (2 -> sys.argv -> Int -> finish);
     icount(start,finish,1) -> isPrime.filter -> doCount.detour:numPrimes -> doPrintLn;
-    "hello" -> doPrintLn;
     ("There were ", numPrimes, " primes found.\n") -> doPrint;
 
     prod 0;
