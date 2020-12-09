@@ -10,7 +10,7 @@ typedef struct nameRecord {
     struct nameRecord *next;
     char *string;
     void *ctx;
-    unsigned int length; // Includes the '\0'.
+    unsigned int length;  // Includes the '\0'.
     unsigned int num_references;
 } nameRecord;
 
@@ -35,18 +35,19 @@ nameHash(const char *name, unsigned int length)
 }
 
 static nameRecord *
-findRecord(const plNameTable *table, const char *name, unsigned int length, unsigned int *hash, nameRecord **prev)
+findRecord(const plNameTable *table, const char *name, unsigned int length, unsigned int *hash,
+           nameRecord **prev)
 {
     unsigned int h;
     nameRecord *p = NULL;
 
-    if ( length == 0 ) {
+    if (length == 0) {
         VASQ_ERROR("Length cannot be 0");
         return NULL;
     }
 
     h = nameHash(name, length);
-    if ( hash ) {
+    if (hash) {
         *hash = h;
     }
 
@@ -70,7 +71,7 @@ plNameTableNew(void)
     plNameTable *table;
 
     table = VASQ_MALLOC(sizeof(*table));
-    if ( table ) {
+    if (table) {
         *table = (plNameTable){0};
     }
     return table;
@@ -79,8 +80,8 @@ plNameTableNew(void)
 void
 plNameTableFree(plNameTable *table)
 {
-    if ( table ) {
-        for (unsigned int k=0; k<REF_TABLE_SIZE; k++) {
+    if (table) {
+        for (unsigned int k = 0; k < REF_TABLE_SIZE; k++) {
             nameRecord *record;
 
             record = table->records[k];
@@ -105,7 +106,7 @@ plRegisterName(plNameTable *table, const char *name, unsigned int length, void *
     unsigned int hash = 0;
     nameRecord *record;
 
-    if ( !table || !name ) {
+    if (!table || !name) {
         VASQ_ERROR("table and name cannot be NULL");
         return NULL;
     }
@@ -144,11 +145,11 @@ plUnregisterName(plNameTable *table, const char *name)
     unsigned int hash;
     nameRecord *record, *prev;
 
-    if ( !name ) {
+    if (!name) {
         return;
     }
 
-    if ( !table ) {
+    if (!table) {
         VASQ_ERROR("table cannot be NULL");
         return;
     }
@@ -177,17 +178,17 @@ plLookupName(const plNameTable *table, const char *name, void **ctx)
 {
     nameRecord *record;
 
-    if ( !table || !name ) {
+    if (!table || !name) {
         VASQ_ERROR("table and name cannot be NULL");
         return false;
     }
 
     record = findRecord(table, name, strlen(name), NULL, NULL);
-    if ( !record ) {
+    if (!record) {
         return false;
     }
 
-    if ( ctx ) {
+    if (ctx) {
         *ctx = record->ctx;
     }
     return true;
@@ -198,13 +199,13 @@ plUpdateNameContext(const plNameTable *table, const char *name, void *new_ctx)
 {
     nameRecord *record;
 
-    if ( !table || !name ) {
+    if (!table || !name) {
         VASQ_ERROR("table and name cannot be NULL");
         return false;
     }
 
     record = findRecord(table, name, strlen(name), NULL, NULL);
-    if ( !record ) {
+    if (!record) {
         return false;
     }
 

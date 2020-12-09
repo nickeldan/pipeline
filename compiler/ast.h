@@ -10,7 +10,7 @@
 #define AST_PARENT_DECL
 #endif
 
-#define AST_HEADER \
+#define AST_HEADER  \
     AST_PARENT_DECL \
     plLexicalToken token;
 
@@ -47,4 +47,4 @@ void
 plAstFree(astNode *node);
 
 unsigned int
-plAstSplitSize(int node_type) __attribute__ ((pure));
+plAstSplitSize(int node_type) __attribute__((pure));

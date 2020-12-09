@@ -38,10 +38,10 @@ typedef struct plInteger {
     int64_t value;
 } plInteger;
 
-#define PL_INTEGER_BYTE_SIZE 8
-#define PL_INTEGER_MAX_LENGTH 20 // The length of -1 * (1 << 63).
-#define PL_MAX_INTEGER  9223372036854775807L
-#define PL_MIN_INTEGER -9223372036854775808L
+#define PL_INTEGER_BYTE_SIZE  8
+#define PL_INTEGER_MAX_LENGTH 20  // The length of -1 * (1 << 63).
+#define PL_MAX_INTEGER        9223372036854775807L
+#define PL_MIN_INTEGER        -9223372036854775808L
 
 typedef struct plFloat {
     plInteger integer_part;

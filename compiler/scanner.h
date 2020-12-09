@@ -1,12 +1,14 @@
 #pragma once
 
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "nameTable.h"
 #include "plObject.h"
 
 typedef enum plLexicalMarker {
+    PL_LMARKER_UNUSED = 0,
+
     PL_LMARKER_BAD_ARGS = 256,
     PL_LMARKER_READ_FAILURE,
     PL_LMARKER_BAD_DATA,

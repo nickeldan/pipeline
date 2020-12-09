@@ -1,6 +1,6 @@
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 #include "vasq/logger.h"
 
@@ -54,7 +54,7 @@ plFreeObject(plObject *object)
         }
     }
 
-    if ( flags&PL_OBJ_PRED_GEN_ARRAY && !(flags&PL_OBJ_FLAG_STATIC_BYTES) ) {
+    if (flags & PL_OBJ_PRED_GEN_ARRAY && !(flags & PL_OBJ_FLAG_STATIC_BYTES)) {
         plGenArrayPtr ptr;
 
         ptr = (plGenArrayPtr)object;
@@ -135,7 +135,7 @@ plNewInteger(void)
     plInteger *integer;
 
     integer = VASQ_CALLOC(1, sizeof(*integer));
-    if ( integer ) {
+    if (integer) {
         integer->flags = PL_OBJ_TYPE_INT;
     }
     return (plObject *)integer;
@@ -147,7 +147,7 @@ plNewFloat(void)
     plFloat *decimal;
 
     decimal = VASQ_CALLOC(1, sizeof(*decimal));
-    if ( decimal ) {
+    if (decimal) {
         decimal->integer_part.flags = PL_OBJ_TYPE_FLOAT;
     }
     return (plObject *)decimal;
@@ -159,7 +159,7 @@ plNewArray(void)
     plArray *array;
 
     array = VASQ_CALLOC(1, sizeof(*array));
-    if ( array ) {
+    if (array) {
         array->flags = PL_OBJ_TYPE_ARRAY;
         array->objects = NULL;
     }
@@ -172,7 +172,7 @@ plNewByteArray(void)
     plByteArray *array;
 
     array = VASQ_CALLOC(1, sizeof(*array));
-    if ( array ) {
+    if (array) {
         array->flags = PL_OBJ_TYPE_BYTE_ARRAY;
         array->bytes = NULL;
     }
@@ -185,19 +185,19 @@ plIntegerFromString(const char *string, unsigned int length, plObject **object)
     int ret;
     plInteger *integer;
 
-    if ( !object ) { // plPopulateIntegerFromString will check string and length.
+    if (!object) {  // plPopulateIntegerFromString will check string and length.
         VASQ_ERROR("object cannot be NULL");
         return PL_RET_BAD_ARGS;
     }
 
     integer = (plInteger *)plNewInteger();
-    if ( !integer ) {
+    if (!integer) {
         return PL_RET_OUT_OF_MEMORY;
     }
 
     ret = plPopulateIntegerFromString(string, length, integer);
-    if ( ret == PL_RET_OK ) {
-        *object = (plObject*)integer;
+    if (ret == PL_RET_OK) {
+        *object = (plObject *)integer;
     }
     else {
         free(integer);
@@ -210,20 +210,20 @@ int
 plPopulateIntegerFromString(const char *string, unsigned int length, plInteger *integer)
 {
     long long value;
-    char array[PL_INTEGER_MAX_LENGTH+1];
+    char array[PL_INTEGER_MAX_LENGTH + 1];
     char *temp;
 
-    if ( !string || !integer ) {
+    if (!string || !integer) {
         VASQ_ERROR("string and integer cannot be NULL");
         return PL_RET_BAD_ARGS;
     }
 
-    if ( length == 0 || string[0] == '\0' ) {
+    if (length == 0 || string[0] == '\0') {
         VASQ_ERROR("length cannot be 0");
         return PL_RET_BAD_DATA;
     }
 
-    if ( length > PL_INTEGER_MAX_LENGTH ) {
+    if (length > PL_INTEGER_MAX_LENGTH) {
         VASQ_ERROR("String is too long");
         return PL_RET_BAD_DATA;
     }
@@ -233,12 +233,12 @@ plPopulateIntegerFromString(const char *string, unsigned int length, plInteger *
 
     errno = 0;
     value = strtoll(array, &temp, 10);
-    if ( *temp != '\0' || errno != 0 ) {
+    if (*temp != '\0' || errno != 0) {
         return PL_RET_BAD_DATA;
     }
 
-#if __LONG_LONG_WIDTH__ > PL_INTEGER_BYTE_SIZE*8
-    if ( value < PL_MIN_INTEGER || value > PL_MAX_INTEGER ) {
+#if __LONG_LONG_WIDTH__ > PL_INTEGER_BYTE_SIZE * 8
+    if (value < PL_MIN_INTEGER || value > PL_MAX_INTEGER) {
         return PL_RET_BAD_DATA;
     }
 #endif
@@ -255,32 +255,32 @@ plFloatFromString(const char *string, unsigned int length, plObject **object)
     plFloat *decimal;
     const char *decimal_place;
 
-    if ( !string || !object ) {
+    if (!string || !object) {
         VASQ_ERROR("string and object cannot be NULL");
         return PL_RET_BAD_ARGS;
     }
 
-    if ( length == 0 ) {
+    if (length == 0) {
         VASQ_ERROR("length cannot be 0");
         return PL_RET_BAD_DATA;
     }
 
     decimal = (plFloat *)plNewFloat();
-    if ( !decimal ) {
+    if (!decimal) {
         return PL_RET_OUT_OF_MEMORY;
     }
 
     decimal_place = string;
-    for (unsigned int k=0; k<length; k++) {
-        if ( string[k] == '.' ) {
+    for (unsigned int k = 0; k < length; k++) {
+        if (string[k] == '.') {
             break;
         }
         decimal_place++;
     }
 
-    if ( decimal_place > string ) {
-        ret = plPopulateIntegerFromString(string, decimal_place-string, &decimal->integer_part);
-        if ( ret != PL_RET_OK ) {
+    if (decimal_place > string) {
+        ret = plPopulateIntegerFromString(string, decimal_place - string, &decimal->integer_part);
+        if (ret != PL_RET_OK) {
             goto error;
         }
     }
@@ -288,11 +288,11 @@ plFloatFromString(const char *string, unsigned int length, plObject **object)
         decimal->integer_part.value = 0;
     }
 
-    if ( decimal_place < string + length ) {
-        if ( decimal_place[1] == '\0' ) {
+    if (decimal_place < string + length) {
+        if (decimal_place[1] == '\0') {
             decimal->decimal_part = 0;
         }
-        else if ( !isdigit(decimal_place[1]) ) {
+        else if (!isdigit(decimal_place[1])) {
             VASQ_ERROR("Invalid decimal part");
             ret = PL_RET_BAD_DATA;
             goto error;
@@ -302,13 +302,13 @@ plFloatFromString(const char *string, unsigned int length, plObject **object)
             char *temp;
             unsigned int length2;
 
-            length2 = MIN(length - (unsigned long)(decimal_place-string), sizeof(array)-1);
+            length2 = MIN(length - (unsigned long)(decimal_place - string), sizeof(array) - 1);
             memcpy(array, decimal_place, length2);
             array[length2] = '\0';
 
             temp = array;
             decimal->decimal_part = strtod(array, &temp);
-            if ( temp == array ) {
+            if (temp == array) {
                 VASQ_ERROR("Invalid decimal part");
                 ret = PL_RET_BAD_DATA;
                 goto error;
@@ -319,7 +319,7 @@ plFloatFromString(const char *string, unsigned int length, plObject **object)
         decimal->decimal_part = 0;
     }
 
-    *object = (plObject*)decimal;
+    *object = (plObject *)decimal;
     return PL_RET_OK;
 
 error:
@@ -335,62 +335,62 @@ plIntegerFromHexString(const char *string, unsigned int length, plObject **objec
     unsigned int array_length;
     plByteArray *array;
 
-    if ( !string || !object ) {
+    if (!string || !object) {
         VASQ_ERROR("string and object cannot be NULL");
         return PL_RET_BAD_ARGS;
     }
 
-    if ( length == 0 ) {
+    if (length == 0) {
         VASQ_ERROR("Length cannot be 0");
         return PL_RET_BAD_DATA;
     }
 
-    if ( length > PL_INTEGER_BYTE_SIZE*2 ) {
+    if (length > PL_INTEGER_BYTE_SIZE * 2) {
         VASQ_ERROR("String is too long");
         return PL_RET_BAD_DATA;
     }
 
-    if ( string[0] == '-' ) {
+    if (string[0] == '-') {
         VASQ_ERROR("This function cannot process negative values");
         return PL_RET_BAD_DATA;
     }
 
     array = (plByteArray *)plNewByteArray();
-    if ( !array ) {
+    if (!array) {
         return PL_RET_OUT_OF_MEMORY;
     }
 
-    array_length = length/2;
-    if ( length%2 ) {
+    array_length = length / 2;
+    if (length % 2) {
         array_length++;
     }
     array->length = array->capacity = array_length;
     array->bytes = VASQ_CALLOC(array->capacity, 1);
-    if ( !array->bytes ) {
+    if (!array->bytes) {
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
     }
 
-    for (unsigned int k=0; k<length; k++) {
+    for (unsigned int k = 0; k < length; k++) {
         char c;
         unsigned char value;
 
-        c = string[length-k-1];
-        if ( !isxdigit(c) ) {
+        c = string[length - k - 1];
+        if (!isxdigit(c)) {
             goto error;
         }
 
-        if ( isdigit(c) ) {
+        if (isdigit(c)) {
             value = c - '0';
         }
-        else if ( isupper(c) ) {
+        else if (isupper(c)) {
             value = c - 'A' + 10;
         }
         else {
             value = c - 'a' + 10;
         }
 
-        array->bytes[array_length-k/2-1] |= ( value << 4*(k%2) );
+        array->bytes[array_length - k / 2 - 1] |= (value << 4 * (k % 2));
     }
 
     return PL_RET_OK;

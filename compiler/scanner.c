@@ -1,6 +1,6 @@
-#include <string.h>
-#include <stdarg.h>
 #include <ctype.h>
+#include <stdarg.h>
+#include <string.h>
 
 #include "scanner.h"
 #include "util.h"
@@ -17,10 +17,11 @@ struct optionRecord {
     plLexicalSubmarker_t submarker;
 };
 
-#define SCANNER_ERROR(format, ...) do { \
-    VASQ_RAWLOG("%s:%u: " format "\n", scanner->file_name, scanner->line_no, ##__VA_ARGS__); \
-    VASQ_RAWLOG("\t%s\n", stripLineBeginning(scanner->buffer)); \
-} while(0)
+#define SCANNER_ERROR(format, ...)                                                               \
+    do {                                                                                         \
+        VASQ_RAWLOG("%s:%u: " format "\n", scanner->file_name, scanner->line_no, ##__VA_ARGS__); \
+        VASQ_RAWLOG("\t%s\n", stripLineBeginning(scanner->buffer));                              \
+    } while (0)
 
 static const struct keywordRecord keywords[] = {
     {"true", 4, PL_LMARKER_LITERAL},  {"false", 4, PL_LMARKER_LITERAL}, {"null", 4, PL_LMARKER_LITERAL},
@@ -58,7 +59,7 @@ stripLineBeginning(const char *line)
 {
     const char *ret;
 
-    for (ret=line; isWhitespace(*ret); ret++) {}
+    for (ret = line; isWhitespace(*ret); ret++) {}
 
     return ret;
 }
@@ -181,15 +182,15 @@ readByteString(plLexicalScanner *scanner, plObject **object)
         return PL_LMARKER_OUT_OF_MEMORY;
     }
 
-    for (unsigned int k=0; k<scanner->line_length; k++) {
+    for (unsigned int k = 0; k < scanner->line_length; k++) {
         char c;
 
         c = scanner->line[k];
-        if ( c == '\\' && ++k == scanner->line_length ) {
+        if (c == '\\' && ++k == scanner->line_length) {
             break;
         }
 
-        if ( c == '"' ) {
+        if (c == '"') {
             array->capacity = k;
             goto good_string;
         }
@@ -270,7 +271,7 @@ good_string:
         array->bytes[array->length++] = c;
     }
 
-    advanceScanner(scanner, array->capacity+1); // The +1 is for the ending double quotes.
+    advanceScanner(scanner, array->capacity + 1);  // The +1 is for the ending double quotes.
 
     *object = (plObject *)array;
     return PL_LMARKER_LITERAL;
@@ -312,13 +313,13 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
 
     *token = (plLexicalToken){0};
 
-    if (TERMINAL_LMARKER(scanner->last_marker) ) {
+    if (TERMINAL_LMARKER(scanner->last_marker)) {
         goto return_marker;
     }
 
 read_token:
 
-    if ( !prepLine(scanner) ) {
+    if (!prepLine(scanner)) {
         goto return_marker;
     }
 
@@ -402,9 +403,9 @@ read_token:
 
     case '=':
     case '!':
-        if ( scanner->line[1] == '=' ) {
+        if (scanner->line[1] == '=') {
             scanner->last_marker = PL_LMARKER_COMPARISON;
-            token->ctx.submarker = ( scanner->line[0] == '=' )? PL_LSUBMARKER_EQUAL : PL_LSUBMARKER_NOT_EQUAL;
+            token->ctx.submarker = (scanner->line[0] == '=') ? PL_LSUBMARKER_EQUAL : PL_LSUBMARKER_NOT_EQUAL;
             consumed = 2;
             goto done;
         }
@@ -542,7 +543,7 @@ read_token:
                 SCANNER_ERROR("Invalid numeric literal");
                 scanner->last_marker = PL_LMARKER_BAD_DATA;
             }
-                goto return_marker;
+            goto return_marker;
         }
 
         scanner->last_marker = PL_LMARKER_LITERAL;
@@ -569,7 +570,7 @@ read_token:
         if (TERMINAL_LMARKER(scanner->last_marker)) {
             goto return_marker;
         }
-        consumed = 0; // readByteString already advanced the scanner.
+        consumed = 0;  // readByteString already advanced the scanner.
     }
     else {
         if (isprint(scanner->line[0])) {
@@ -596,19 +597,15 @@ return_marker:
 void
 plTokenCleanup(plLexicalToken *token, plNameTable *table)
 {
-    if ( !token || !table ) {
+    if (!token || !table) {
         VASQ_ERROR("The arguments cannot be NULL");
         return;
     }
 
-    switch ( token->marker ) {
-    case PL_LMARKER_NAME:
-        plUnregisterName(table, token->ctx.name);
-        break;
+    switch (token->marker) {
+    case PL_LMARKER_NAME: plUnregisterName(table, token->ctx.name); break;
 
-    case PL_LMARKER_LITERAL:
-        plFreeObject(token->ctx.object);
-        break;
+    case PL_LMARKER_LITERAL: plFreeObject(token->ctx.object); break;
 
     default: break;
     }
@@ -617,7 +614,7 @@ plTokenCleanup(plLexicalToken *token, plNameTable *table)
 const char *
 plLexicalMarkerName(plLexicalMarker_t marker)
 {
-    switch ( marker ) {
+    switch (marker) {
     case PL_LMARKER_ARROW: return "ARROW";
     case PL_LMARKER_NAME: return "NAME";
     case PL_LMARKER_LITERAL: return "LITERAL";
