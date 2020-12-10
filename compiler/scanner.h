@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stdbool.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "nameTable.h"
 #include "plObject.h"
@@ -61,7 +61,9 @@ enum plLexicalMarker {
 #define TERMINAL_LMARKER(marker) ((marker) <= PL_LMARKER_EOF)
 
 enum plLexicalSubmarker {
-    PL_LSUBMARKER_OR = 0,
+    PL_LSUBMARKER_INIT = 0,
+
+    PL_LSUBMARKER_OR,
     PL_LSUBMARKER_AND,
     PL_LSUBMARKER_INT,
     PL_LSUBMARKER_FLOAT,
@@ -97,6 +99,7 @@ typedef struct plLexicalToken {
 } plLexicalToken;
 
 typedef struct plLexicalScanner {
+    plLexicalToken look_ahead;
     FILE *file;
     const char *file_name;
     plNameTable *table;
@@ -105,6 +108,7 @@ typedef struct plLexicalScanner {
     unsigned int comment_block_line_no;
     unsigned int line_length;
     int last_marker;
+    bool have_look_ahead;
     bool inside_comment_block;
     char buffer[200];
 } plLexicalScanner;
@@ -114,6 +118,9 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plNa
 
 int
 plTokenRead(plLexicalScanner *scanner, plLexicalToken *token);
+
+void
+plLookaheadStore(plLexicalScanner *scanner, const plLexicalToken *token);
 
 void
 plTokenCleanup(plLexicalToken *token, plNameTable *table);

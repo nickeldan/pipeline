@@ -1,8 +1,9 @@
 #pragma once
 
 #include "scanner.h"
+#include "nameTable.h"
 
-#define AST_HAS_PARENT
+//#define AST_HAS_PARENT
 
 #ifdef AST_HAS_PARENT
 #define AST_PARENT_DECL struct plAstNode *parent;
@@ -41,10 +42,10 @@ typedef struct plAstFourSplitNode {
 typedef plAstFourSplitNode plAstMaxSplitNode;
 
 plAstNode *
-plAstNew(const plLexicalToken *token);
+plAstNew(int node_type);
 
 void
-plAstFree(astNode *node);
+plAstFree(plAstNode *node);
 
-unsigned int
+int
 plAstSplitSize(int node_type) __attribute__((pure));

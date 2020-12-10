@@ -1,6 +1,6 @@
-#include <ctype.h>
-#include <stdarg.h>
 #include <string.h>
+#include <stdarg.h>
+#include <ctype.h>
 
 #include "scanner.h"
 #include "util.h"
@@ -295,6 +295,7 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plNa
     scanner->table = table;
     scanner->line_no = 0;
     scanner->line_length = 0;
+    scanner->have_look_ahead = false;
     scanner->inside_comment_block = false;
     scanner->last_marker = PL_LMARKER_INIT;
     scanner->buffer[0] = '\0';
@@ -314,6 +315,13 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
     *token = (plLexicalToken){0};
 
     if (TERMINAL_LMARKER(scanner->last_marker)) {
+        goto return_marker;
+    }
+
+    if ( scanner->have_look_ahead ) {
+        memcpy(token, &scanner->look_ahead, sizeof(scanner->look_ahead));
+        scanner->last_marker = scanner->look_ahead.marker;
+        scanner->have_look_ahead = false;
         goto return_marker;
     }
 
@@ -595,10 +603,27 @@ return_marker:
 }
 
 void
+plLookaheadStore(plLexicalScanner *scanner, const plLexicalToken *token)
+{
+    if ( !scanner || !token ) {
+        VASQ_ERROR("The arguments cannot be NULL");
+        return;
+    }
+
+    if ( scanner->have_look_ahead ) {
+        VASQ_WARNING("Overwriting previously stored token");
+        plTokenCleanup(&scanner->look_ahead, scanner->table);
+    }
+
+    memcpy(&scanner->look_ahead, token, sizeof(*token));
+    scanner->have_look_ahead = true;
+}
+
+void
 plTokenCleanup(plLexicalToken *token, plNameTable *table)
 {
-    if (!token || !table) {
-        VASQ_ERROR("The arguments cannot be NULL");
+    if (!token) {
+        VASQ_ERROR("token cannot be NULL");
         return;
     }
 
