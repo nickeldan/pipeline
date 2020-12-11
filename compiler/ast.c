@@ -86,6 +86,27 @@ int
 plAstSplitSize(int node_type)
 {
     switch ( node_type ) {
+    case PL_LMARKER_NAME:
+    case PL_LMARKER_LITERAL:
+    case PL_LMARKER_TYPE:
+    case PL_LMARKER_IMPORT:
+    case PL_LMARKER_EXPORT:
+    return 0;
 
+    case PL_LMARKER_SEMICOLON:
+    case PL_LMARKER_COLON:
+    case PL_LMARKER_PERIOD:
+    case PL_LMARKER_COMMA:
+    case PL_LMARKER_LOCAL:
+    return 2;
+
+    case PL_LMARKER_SINK:
+    return 3;
+
+    case PL_LMARKER_SOURCE:
+    case PL_LMARKER_PIPE:
+    return 4;
+
+    default: return -1;
     }
 }

@@ -45,7 +45,7 @@ plAstNode *
 plAstNew(int node_type);
 
 void
-plAstFree(plAstNode *node);
+plAstFree(plAstNode *node, plNameTable *table);
 
 int
 plAstSplitSize(int node_type) __attribute__((pure));
