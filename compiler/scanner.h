@@ -100,7 +100,7 @@ typedef struct plLexicalToken {
 } plLexicalToken;
 
 typedef struct plLexicalScanner {
-    plLexicalToken look_ahead;
+    plLexicalToken look_ahead[2];
     FILE *file;
     const char *file_name;
     plNameTable *table;
@@ -109,8 +109,8 @@ typedef struct plLexicalScanner {
     unsigned int comment_block_line_no;
     unsigned int line_length;
     int last_marker;
-    bool have_look_ahead;
     bool inside_comment_block;
+    unsigned char num_look_ahead;
     char buffer[200];
 } plLexicalScanner;
 
@@ -120,8 +120,27 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plNa
 int
 plTokenRead(plLexicalScanner *scanner, plLexicalToken *token);
 
-void
-plLookaheadStore(plLexicalScanner *scanner, const plLexicalToken *token);
+#if LL_USE == VASQ_LL_RAWONLY
+
+#define TOKEN_READ(scanner, token) plTokenRead(scanner, token)
+
+int
+plLookaheadStoreNoLog(plLexicalScanner *scanner, const plLexicalToken *token);
+#define LOOKAHEAD_STORE(scanner, token) plLookaheadStoreNoLog(scanner, token)
+
+#else
+
+int
+plTokenReadLog(const char *file_name, const char *function_name, unsigned int line_no,
+               plLexicalScanner *scanner, plLexicalToken *token);
+#define TOKEN_READ(scanner, token)      plTokenReadLog(__FILE__, __func__, __LINE__, scanner, token)
+
+int
+plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned int line_no,
+                    plLexicalScanner *scanner, const plLexicalToken *token);
+#define LOOKAHEAD_STORE(scanner, token) plLookaheadStoreLog(__FILE__, __func__, __LINE__, scanner, token)
+
+#endif  // LL_USE == VASQ_LL_RAWONLY
 
 void
 plTokenCleanup(plLexicalToken *token, plNameTable *table);
@@ -134,26 +153,13 @@ plStripLineBeginning(const char *line);
 
 #if LL_USE == VASQ_LL_RAWONLY
 
-#define TOKEN_READ(scanner, token)      plTokenRead(scanner, token)
-#define LOOKAHEAD_STORE(scanner, token) plLookaheadStore(scanner, token)
-
 #define COMPILER_ERROR(format, ...)                                                              \
     do {                                                                                         \
         VASQ_RAWLOG("%s:%u: " format "\n", scanner->file_name, scanner->line_no, ##__VA_ARGS__); \
         VASQ_RAWLOG("\t%s\n", plStripLineBeginning(scanner->buffer));                            \
     } while (0)
 
-#else  // LL_USE == VASQ_LL_RAWONLY
-
-int
-plTokenReadLog(const char *file_name, const char *function_name, unsigned int line_no,
-               plLexicalScanner *scanner, plLexicalToken *token);
-#define TOKEN_READ(scanner, token)      plTokenReadLog(__FILE__, __func__, __LINE__, scanner, token)
-
-void
-plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned int line_no,
-                    plLexicalScanner *scanner, const plLexicalToken *token);
-#define LOOKAHEAD_STORE(scanner, token) plLookaheadStoreLog(__FILE__, __func__, __LINE__, scanner, token)
+#else
 
 #define COMPILER_ERROR(format, ...)                                                       \
     do {                                                                                  \

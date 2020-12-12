@@ -91,7 +91,6 @@ advanceScanner(plLexicalScanner *scanner, unsigned int length)
 {
     scanner->line += length;
     scanner->line_length -= length;
-    VASQ_DEBUG("%u character%s consumed", length, (length == 1) ? "" : "s");
 }
 
 #if LL_USE == VASQ_LL_RAWONLY
@@ -131,7 +130,6 @@ prepLine(plLexicalScanner *scanner)
                 scanner->last_marker = PL_MARKER_BAD_DATA;
             }
             else {
-                VASQ_INFO("%s: End of file reached", scanner->file_name);
                 scanner->last_marker = PL_MARKER_EOF;
             }
             return false;
@@ -287,6 +285,16 @@ error:
     return PL_MARKER_BAD_DATA;
 }
 
+static void
+lookaheadStoreLogic(plLexicalScanner *scanner, const plLexicalToken *token)
+{
+    if (scanner->num_look_ahead > 0) {
+        memmove(scanner->look_ahead + 1, scanner->look_ahead + 0, sizeof(*token) * scanner->num_look_ahead);
+    }
+    memcpy(scanner->look_ahead + 0, token, sizeof(*token));
+    scanner->num_look_ahead++;
+}
+
 void
 plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plNameTable *table)
 {
@@ -300,13 +308,11 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plNa
     scanner->table = table;
     scanner->line_no = 0;
     scanner->line_length = 0;
-    scanner->have_look_ahead = false;
     scanner->inside_comment_block = false;
+    scanner->num_look_ahead = 0;
     scanner->last_marker = PL_MARKER_INIT;
     scanner->buffer[0] = '\0';
     scanner->line = scanner->buffer;
-
-    VASQ_INFO("%s: Scanning started", scanner->file_name);
 }
 
 int
@@ -323,10 +329,14 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
         goto return_marker;
     }
 
-    if (scanner->have_look_ahead) {
-        memcpy(token, &scanner->look_ahead, sizeof(scanner->look_ahead));
-        scanner->last_marker = scanner->look_ahead.marker;
-        scanner->have_look_ahead = false;
+    if (scanner->num_look_ahead > 0) {
+        memcpy(token, scanner->look_ahead + 0, sizeof(*token));
+        scanner->last_marker = scanner->look_ahead[0].marker;
+        if (scanner->num_look_ahead > 1) {
+            memmove(scanner->look_ahead + 0, scanner->look_ahead + 1,
+                    sizeof(*token) * (scanner->num_look_ahead - 1));
+        }
+        scanner->num_look_ahead--;
         goto return_marker;
     }
 
@@ -367,45 +377,47 @@ read_token:
 
     case ']': scanner->last_marker = PL_MARKER_RIGHT_BRACKET; goto done;
 
+    case '/':
+        if (scanner->line[1] == '/') {
+            scanner->line_length = 0;
+            consumed = 0;
+        }
+        else if (scanner->line[1] == '*') {
+            scanner->inside_comment_block = true;
+            scanner->comment_block_line_no = scanner->line_no;
+
+            for (consumed = 2; consumed < scanner->line_length; consumed++) {
+                if (scanner->line[consumed] == '*' && scanner->line[consumed + 1] == '/') {
+                    scanner->inside_comment_block = false;
+                    consumed += 2;
+                    break;
+                }
+            }
+        }
+        else {
+            goto arithmetic_token;
+        }
+
+        ADVANCE_SCANNER(scanner, consumed);
+        goto read_token;
+
     case '+':
     case '-':
+        if (scanner->line[1] == '>') {
+            scanner->last_marker = PL_MARKER_ARROW;
+            consumed = 2;
+            goto done;
+        }
+        /* FALLTHROUGH */
     case '*':
-    case '/':
     case '%':
     case '|':
     case '&':
+arithmetic_token:
         if (scanner->line[1] == '=') {
             scanner->last_marker = PL_MARKER_REASSIGNMENT;
             token->ctx.submarker = resolveArithmetic(scanner->line[0]);
             consumed = 2;
-        }
-        else if (scanner->line[0] == '-' && scanner->line[1] == '>') {
-            scanner->last_marker = PL_MARKER_ARROW;
-            consumed = 2;
-        }
-        else if (scanner->line[0] == '/') {
-            if (scanner->line[1] == '/') {
-                scanner->line_length = 0;
-                consumed = 0;
-            }
-            else if (scanner->line[1] == '*') {
-                scanner->inside_comment_block = true;
-                scanner->comment_block_line_no = scanner->line_no;
-
-                for (consumed = 2; consumed < scanner->line_length; consumed++) {
-                    if (scanner->line[consumed] == '*' && scanner->line[consumed + 1] == '/') {
-                        scanner->inside_comment_block = false;
-                        consumed += 2;
-                        break;
-                    }
-                }
-            }
-            else {
-                goto done;
-            }
-
-            ADVANCE_SCANNER(scanner, consumed);
-            goto read_token;
         }
         else {
             scanner->last_marker = PL_MARKER_ARITHMETIC;
@@ -608,22 +620,6 @@ return_marker:
 }
 
 void
-plLookaheadStore(plLexicalScanner *scanner, const plLexicalToken *token)
-{
-    if (!scanner || !token) {
-        VASQ_ERROR("The arguments cannot be NULL");
-        return;
-    }
-
-    if (scanner->have_look_ahead) {
-        plTokenCleanup(&scanner->look_ahead, scanner->table);
-    }
-
-    memcpy(&scanner->look_ahead, token, sizeof(*token));
-    scanner->have_look_ahead = true;
-}
-
-void
 plTokenCleanup(plLexicalToken *token, plNameTable *table)
 {
     if (!token) {
@@ -701,7 +697,20 @@ plStripLineBeginning(const char *line)
     return ret;
 }
 
-#if LL_USE != VASQ_LL_ONLY
+#if LL_USE == VASQ_LL_RAWONLY
+
+int
+plLookaheadStoreNoLog(plLexicalScanner *scanner, const plLexicalToken *token)
+{
+    if (!scanner || !token || scanner->num_look_ahead == ARRAY_LENGTH(scanner->look_ahead)) {
+        return PL_RET_USAGE;
+    }
+
+    lookaheadStoreLogic(scanner, token);
+    return PL_RET_OK;
+}
+
+#else  // LL_USE == VASQ_LL_RAWONLY
 
 int
 plTokenReadLog(const char *file_name, const char *function_name, unsigned int line_no,
@@ -714,21 +723,31 @@ plTokenReadLog(const char *file_name, const char *function_name, unsigned int li
         vasqLogStatement(VASQ_LL_DEBUG, file_name, function_name, line_no, "Read token: %s",
                          plLexicalMarkerName(ret));
     }
+    else if (ret == PL_MARKER_EOF) {
+        vasqLogStatement(VASQ_LL_DEBUG, file_name, function_name, line_no, "End of file reached");
+    }
     return ret;
 }
 
-void
+int
 plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned int line_no,
                     plLexicalScanner *scanner, const plLexicalToken *token)
 {
-    if (scanner->have_look_ahead) {
-        vasqLogStatement(VASQ_LL_WARNING, file_name, function_name, line_no,
-                         "Overwriting previously stored token");
+    if (!scanner || !token) {
+        VASQ_ERROR("The arguments cannot be NULL");
+        return PL_RET_USAGE;
     }
 
-    plLookaheadStore(scanner, token);
+    if (scanner->num_look_ahead == ARRAY_LENGTH(scanner->look_ahead)) {
+        vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no,
+                         "Cannot store any more look ahead tokens");
+        return PL_RET_USAGE;
+    }
+
+    lookaheadStoreLogic(scanner, token);
     vasqLogStatement(VASQ_LL_DEBUG, file_name, function_name, line_no, "%s stored as look ahead",
                      plLexicalMarkerName(token->marker));
+    return PL_RET_OK;
 }
 
-#endif  // LL_USE != VASQ_LL_RAWONLY
+#endif  // LL_USE == VASQ_LL_RAWONLY

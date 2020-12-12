@@ -6,7 +6,7 @@
 
 int main(int argc, char **argv) {
     int ret;
-    unsigned int line_no = 1;
+    unsigned int line_no = 0;
     FILE *f;
     plLexicalScanner scanner;
     plNameTable *table;
@@ -35,14 +35,16 @@ int main(int argc, char **argv) {
 
     plScannerInit(&scanner, f, argv[1], table);
 
-    while ( !TERMINAL_LMARKER(plTokenRead(&scanner, &token)) ) {
+    while ( !TERMINAL_MARKER(plTokenRead(&scanner, &token)) ) {
         if ( scanner.line_no > line_no ) {
-            printf("\n");
+            if ( line_no > 0 ) {
+                printf("\n");
+            }
             line_no = scanner.line_no;
         }
         printf("%s ", plLexicalMarkerName(token.marker));
 
-        if ( token.marker == PL_LMARKER_LITERAL ) {
+        if ( token.marker == PL_MARKER_LITERAL ) {
             plFreeObject(token.ctx.object);
         }
     }
@@ -50,7 +52,7 @@ int main(int argc, char **argv) {
     printf("\n");
     plNameTableFree(table);
 
-    if ( scanner.last_marker != PL_LMARKER_EOF ) {
+    if ( scanner.last_marker != PL_MARKER_EOF ) {
         ret = 4;
     }
     else {

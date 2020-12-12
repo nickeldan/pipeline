@@ -105,6 +105,8 @@ plAstSplitSize(int node_type)
     case PL_MARKER_PERIOD:
     case PL_MARKER_COMMA:
     case PL_MARKER_WHILE:
+    case PL_MARKER_IS:
+    case PL_MARKER_AS:
     case PL_MARKER_LOCAL: return 2;
 
     case PL_MARKER_EIF:
