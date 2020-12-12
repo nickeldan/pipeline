@@ -85,7 +85,7 @@ plAstSplitSize(int node_type)
 {
     switch (node_type) {
     case PL_MARKER_NAME:
-    case PL_MARKER_LITERAL:
+    case PL_MARKER_OBJECT:
     case PL_MARKER_DROP:
     case PL_MARKER_END:
     case PL_MARKER_BREAK:

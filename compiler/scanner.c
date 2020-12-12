@@ -17,8 +17,8 @@ struct optionRecord {
 };
 
 static const struct keywordRecord keywords[] = {
-    {"true", 4, PL_MARKER_LITERAL},  {"false", 4, PL_MARKER_LITERAL}, {"null", 4, PL_MARKER_LITERAL},
-    {"blank", 5, PL_MARKER_LITERAL}, {"Num", 3, PL_MARKER_TYPE},      {"Int", 3, PL_MARKER_TYPE},
+    {"true", 4, PL_MARKER_OBJECT},  {"false", 4, PL_MARKER_OBJECT}, {"null", 4, PL_MARKER_OBJECT},
+    {"blank", 5, PL_MARKER_OBJECT}, {"Num", 3, PL_MARKER_TYPE},      {"Int", 3, PL_MARKER_TYPE},
     {"Bool", 4, PL_MARKER_TYPE},     {"Float", 5, PL_MARKER_TYPE},    {"Array", 5, PL_MARKER_TYPE},
     {"GenArray", 8, PL_MARKER_TYPE}, {"Bytes", 5, PL_MARKER_TYPE},    {"source", 6, PL_MARKER_SOURCE},
     {"pipe", 4, PL_MARKER_PIPE},     {"sink", 4, PL_MARKER_SINK},     {"local", 5, PL_MARKER_LOCAL},
@@ -277,7 +277,7 @@ good_string:
     ADVANCE_SCANNER(scanner, array->capacity + 1);  // The +1 is for the ending double quotes.
 
     *object = (plObject *)array;
-    return PL_MARKER_LITERAL;
+    return PL_MARKER_OBJECT;
 
 error:
 
@@ -498,7 +498,7 @@ arithmetic_token:
             !isVarChar(scanner->line[keywords[k].len])) {
             scanner->last_marker = keywords[k].marker;
 
-            if (scanner->last_marker == PL_MARKER_LITERAL) {
+            if (scanner->last_marker == PL_MARKER_OBJECT) {
                 token->ctx.object = resolveStaticLiteral(scanner->line[0]);
             }
             else if (scanner->last_marker == PL_MARKER_LOGICAL) {
@@ -571,7 +571,7 @@ arithmetic_token:
             goto return_marker;
         }
 
-        scanner->last_marker = PL_MARKER_LITERAL;
+        scanner->last_marker = PL_MARKER_OBJECT;
     }
     else if (isVarChar(scanner->line[0])) {
         for (; consumed < scanner->line_length && isVarChar(scanner->line[consumed]); consumed++) {}
@@ -630,7 +630,7 @@ plTokenCleanup(plLexicalToken *token, plNameTable *table)
     switch (token->marker) {
     case PL_MARKER_NAME: plUnregisterName(table, token->ctx.name); break;
 
-    case PL_MARKER_LITERAL: plFreeObject(token->ctx.object); break;
+    case PL_MARKER_OBJECT: plFreeObject(token->ctx.object); break;
 
     default: break;
     }
@@ -642,7 +642,7 @@ plLexicalMarkerName(int marker)
     switch (marker) {
     case PL_MARKER_ARROW: return "ARROW";
     case PL_MARKER_NAME: return "NAME";
-    case PL_MARKER_LITERAL: return "LITERAL";
+    case PL_MARKER_OBJECT: return "OBJECT";
     case PL_MARKER_TYPE: return "TYPE";
     case PL_MARKER_SOURCE: return "SOURCE";
     case PL_MARKER_PIPE: return "PIPE";
