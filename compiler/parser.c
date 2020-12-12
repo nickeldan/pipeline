@@ -21,17 +21,17 @@ static int
 parseStatementList(plLexicalScanner *scanner, plAstNode **node);
 
 static int
-parseFunction(plLexicalScanner *scanner, plAstNode **node, int function_marker, bool allow_anonymous);
+parseFunction(plLexicalScanner *scanner, plAstNode **node, bool allow_anonymous);
 
 static int
 translateTerminalMarker(int marker)
 {
     switch (marker) {
-    case PL_LMARKER_BAD_ARGS: return PL_RET_BAD_ARGS;
-    case PL_LMARKER_READ_FAILURE: return PL_RET_IO;
-    case PL_LMARKER_BAD_DATA: return PL_RET_BAD_DATA;
-    case PL_LMARKER_OUT_OF_MEMORY: return PL_RET_OUT_OF_MEMORY;
-    default: return PL_RET_BAD_DATA;  // PL_LMARKER_EOF
+    case PL_MARKER_BAD_ARGS: return PL_RET_BAD_ARGS;
+    case PL_MARKER_READ_FAILURE: return PL_RET_IO;
+    case PL_MARKER_BAD_DATA: return PL_RET_BAD_DATA;
+    case PL_MARKER_OUT_OF_MEMORY: return PL_RET_OUT_OF_MEMORY;
+    default: return PL_RET_BAD_DATA;  // PL_MARKER_EOF
     }
 }
 
@@ -66,11 +66,11 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
 
     marker = scanner->last_marker;
 
-    if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
         return translateTerminalMarker(scanner->last_marker);
     }
 
-    if (token.marker != PL_LMARKER_NAME) {
+    if (token.marker != PL_MARKER_NAME) {
         COMPILER_ERROR("Unxpected %s after %s", plLexicalMarkerName(token.marker),
                        plLexicalMarkerName(marker));
         plTokenCleanup(&token, scanner->table);
@@ -84,12 +84,12 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
     }
     memcpy(&(*node)->token, &token, sizeof(token));
 
-    if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
         plAstFree(*node, scanner->table);
         return translateTerminalMarker(scanner->last_marker);
     }
 
-    if (token.marker != PL_LMARKER_SEMICOLON) {
+    if (token.marker != PL_MARKER_SEMICOLON) {
         COMPILER_ERROR("Unexpected %s following NAME", plLexicalMarkerName(token.marker));
         plTokenCleanup(&token, scanner->table);
         plAstFree(*node, scanner->table);
@@ -113,23 +113,23 @@ parseExtendedName(plLexicalScanner *scanner, plAstNode **node)
 
         previous_marker = scanner->last_marker;
 
-        if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+        if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
             goto error;
         }
 
         if (*node) {
-            if (token.marker != PL_LMARKER_PERIOD) {
+            if (token.marker != PL_MARKER_PERIOD) {
                 LOOKAHEAD_STORE(scanner, &token);
                 break;
             }
 
-            period_node = plAstNew(PL_LMARKER_PERIOD);
+            period_node = plAstNew(PL_MARKER_PERIOD);
             if (!period_node) {
                 ret = PL_RET_OUT_OF_MEMORY;
                 goto error;
             }
 
-            if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+            if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
                 goto error;
             }
         }
@@ -137,14 +137,14 @@ parseExtendedName(plLexicalScanner *scanner, plAstNode **node)
             period_node = NULL;
         }
 
-        if (token.marker != PL_LMARKER_NAME) {
+        if (token.marker != PL_MARKER_NAME) {
             COMPILER_ERROR("Unexpected %s following %s", plLexicalMarkerName(token.marker),
                            plLexicalMarkerName(previous_marker));
             plTokenCleanup(&token, scanner->table);
             goto error;
         }
 
-        name_node = plAstNew(PL_LMARKER_NAME);
+        name_node = plAstNew(PL_MARKER_NAME);
         if (!name_node) {
             plTokenCleanup(&token, scanner->table);
             ret = PL_RET_OUT_OF_MEMORY;
@@ -168,7 +168,7 @@ error:
     plAstFree(*node, scanner->table);
     plAstFree(period_node, scanner->table);
 
-    if (TERMINAL_LMARKER(scanner->last_marker)) {
+    if (TERMINAL_MARKER(scanner->last_marker)) {
         return translateTerminalMarker(scanner->last_marker);
     }
     else {
@@ -181,12 +181,12 @@ parseExtendedType(plLexicalScanner *scanner, plAstNode **node)
 {
     plLexicalToken token;
 
-    if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
         return translateTerminalMarker(scanner->last_marker);
     }
 
-    if (token.marker == PL_LMARKER_TYPE) {
-        *node = plAstNew(PL_LMARKER_TYPE);
+    if (token.marker == PL_MARKER_TYPE) {
+        *node = plAstNew(PL_MARKER_TYPE);
         if (!*node) {
             plTokenCleanup(&token, scanner->table);
             return PL_RET_OUT_OF_MEMORY;
@@ -217,11 +217,11 @@ parseCondition(plLexicalScanner *scanner, plAstNode **node)
 
     *node = NULL;
 
-    if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
         return translateTerminalMarker(token.marker);
     }
 
-    if (token.marker == PL_LMARKER_LEFT_PARENS) {
+    if (token.marker == PL_MARKER_LEFT_PARENS) {
         condition_has_parens = true;
     }
     else {
@@ -235,22 +235,22 @@ parseCondition(plLexicalScanner *scanner, plAstNode **node)
     }
 
     if (condition_has_parens) {
-        if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+        if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
             goto error;
         }
 
-        if (token.marker != PL_LMARKER_RIGHT_PARENS) {
+        if (token.marker != PL_MARKER_RIGHT_PARENS) {
             COMPILER_ERROR("Unexpected %s following condition", plLexicalMarkerName(token.marker));
             plTokenCleanup(&token, scanner->table);
             goto error;
         }
     }
 
-    if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
         goto error;
     }
 
-    if (token.marker != PL_LMARKER_LEFT_BRACE) {
+    if (token.marker != PL_MARKER_LEFT_BRACE) {
         COMPILER_ERROR("Unexpected %s following condition", plLexicalMarkerName(token.marker));
         plTokenCleanup(&token, scanner->table);
         goto error;
@@ -262,7 +262,7 @@ error:
 
     plAstFree(*node, scanner->table);
 
-    if (TERMINAL_LMARKER(scanner->last_marker)) {
+    if (TERMINAL_MARKER(scanner->last_marker)) {
         return translateTerminalMarker(scanner->last_marker);
     }
     else {
@@ -288,7 +288,7 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
         goto error;
     }
 
-    while (TOKEN_READ(scanner, &token) == PL_LMARKER_EIF) {
+    while (TOKEN_READ(scanner, &token) == PL_MARKER_EIF) {
         plAstNode *eif2_node, *eif_condition_node, *eif_statement_list = NULL;
 
         ret = parseCondition(scanner, &eif_condition_node);
@@ -301,7 +301,7 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
             goto eif_loop_error;
         }
 
-        eif2_node = plAstNew(PL_LMARKER_EIF);
+        eif2_node = plAstNew(PL_MARKER_EIF);
         if (!eif2_node) {
             ret = PL_RET_OUT_OF_MEMORY;
             goto eif_loop_error;
@@ -324,22 +324,22 @@ eif_loop_error:
         plAstFree(eif_statement_list, scanner->table);
         goto error;
     }
-    if (TERMINAL_LMARKER(scanner->last_marker)) {
+    if (TERMINAL_MARKER(scanner->last_marker)) {
         goto error;
     }
 
-    if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
         goto error;
     }
 
-    if (token.marker == PL_LMARKER_ELSE) {
+    if (token.marker == PL_MARKER_ELSE) {
         plAstNode *else_statement_list;
 
-        if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+        if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
             goto error;
         }
 
-        if (token.marker != PL_LMARKER_LEFT_BRACE) {
+        if (token.marker != PL_MARKER_LEFT_BRACE) {
             COMPILER_ERROR("Unexpected %s following ELSE", plLexicalMarkerName(token.marker));
             plTokenCleanup(&token, scanner->table);
             ret = PL_RET_BAD_DATA;
@@ -351,7 +351,7 @@ eif_loop_error:
             goto error;
         }
 
-        else_node = plAstNew(PL_LMARKER_ELSE);
+        else_node = plAstNew(PL_MARKER_ELSE);
         if (!else_node) {
             plAstFree(else_statement_list, scanner->table);
             ret = PL_RET_OUT_OF_MEMORY;
@@ -363,7 +363,7 @@ eif_loop_error:
         LOOKAHEAD_STORE(scanner, &token);
     }
 
-    *node = plAstNew(PL_LMARKER_IF);
+    *node = plAstNew(PL_MARKER_IF);
     if (!*node) {
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
@@ -379,7 +379,7 @@ error:
     plAstFree(eif_node, scanner->table);
     plAstFree(else_node, scanner->table);
 
-    if (TERMINAL_LMARKER(scanner->last_marker)) {
+    if (TERMINAL_MARKER(scanner->last_marker)) {
         return translateTerminalMarker(scanner->last_marker);
     }
     else {
@@ -404,7 +404,7 @@ parseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
         return ret;
     }
 
-    *node = plAstNew(PL_LMARKER_WHILE);
+    *node = plAstNew(PL_MARKER_WHILE);
     if (!*node) {
         plAstFree(condition_node, scanner->table);
         plAstFree(statement_list, scanner->table);
@@ -421,21 +421,21 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
     int ret;
     plLexicalToken token;
 
-    if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
         return translateTerminalMarker(scanner->last_marker);
     }
 
     switch (token.marker) {
         plAstNode *expression_node;
 
-    case PL_LMARKER_DROP:
-    case PL_LMARKER_END:
-    case PL_LMARKER_BREAK:
-    case PL_LMARKER_CONT: *node = plAstNew(token.marker); return (*node) ? PL_RET_OK : PL_RET_OUT_OF_MEMORY;
+    case PL_MARKER_DROP:
+    case PL_MARKER_END:
+    case PL_MARKER_BREAK:
+    case PL_MARKER_CONT: *node = plAstNew(token.marker); return (*node) ? PL_RET_OK : PL_RET_OUT_OF_MEMORY;
 
-    case PL_LMARKER_PROD:
-    case PL_LMARKER_VERIFY:
-    case PL_LMARKER_ABORT:
+    case PL_MARKER_PROD:
+    case PL_MARKER_VERIFY:
+    case PL_MARKER_ABORT:
         ret = parseExpression(scanner, &expression_node);
         if (ret != PL_RET_OK) {
             return ret;
@@ -450,9 +450,9 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
 
         return PL_RET_OK;
 
-    case PL_LMARKER_IF: return parseIfBlock(scanner, node);
+    case PL_MARKER_IF: return parseIfBlock(scanner, node);
 
-    case PL_LMARKER_WHILE: return parseWhileBlock(scanner, node);
+    case PL_MARKER_WHILE: return parseWhileBlock(scanner, node);
 
     default: break;
     }
@@ -470,11 +470,11 @@ parseStatementList(plLexicalScanner *scanner, plAstNode **node)
     while (true) {
         plAstNode *statement_node;
 
-        if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+        if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
             goto error;
         }
 
-        if (token.marker == PL_LMARKER_RIGHT_BRACE) {
+        if (token.marker == PL_MARKER_RIGHT_BRACE) {
             break;
         }
 
@@ -488,7 +488,7 @@ parseStatementList(plLexicalScanner *scanner, plAstNode **node)
         if (*node) {
             plAstNode *semicolon_node;
 
-            semicolon_node = plAstNew(PL_LMARKER_SEMICOLON);
+            semicolon_node = plAstNew(PL_MARKER_SEMICOLON);
             if (!semicolon_node) {
                 plAstFree(statement_node, scanner->table);
                 ret = PL_RET_OUT_OF_MEMORY;
@@ -508,7 +508,7 @@ error:
 
     plAstFree(*node, scanner->table);
 
-    if (TERMINAL_LMARKER(scanner->last_marker)) {
+    if (TERMINAL_MARKER(scanner->last_marker)) {
         return translateTerminalMarker(scanner->last_marker);
     }
     else {
@@ -517,33 +517,33 @@ error:
 }
 
 static int
-parseFunction(plLexicalScanner *scanner, plAstNode **node, int function_marker, bool allow_anonymous)
+parseFunction(plLexicalScanner *scanner, plAstNode **node, bool allow_anonymous)
 {
-    int ret = PL_RET_BAD_DATA;
+    int ret = PL_RET_BAD_DATA, function_marker = scanner->last_marker;
     plLexicalToken token;
     plAstNode *function_name_node = NULL, *arg_list = NULL, *type_node = NULL, *statement_list;
 
     *node = NULL;
 
-    if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
         return translateTerminalMarker(scanner->last_marker);
     }
 
-    if (token.marker == PL_LMARKER_NAME) {
-        if (function_marker == PL_LMARKER_LOCAL) {
+    if (token.marker == PL_MARKER_NAME) {
+        if (function_marker == PL_MARKER_LOCAL) {
             COMPILER_ERROR("LOCAL cannot be named");
             plTokenCleanup(&token, scanner->table);
             return PL_RET_BAD_DATA;
         }
 
-        function_name_node = plAstNew(PL_LMARKER_NAME);
+        function_name_node = plAstNew(PL_MARKER_NAME);
         if (!function_name_node) {
             plTokenCleanup(&token, scanner->table);
             return PL_RET_OUT_OF_MEMORY;
         }
         memcpy(&function_name_node->token, &token, sizeof(token));
 
-        if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+        if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
             goto error;
         }
     }
@@ -553,7 +553,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, int function_marker, 
         return PL_RET_BAD_DATA;
     }
 
-    if (token.marker != PL_LMARKER_LEFT_PARENS) {
+    if (token.marker != PL_MARKER_LEFT_PARENS) {
         COMPILER_ERROR("Unexpected %s before argument list", plLexicalMarkerName(token.marker));
         plTokenCleanup(&token, scanner->table);
         goto error;
@@ -563,26 +563,26 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, int function_marker, 
         int previous_marker = scanner->last_marker;
         plAstNode *name_node, *arg_node;
 
-        if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+        if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
             goto error;
         }
 
-        if (token.marker == PL_LMARKER_RIGHT_PARENS) {
-            if (previous_marker == PL_LMARKER_COMMA) {
+        if (token.marker == PL_MARKER_RIGHT_PARENS) {
+            if (previous_marker == PL_MARKER_COMMA) {
                 COMPILER_ERROR("Unexpected ')' following ',' in argument list");
                 goto error;
             }
             break;
         }
 
-        if (token.marker == PL_LMARKER_COMMA) {
-            if (previous_marker == PL_LMARKER_LEFT_PARENS || previous_marker == PL_LMARKER_COMMA) {
+        if (token.marker == PL_MARKER_COMMA) {
+            if (previous_marker == PL_MARKER_LEFT_PARENS || previous_marker == PL_MARKER_COMMA) {
                 COMPILER_ERROR("Unexpected ',' following %s in argument list",
                                plLexicalMarkerName(previous_marker));
                 goto error;
             }
 
-            if (function_marker != PL_LMARKER_SOURCE) {
+            if (function_marker != PL_MARKER_SOURCE) {
                 COMPILER_ERROR("Multiple arguments are only allowed in a SOURCE");
                 goto error;
             }
@@ -590,14 +590,14 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, int function_marker, 
             continue;
         }
 
-        if (token.marker != PL_LMARKER_NAME) {
+        if (token.marker != PL_MARKER_NAME) {
             COMPILER_ERROR("Unexpected %s following %s in argunent list", plLexicalMarkerName(token.marker),
                            plLexicalMarkerName(previous_marker));
             plTokenCleanup(&token, scanner->table);
             goto error;
         }
 
-        name_node = plAstNew(PL_LMARKER_NAME);
+        name_node = plAstNew(PL_MARKER_NAME);
         if (!name_node) {
             plTokenCleanup(&token, scanner->table);
             ret = PL_RET_OUT_OF_MEMORY;
@@ -605,12 +605,12 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, int function_marker, 
         }
         memcpy(&name_node->token, &token, sizeof(token));
 
-        if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+        if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
             plAstFree(name_node, scanner->table);
             goto error;
         }
 
-        if (token.marker != PL_LMARKER_COLON) {
+        if (token.marker != PL_MARKER_COLON) {
             COMPILER_ERROR("Unexpected %s following NAME in argument list",
                            plLexicalMarkerName(token.marker));
             plTokenCleanup(&token, scanner->table);
@@ -623,7 +623,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, int function_marker, 
         }
         ret = PL_RET_BAD_DATA;
 
-        arg_node = plAstNew(PL_LMARKER_COLON);
+        arg_node = plAstNew(PL_MARKER_COLON);
         if (!arg_node) {
             ret = PL_RET_OUT_OF_MEMORY;
             goto cleanup_name_node;
@@ -634,7 +634,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, int function_marker, 
         if (arg_list) {
             plAstNode *comma_node;
 
-            comma_node = plAstNew(PL_LMARKER_COMMA);
+            comma_node = plAstNew(PL_MARKER_COMMA);
             if (!comma_node) {
                 plAstFree(arg_node, scanner->table);
                 ret = PL_RET_OUT_OF_MEMORY;
@@ -655,12 +655,12 @@ cleanup_name_node:
         goto error;
     }
 
-    if (function_marker != PL_LMARKER_SINK) {
-        if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+    if (function_marker != PL_MARKER_SINK) {
+        if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
             goto error;
         }
 
-        if (token.marker != PL_LMARKER_ARROW) {
+        if (token.marker != PL_MARKER_ARROW) {
             COMPILER_ERROR("Unexpected %s following argument list", plLexicalMarkerName(token.marker));
             plTokenCleanup(&token, scanner->table);
             goto error;
@@ -673,11 +673,11 @@ cleanup_name_node:
         ret = PL_RET_BAD_DATA;
     }
 
-    if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
         goto error;
     }
 
-    if (token.marker != PL_LMARKER_LEFT_BRACE) {
+    if (token.marker != PL_MARKER_LEFT_BRACE) {
         COMPILER_ERROR("Unexpected %s following %s header", plLexicalMarkerName(token.marker),
                        plLexicalMarkerName(function_marker));
         plTokenCleanup(&token, scanner->table);
@@ -696,14 +696,12 @@ cleanup_name_node:
     }
 
     switch (function_marker) {
-    case PL_LMARKER_SOURCE:
-    case PL_LMARKER_PIPE:
-        createFamily(*node, function_name_node, arg_list, type_node, statement_list);
-        break;
+    case PL_MARKER_SOURCE:
+    case PL_MARKER_PIPE: createFamily(*node, function_name_node, arg_list, type_node, statement_list); break;
 
-    case PL_LMARKER_SINK: createFamily(*node, function_name_node, arg_list, statement_list); break;
+    case PL_MARKER_SINK: createFamily(*node, function_name_node, arg_list, statement_list); break;
 
-    default:  // PL_LMARKER_LOCAL
+    default:  // PL_MARKER_LOCAL
         createFamily(*node, arg_list, statement_list);
         break;
     }
@@ -716,7 +714,7 @@ error:
     plAstFree(arg_list, scanner->table);
     plAstFree(type_node, scanner->table);
 
-    if (TERMINAL_LMARKER(scanner->last_marker)) {
+    if (TERMINAL_MARKER(scanner->last_marker)) {
         return translateTerminalMarker(scanner->last_marker);
     }
     else {
@@ -731,11 +729,11 @@ parseMain(plLexicalScanner *scanner, plAstNode **node)
     plLexicalToken token;
     plAstNode *statement_list;
 
-    if (TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
         return translateTerminalMarker(scanner->last_marker);
     }
 
-    if (token.marker != PL_LMARKER_LEFT_BRACE) {
+    if (token.marker != PL_MARKER_LEFT_BRACE) {
         COMPILER_ERROR("Unexpected %s following MAIN", plLexicalMarkerName(token.marker));
         plTokenCleanup(&token, scanner->table);
         return PL_RET_BAD_DATA;
@@ -746,7 +744,7 @@ parseMain(plLexicalScanner *scanner, plAstNode **node)
         return ret;
     }
 
-    *node = plAstNew(PL_LMARKER_MAIN);
+    *node = plAstNew(PL_MARKER_MAIN);
     if (!*node) {
         plAstFree(statement_list, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
@@ -762,18 +760,18 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
     int ret;
     plLexicalToken token;
 
-    while (!TERMINAL_LMARKER(TOKEN_READ(scanner, &token))) {
+    while (!TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
         plAstNode *node;
 
         switch (scanner->last_marker) {
-        case PL_LMARKER_IMPORT:
-        case PL_LMARKER_EXPORT: ret = parseImportExport(scanner, &node); break;
+        case PL_MARKER_IMPORT:
+        case PL_MARKER_EXPORT: ret = parseImportExport(scanner, &node); break;
 
-        case PL_LMARKER_SOURCE:
-        case PL_LMARKER_PIPE:
-        case PL_LMARKER_SINK: ret = parseFunction(scanner, &node, scanner->last_marker, false); break;
+        case PL_MARKER_SOURCE:
+        case PL_MARKER_PIPE:
+        case PL_MARKER_SINK: ret = parseFunction(scanner, &node, false); break;
 
-        case PL_LMARKER_MAIN: ret = parseMain(scanner, &node); break;
+        case PL_MARKER_MAIN: ret = parseMain(scanner, &node); break;
 
         default:
             COMPILER_ERROR("Invalid token in global namespace: %s", plLexicalMarkerName(token.marker));
@@ -788,7 +786,7 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
         if (*tree) {
             plAstNode *parent;
 
-            parent = plAstNew(PL_LMARKER_SEMICOLON);
+            parent = plAstNew(PL_MARKER_SEMICOLON);
             if (!parent) {
                 plAstFree(*tree, scanner->table);
                 plAstFree(node, scanner->table);
@@ -803,7 +801,7 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
         }
     }
 
-    if (scanner->last_marker == PL_LMARKER_EOF) {
+    if (scanner->last_marker == PL_MARKER_EOF) {
         if (!*tree) {
             COMPILER_ERROR("File is empty");
             return PL_RET_BAD_DATA;

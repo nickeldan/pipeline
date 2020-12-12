@@ -84,35 +84,35 @@ int
 plAstSplitSize(int node_type)
 {
     switch (node_type) {
-    case PL_LMARKER_NAME:
-    case PL_LMARKER_LITERAL:
-    case PL_LMARKER_DROP:
-    case PL_LMARKER_END:
-    case PL_LMARKER_BREAK:
-    case PL_LMARKER_CONT:
-    case PL_LMARKER_TYPE:
-    case PL_LMARKER_IMPORT:
-    case PL_LMARKER_EXPORT: return 0;
+    case PL_MARKER_NAME:
+    case PL_MARKER_LITERAL:
+    case PL_MARKER_DROP:
+    case PL_MARKER_END:
+    case PL_MARKER_BREAK:
+    case PL_MARKER_CONT:
+    case PL_MARKER_TYPE:
+    case PL_MARKER_IMPORT:
+    case PL_MARKER_EXPORT: return 0;
 
-    case PL_LMARKER_PROD:
-    case PL_LMARKER_ELSE:
-    case PL_LMARKER_VERIFY:
-    case PL_LMARKER_ABORT:
-    case PL_LMARKER_MAIN: return 1;
+    case PL_MARKER_PROD:
+    case PL_MARKER_ELSE:
+    case PL_MARKER_VERIFY:
+    case PL_MARKER_ABORT:
+    case PL_MARKER_MAIN: return 1;
 
-    case PL_LMARKER_SEMICOLON:
-    case PL_LMARKER_COLON:
-    case PL_LMARKER_PERIOD:
-    case PL_LMARKER_COMMA:
-    case PL_LMARKER_WHILE:
-    case PL_LMARKER_LOCAL: return 2;
+    case PL_MARKER_SEMICOLON:
+    case PL_MARKER_COLON:
+    case PL_MARKER_PERIOD:
+    case PL_MARKER_COMMA:
+    case PL_MARKER_WHILE:
+    case PL_MARKER_LOCAL: return 2;
 
-    case PL_LMARKER_EIF:
-    case PL_LMARKER_SINK: return 3;
+    case PL_MARKER_EIF:
+    case PL_MARKER_SINK: return 3;
 
-    case PL_LMARKER_IF:
-    case PL_LMARKER_SOURCE:
-    case PL_LMARKER_PIPE: return 4;
+    case PL_MARKER_IF:
+    case PL_MARKER_SOURCE:
+    case PL_MARKER_PIPE: return 4;
 
     default: return -1;
     }
