@@ -1,7 +1,7 @@
 #pragma once
 
-#include "scanner.h"
 #include "nameTable.h"
+#include "scanner.h"
 
 //#define AST_HAS_PARENT
 

@@ -1,7 +1,9 @@
 #pragma once
 
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
+
+#include "vasq/logger.h"
 
 #include "nameTable.h"
 #include "plObject.h"
@@ -127,3 +129,33 @@ plTokenCleanup(plLexicalToken *token, plNameTable *table);
 
 const char *
 plLexicalMarkerName(int marker);
+
+const char *
+plStripLineBeginning(const char *line);
+
+#if LL_USE == VASQ_LL_RAWONLY
+
+#define TOKEN_READ(scanner, token) plTokenRead(scanner, token)
+#define LOOKAHEAD_STORE(scanner, token) plLookaheadStore(scanner, token)
+
+#define COMPILER_ERROR(format, ...) do { \
+    VASQ_RAWLOG("%s:%u: " format "\n", scanner->file_name, scanner->line_no, ##__VA_ARGS__); \
+    VASQ_RAWLOG("\t%s\n", plStripLineBeginning(scanner->buffer)); \
+} while (0)
+
+#else // LL_USE == VASQ_LL_RAWONLY
+
+int
+plTokenReadLog(const char *file_name, const char *function_name, unsigned int line_no, plLexicalScanner *scanner, plLexicalToken *token);
+#define TOKEN_READ(scanner, token) plTokenReadLog(__FILE__, __func__, __LINE__, scanner, token)
+
+void
+plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned int line_no, plLexicalScanner *scanner, const plLexicalToken *token);
+#define LOOKAHEAD_STORE(scanner, token) plLookaheadStoreLog(__FILE__, __func__, __LINE__, scanner, token)
+
+#define COMPILER_ERROR(format, ...) do { \
+    VASQ_ERROR("%s:%u " format, scanner->file_name, scanner->line_no, ##__VA_ARGS__); \
+    VASQ_ERROR("%s", plStripLineBeginning(scanner->buffer)); \
+} while (0)
+
+#endif // LL_USE == VASQ_LL_RAWONLY

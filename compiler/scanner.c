@@ -1,6 +1,6 @@
-#include <string.h>
-#include <stdarg.h>
 #include <ctype.h>
+#include <stdarg.h>
+#include <string.h>
 
 #include "scanner.h"
 #include "util.h"
@@ -17,11 +17,7 @@ struct optionRecord {
     int submarker;
 };
 
-#define SCANNER_ERROR(format, ...)                                                               \
-    do {                                                                                         \
-        VASQ_RAWLOG("%s:%u: " format "\n", scanner->file_name, scanner->line_no, ##__VA_ARGS__); \
-        VASQ_RAWLOG("\t%s\n", stripLineBeginning(scanner->buffer));                              \
-    } while (0)
+
 
 static const struct keywordRecord keywords[] = {
     {"true", 4, PL_LMARKER_LITERAL},  {"false", 4, PL_LMARKER_LITERAL}, {"null", 4, PL_LMARKER_LITERAL},
@@ -52,16 +48,6 @@ static bool
 isVarChar(char c)
 {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
-}
-
-static const char *
-stripLineBeginning(const char *line)
-{
-    const char *ret;
-
-    for (ret = line; isWhitespace(*ret); ret++) {}
-
-    return ret;
 }
 
 static plObject *
@@ -108,7 +94,26 @@ advanceScanner(plLexicalScanner *scanner, unsigned int length)
 {
     scanner->line += length;
     scanner->line_length -= length;
+    VASQ_DEBUG("%u character%s consumed", length, (length == 1)? "" : "s");
 }
+
+#if LL_USE == VASQ_LL_RAWONLY
+
+#define ADVANCE_SCANNER(scanner, length) advanceScanner(scanner, length)
+
+#else
+
+static void
+advanceScannerLog(const char *function_name, unsigned int line_no, plLexicalScanner *scanner, unsigned int length)
+{
+    advanceScanner(scanner, length);
+    if ( length > 0 ) {
+        vasqLogStatement(VASQ_LL_DEBUG, __FILE__, function_name, line_no, "%u character%s consumed", length, (length == 1)? "" : "s");
+    }
+}
+#define ADVANCE_SCANNER(scanner, length) advanceScannerLog(__func__, __LINE__, scanner, length)
+
+#endif // LL_USE == VASQ_LL_RAWONLY
 
 static bool
 prepLine(plLexicalScanner *scanner)
@@ -122,11 +127,12 @@ prepLine(plLexicalScanner *scanner)
                 scanner->last_marker = PL_LMARKER_READ_FAILURE;
             }
             else if (scanner->inside_comment_block) {
-                SCANNER_ERROR("EOF encountered while inside comment block starting on line %u",
+                COMPILER_ERROR("EOF encountered while inside comment block starting on line %u",
                               scanner->comment_block_line_no);
                 scanner->last_marker = PL_LMARKER_BAD_DATA;
             }
             else {
+                VASQ_INFO("%s: End of file reached", scanner->file_name);
                 scanner->last_marker = PL_LMARKER_EOF;
             }
             return false;
@@ -135,7 +141,7 @@ prepLine(plLexicalScanner *scanner)
         scanner->line_no++;
         scanner->line_length = strnlen(scanner->buffer, sizeof(scanner->buffer));
         if (scanner->line_length >= sizeof(scanner->buffer)) {
-            SCANNER_ERROR("Line too long");
+            VASQ_RAWLOG("%s:%u: Line too long\n", scanner->file_name, scanner->line_no);
             scanner->last_marker = PL_LMARKER_BAD_DATA;
             return false;
         }
@@ -163,7 +169,7 @@ prepLine(plLexicalScanner *scanner)
                 }
             }
 
-            advanceScanner(scanner, idx);
+            ADVANCE_SCANNER(scanner, idx);
         }
     }
 
@@ -196,7 +202,7 @@ readByteString(plLexicalScanner *scanner, plObject **object)
         }
     }
 
-    SCANNER_ERROR("Unterminated string literal");
+    COMPILER_ERROR("Unterminated string literal");
     goto error;
 
 good_string:
@@ -214,7 +220,7 @@ good_string:
 
         if (c == '\\') {
             if (k + 1 == scanner->line_length) {
-                SCANNER_ERROR("Unresolved escape character in string literal");
+                COMPILER_ERROR("Unresolved escape character in string literal");
                 goto error;
             }
 
@@ -226,7 +232,7 @@ good_string:
             case '"': c = '"'; break;
             case 'x':
                 if (k + 2 >= scanner->line_length) {
-                    SCANNER_ERROR("Unresolved hex byte in string literal");
+                    COMPILER_ERROR("Unresolved hex byte in string literal");
                     goto error;
                 }
 
@@ -237,7 +243,7 @@ good_string:
 
                     c2 = scanner->line[k + 1 + j];
                     if (!isxdigit(c2)) {
-                        SCANNER_ERROR("Invalid hex byte in string literal");
+                        COMPILER_ERROR("Invalid hex byte in string literal");
                         goto error;
                     }
 
@@ -257,21 +263,21 @@ good_string:
                 break;
 
             default:
-                SCANNER_ERROR("Invalied escaped character in string literal: %c", scanner->line[k]);
+                COMPILER_ERROR("Invalied escaped character in string literal: %c", scanner->line[k]);
                 goto error;
             }
         }
         else if (isprint(c) || c == '\t') {
         }
         else {
-            SCANNER_ERROR("Invalid byte in string literal: 0x%02x", c);
+            COMPILER_ERROR("Invalid byte in string literal: 0x%02x", c);
             goto error;
         }
 
         array->bytes[array->length++] = c;
     }
 
-    advanceScanner(scanner, array->capacity + 1);  // The +1 is for the ending double quotes.
+    ADVANCE_SCANNER(scanner, array->capacity + 1);  // The +1 is for the ending double quotes.
 
     *object = (plObject *)array;
     return PL_LMARKER_LITERAL;
@@ -300,6 +306,8 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plNa
     scanner->last_marker = PL_LMARKER_INIT;
     scanner->buffer[0] = '\0';
     scanner->line = scanner->buffer;
+
+    VASQ_INFO("%s: Scanning started", scanner->file_name);
 }
 
 int
@@ -312,13 +320,11 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
         return PL_LMARKER_BAD_ARGS;
     }
 
-    *token = (plLexicalToken){0};
-
     if (TERMINAL_LMARKER(scanner->last_marker)) {
         goto return_marker;
     }
 
-    if ( scanner->have_look_ahead ) {
+    if (scanner->have_look_ahead) {
         memcpy(token, &scanner->look_ahead, sizeof(scanner->look_ahead));
         scanner->last_marker = scanner->look_ahead.marker;
         scanner->have_look_ahead = false;
@@ -339,7 +345,7 @@ read_token:
     case ' ':
     case '\t':
         for (; consumed < scanner->line_length && isWhitespace(scanner->line[consumed]); consumed++) {}
-        advanceScanner(scanner, consumed);
+        ADVANCE_SCANNER(scanner, consumed);
         goto read_token;
 
     case ';': scanner->last_marker = PL_LMARKER_SEMICOLON; goto done;
@@ -399,7 +405,7 @@ read_token:
                 goto done;
             }
 
-            advanceScanner(scanner, consumed);
+            ADVANCE_SCANNER(scanner, consumed);
             goto read_token;
         }
         else {
@@ -418,7 +424,7 @@ read_token:
             goto done;
         }
         else {
-            SCANNER_ERROR("Invalid token: '%c'", scanner->line[0]);
+            COMPILER_ERROR("Invalid token: '%c'", scanner->line[0]);
             scanner->last_marker = PL_LMARKER_BAD_DATA;
             goto return_marker;
         }
@@ -465,8 +471,8 @@ read_token:
                 }
             }
 
-            for (end = 1; end < scanner->line_length && isVarChar(scanner->line[end]); end++) {}
-            SCANNER_ERROR("Invalid option: %.*s", end - 1, scanner->line + 1);
+            for (end = 2; isVarChar(scanner->line[end]); end++) {}
+            COMPILER_ERROR("Invalid option: %.*s", end - 1, scanner->line + 1);
             scanner->last_marker = PL_LMARKER_BAD_DATA;
             goto return_marker;
         }
@@ -500,7 +506,7 @@ read_token:
         for (consumed = 0; consumed < scanner->line_length; consumed++) {
             if (!isxdigit(scanner->line[consumed])) {
                 if (isVarChar(scanner->line[consumed])) {
-                    SCANNER_ERROR("Invalid hex literal");
+                    COMPILER_ERROR("Invalid hex literal");
                     scanner->last_marker = PL_LMARKER_BAD_DATA;
                     goto return_marker;
                 }
@@ -522,7 +528,7 @@ read_token:
         }
 
         if (isVarChar(scanner->line[consumed])) {
-            SCANNER_ERROR("Invalid numeric literal");
+            COMPILER_ERROR("Invalid numeric literal");
             scanner->last_marker = PL_LMARKER_BAD_DATA;
             goto return_marker;
         }
@@ -532,7 +538,7 @@ read_token:
                  consumed++) {}
 
             if (isVarChar(scanner->line[consumed])) {
-                SCANNER_ERROR("Invalid numeric literal");
+                COMPILER_ERROR("Invalid numeric literal");
                 scanner->last_marker = PL_LMARKER_BAD_DATA;
                 goto return_marker;
             }
@@ -548,7 +554,7 @@ read_token:
                 scanner->last_marker = PL_LMARKER_OUT_OF_MEMORY;
             }
             else {
-                SCANNER_ERROR("Invalid numeric literal");
+                COMPILER_ERROR("Invalid numeric literal");
                 scanner->last_marker = PL_LMARKER_BAD_DATA;
             }
             goto return_marker;
@@ -573,7 +579,7 @@ read_token:
         }
     }
     else if (scanner->line[0] == '"') {
-        advanceScanner(scanner, 1);
+        ADVANCE_SCANNER(scanner, 1);
         scanner->last_marker = readByteString(scanner, &token->ctx.object);
         if (TERMINAL_LMARKER(scanner->last_marker)) {
             goto return_marker;
@@ -582,10 +588,10 @@ read_token:
     }
     else {
         if (isprint(scanner->line[0])) {
-            SCANNER_ERROR("Unexpected character: %c", scanner->line[0]);
+            COMPILER_ERROR("Unexpected character: %c", scanner->line[0]);
         }
         else {
-            SCANNER_ERROR("Unprintable character: 0x%02x", scanner->line[0]);
+            COMPILER_ERROR("Unprintable character: 0x%02x", scanner->line[0]);
         }
 
         scanner->last_marker = PL_LMARKER_BAD_DATA;
@@ -595,7 +601,7 @@ read_token:
 done:
 
     token->marker = scanner->last_marker;
-    advanceScanner(scanner, consumed);
+    ADVANCE_SCANNER(scanner, consumed);
 
 return_marker:
 
@@ -605,13 +611,12 @@ return_marker:
 void
 plLookaheadStore(plLexicalScanner *scanner, const plLexicalToken *token)
 {
-    if ( !scanner || !token ) {
+    if (!scanner || !token) {
         VASQ_ERROR("The arguments cannot be NULL");
         return;
     }
 
-    if ( scanner->have_look_ahead ) {
-        VASQ_WARNING("Overwriting previously stored token");
+    if (scanner->have_look_ahead) {
         plTokenCleanup(&scanner->look_ahead, scanner->table);
     }
 
@@ -667,18 +672,18 @@ plLexicalMarkerName(int marker)
     case PL_LMARKER_IMPORT: return "IMPORT";
     case PL_LMARKER_EXPORT: return "EXPORT";
     case PL_LMARKER_MAIN: return "MAIN";
-    case PL_LMARKER_SEMICOLON: return ";";
-    case PL_LMARKER_COLON: return ":";
-    case PL_LMARKER_COMMA: return ",";
-    case PL_LMARKER_PERIOD: return ".";
-    case PL_LMARKER_QUESTION: return "?";
-    case PL_LMARKER_UNDERSCORE: return "_";
-    case PL_LMARKER_LEFT_PARENS: return "(";
-    case PL_LMARKER_RIGHT_PARENS: return ")";
-    case PL_LMARKER_LEFT_BRACKET: return "[";
-    case PL_LMARKER_RIGHT_BRACKET: return "]";
-    case PL_LMARKER_LEFT_BRACE: return "{";
-    case PL_LMARKER_RIGHT_BRACE: return "}";
+    case PL_LMARKER_SEMICOLON: return "';'";
+    case PL_LMARKER_COLON: return "':'";
+    case PL_LMARKER_COMMA: return "','";
+    case PL_LMARKER_PERIOD: return "'.'";
+    case PL_LMARKER_QUESTION: return "'?'";
+    case PL_LMARKER_UNDERSCORE: return "'_'";
+    case PL_LMARKER_LEFT_PARENS: return "'('";
+    case PL_LMARKER_RIGHT_PARENS: return "')'";
+    case PL_LMARKER_LEFT_BRACKET: return "'['";
+    case PL_LMARKER_RIGHT_BRACKET: return "']'";
+    case PL_LMARKER_LEFT_BRACE: return "'{'";
+    case PL_LMARKER_RIGHT_BRACE: return "'}'";
     case PL_LMARKER_ARITHMETIC: return "ARITHMETIC";
     case PL_LMARKER_REASSIGNMENT: return "REASSIGNMENT";
     case PL_LMARKER_COMPARISON: return "COMPARISON";
@@ -686,3 +691,40 @@ plLexicalMarkerName(int marker)
     default: return "";
     }
 }
+
+const char *
+plStripLineBeginning(const char *line)
+{
+    const char *ret;
+
+    for (ret = line; isWhitespace(*ret); ret++) {}
+
+    return ret;
+}
+
+#if LL_USE != VASQ_LL_ONLY
+
+int
+plTokenReadLog(const char *file_name, const char *function_name, unsigned int line_no, plLexicalScanner *scanner, plLexicalToken *token)
+{
+    int ret;
+
+    ret = plTokenRead(scanner, token);
+    if ( !TERMINAL_LMARKER(ret) ) {
+        vasqLogStatement(VASQ_LL_DEBUG, file_name, function_name, line_no, "Read token: %s", plLexicalMarkerName(ret));
+    }
+    return ret;
+}
+
+void
+plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned int line_no, plLexicalScanner *scanner, const plLexicalToken *token)
+{
+    if ( scanner->have_look_ahead ) {
+        vasqLogStatement(VASQ_LL_WARNING, file_name, function_name, line_no, "Overwriting previously stored token");
+    }
+
+    plLookaheadStore(scanner, token);
+    vasqLogStatement(VASQ_LL_DEBUG, file_name, function_name, line_no, "%s stored as look ahead", plLexicalMarkerName(token->marker));
+}
+
+#endif // LL_USE != VASQ_LL_RAWONLY

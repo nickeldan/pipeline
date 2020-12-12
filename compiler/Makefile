@@ -1,5 +1,6 @@
 CC ?= gcc
 debug ?= no
+level ?= 3
 
 LIBNAME := plcompiler
 INCLUDE_DIRS := ../pipeline ../vanilla_squad/include
@@ -7,14 +8,14 @@ ACTUAL_INCLUDE_DIRS := ../pipeline ../vanilla_squad/include/vasq
 
 COMPILER_FLAGS := -std=gnu11 -fpic -ffunction-sections -fdiagnostics-color -Wall -Wextra -DVASQ_ENABLE_LOGGING
 ifeq ($(debug),yes)
-	COMPILER_FLAGS += -O0 -g -DDEBUG
+	COMPILER_FLAGS += -O0 -g -DDEBUG -DLL_USE=$(level)
 else
-	COMPILER_FLAGS += -O3 -DNDEBUG
+	COMPILER_FLAGS += -O3 -DNDEBUG -DLL_USE=-1
 endif
 
-SHARED_LIBRARY := lib$(LIBNAME).sa
+SHARED_LIBRARY := lib$(LIBNAME).so
 STATIC_LIBRARY := lib$(LIBNAME).a
-OBJECT_FILES := scanner.o nameTable.o
+OBJECT_FILES := nameTable.o scanner.o ast.o parser.o
 
 .PHONY: all clean
 

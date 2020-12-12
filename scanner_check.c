@@ -4,12 +4,6 @@
 
 #include "scanner.h"
 
-#ifdef DEBUG
-#define LL_USE VASQ_LL_DEBUG
-#else
-#define LL_USE VASQ_LL_RAWONLY
-#endif
-
 int main(int argc, char **argv) {
     int ret;
     unsigned int line_no = 1;
