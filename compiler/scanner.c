@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "scanner.h"
-#include "util.h"
 
 struct keywordRecord {
     const char *word;
@@ -16,8 +15,6 @@ struct optionRecord {
     unsigned int len;
     int submarker;
 };
-
-
 
 static const struct keywordRecord keywords[] = {
     {"true", 4, PL_LMARKER_LITERAL},  {"false", 4, PL_LMARKER_LITERAL}, {"null", 4, PL_LMARKER_LITERAL},
@@ -94,7 +91,7 @@ advanceScanner(plLexicalScanner *scanner, unsigned int length)
 {
     scanner->line += length;
     scanner->line_length -= length;
-    VASQ_DEBUG("%u character%s consumed", length, (length == 1)? "" : "s");
+    VASQ_DEBUG("%u character%s consumed", length, (length == 1) ? "" : "s");
 }
 
 #if LL_USE == VASQ_LL_RAWONLY
@@ -104,16 +101,18 @@ advanceScanner(plLexicalScanner *scanner, unsigned int length)
 #else
 
 static void
-advanceScannerLog(const char *function_name, unsigned int line_no, plLexicalScanner *scanner, unsigned int length)
+advanceScannerLog(const char *function_name, unsigned int line_no, plLexicalScanner *scanner,
+                  unsigned int length)
 {
     advanceScanner(scanner, length);
-    if ( length > 0 ) {
-        vasqLogStatement(VASQ_LL_DEBUG, __FILE__, function_name, line_no, "%u character%s consumed", length, (length == 1)? "" : "s");
+    if (length > 0) {
+        vasqLogStatement(VASQ_LL_DEBUG, __FILE__, function_name, line_no, "%u character%s consumed", length,
+                         (length == 1) ? "" : "s");
     }
 }
 #define ADVANCE_SCANNER(scanner, length) advanceScannerLog(__func__, __LINE__, scanner, length)
 
-#endif // LL_USE == VASQ_LL_RAWONLY
+#endif  // LL_USE == VASQ_LL_RAWONLY
 
 static bool
 prepLine(plLexicalScanner *scanner)
@@ -128,7 +127,7 @@ prepLine(plLexicalScanner *scanner)
             }
             else if (scanner->inside_comment_block) {
                 COMPILER_ERROR("EOF encountered while inside comment block starting on line %u",
-                              scanner->comment_block_line_no);
+                               scanner->comment_block_line_no);
                 scanner->last_marker = PL_LMARKER_BAD_DATA;
             }
             else {
@@ -705,26 +704,31 @@ plStripLineBeginning(const char *line)
 #if LL_USE != VASQ_LL_ONLY
 
 int
-plTokenReadLog(const char *file_name, const char *function_name, unsigned int line_no, plLexicalScanner *scanner, plLexicalToken *token)
+plTokenReadLog(const char *file_name, const char *function_name, unsigned int line_no,
+               plLexicalScanner *scanner, plLexicalToken *token)
 {
     int ret;
 
     ret = plTokenRead(scanner, token);
-    if ( !TERMINAL_LMARKER(ret) ) {
-        vasqLogStatement(VASQ_LL_DEBUG, file_name, function_name, line_no, "Read token: %s", plLexicalMarkerName(ret));
+    if (!TERMINAL_LMARKER(ret)) {
+        vasqLogStatement(VASQ_LL_DEBUG, file_name, function_name, line_no, "Read token: %s",
+                         plLexicalMarkerName(ret));
     }
     return ret;
 }
 
 void
-plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned int line_no, plLexicalScanner *scanner, const plLexicalToken *token)
+plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned int line_no,
+                    plLexicalScanner *scanner, const plLexicalToken *token)
 {
-    if ( scanner->have_look_ahead ) {
-        vasqLogStatement(VASQ_LL_WARNING, file_name, function_name, line_no, "Overwriting previously stored token");
+    if (scanner->have_look_ahead) {
+        vasqLogStatement(VASQ_LL_WARNING, file_name, function_name, line_no,
+                         "Overwriting previously stored token");
     }
 
     plLookaheadStore(scanner, token);
-    vasqLogStatement(VASQ_LL_DEBUG, file_name, function_name, line_no, "%s stored as look ahead", plLexicalMarkerName(token->marker));
+    vasqLogStatement(VASQ_LL_DEBUG, file_name, function_name, line_no, "%s stored as look ahead",
+                     plLexicalMarkerName(token->marker));
 }
 
-#endif // LL_USE != VASQ_LL_RAWONLY
+#endif  // LL_USE != VASQ_LL_RAWONLY

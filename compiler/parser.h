@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "ast.h"
+#include "definitions.h"
 #include "nameTable.h"
 
 int

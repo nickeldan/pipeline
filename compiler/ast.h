@@ -1,5 +1,6 @@
 #pragma once
 
+#include "definitions.h"
 #include "nameTable.h"
 #include "scanner.h"
 
