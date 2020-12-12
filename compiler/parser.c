@@ -46,11 +46,6 @@ createFamily(plAstNode *parent, ...)
 
         node = va_arg(args, plAstNode *);
         splitter->nodes[k] = node;
-#ifdef AST_HAS_PARENT
-        if (node) {
-            node->parent = parent;
-        }
-#endif
     }
     va_end(args);
 }
@@ -101,7 +96,7 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
 
     ret = expectMarker(scanner, PL_MARKER_SEMICOLON);
     if (ret != PL_RET_OK) {
-        plAstFree(*node, scanner->table;
+        plAstFree(*node, scanner->table);
     }
     return ret;
 }
