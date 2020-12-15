@@ -33,6 +33,7 @@ static const struct keywordRecord keywords[] = {
 
 static const struct optionRecord options[] = {
     {"STORE", 5, PL_SUBMARKER_STORE},
+    {"ATTACH", 6, PL_SUBMARKER_ATTACH},
 };
 
 static bool

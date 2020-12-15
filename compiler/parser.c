@@ -300,13 +300,19 @@ error:
 static int
 parseParenthetical(plLexicalScanner *scanner, plAstNode **node)
 {
-
+    (void)scanner;
+    (void)node;
+    VASQ_ERROR("This function has not yet been implemented");
+    return PL_RET_BAD_DATA;  // placeholder
 }
 
 static int
 parseReceiver(plLexicalScanner *scanner, plAstNode **node)
 {
-
+    (void)scanner;
+    (void)node;
+    VASQ_ERROR("This function has not yet been implemented");
+    return PL_RET_BAD_DATA;  // placeholder
 }
 
 static int
