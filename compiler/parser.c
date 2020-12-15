@@ -77,7 +77,16 @@ expectMarker(plLexicalScanner *scanner, int marker)
 static bool
 isLvalue(const plAstNode *node)
 {
+    const plAstMaxSplitNode *splitter = (const plAstMaxSplitNode*)node;
 
+    switch ( node->token.marker ) {
+    case PL_MARKER_NAME: return true;
+
+    case PL_MARKER_PERIOD:
+    case 'A': return isLvalue(splitter->nodes[0]);
+
+    default: return false;
+    }
 }
 
 static int
@@ -187,6 +196,8 @@ error:
     plAstFree(*node, scanner->table);
     plAstFree(period_node, scanner->table);
 
+    *node = NULL;
+
     if (TERMINAL_MARKER(scanner->last_marker)) {
         return translateTerminalMarker(scanner->last_marker);
     }
@@ -200,6 +211,8 @@ parseExtendedType(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
     plLexicalToken token;
+
+    *node = NULL;
 
     if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
         return translateTerminalMarker(scanner->last_marker);
@@ -266,16 +279,21 @@ parseCondition(plLexicalScanner *scanner, plAstNode **node)
     if (condition_has_parens) {
         ret = expectMarker(scanner, PL_MARKER_RIGHT_PARENS);
         if (ret != PL_RET_OK) {
-            plAstFree(*node, scanner->table);
-            return ret;
+            goto error;
         }
     }
 
     ret = expectMarker(scanner, PL_MARKER_LEFT_BRACE);
     if (ret != PL_RET_OK) {
-        plAstFree(*node, scanner->table);
+        goto error;
     }
 
+    return ret;
+
+error:
+
+    plAstFree(*node, scanner->table);
+    *node = NULL;
     return ret;
 }
 
@@ -298,6 +316,8 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
     plLexicalToken token;
     plAstNode *condition_node, *statement_list = NULL, *eif_node = NULL, *last_eif_node = NULL,
                                *else_node = NULL;
+
+    *node = NULL;
 
     ret = parseCondition(scanner, &condition_node);
     if (ret != PL_RET_OK) {
@@ -412,6 +432,8 @@ parseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
     int ret;
     plAstNode *condition_node, *statement_list;
 
+    *node = NULL;
+
     ret = parseCondition(scanner, &condition_node);
     if (ret != PL_RET_OK) {
         return ret;
@@ -440,6 +462,8 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
     int ret;
     plLexicalToken token;
     plAstNode *first_node = NULL, *receiver_node = NULL;
+
+    *node = NULL;
 
     if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
         return translateTerminalMarker(scanner->last_marker);
@@ -629,14 +653,23 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
 
     ret = expectMarker(scanner, PL_MARKER_SEMICOLON);
     if ( ret != PL_RET_OK ) {
-        plAstFree(
+        plAstFree(receiver_node, scanner->table);
+        goto error;
     }
+
+    *node = plAstNew(PL_MARKER_ARROW);
+    if ( !*node ) {
+        ret = PL_RET_OUT_OF_MEMORY;
+        goto error;
+    }
+    createFamily(*node, first_node, receiver_node);
+
+    return PL_RET_OK;
 
 error:
 
     plAstFree(first_node, scanner->table);
     plAstFree(receiver_node, scanner->table);
-    *node = NULL;
 
     if (TERMINAL_MARKER(scanner->last_marker)) {
         return translateTerminalMarker(scanner->last_marker);
@@ -653,6 +686,7 @@ parseStatementList(plLexicalScanner *scanner, plAstNode **node)
     plLexicalToken token;
 
     *node = NULL;
+
     while (true) {
         plAstNode *statement_node;
 
@@ -697,6 +731,7 @@ parseStatementList(plLexicalScanner *scanner, plAstNode **node)
 error:
 
     plAstFree(*node, scanner->table);
+    *node = NULL;
 
     if (TERMINAL_MARKER(scanner->last_marker)) {
         return translateTerminalMarker(scanner->last_marker);
@@ -919,6 +954,8 @@ parseMain(plLexicalScanner *scanner, plAstNode **node)
     plLexicalToken token;
     plAstNode *statement_list;
 
+    *node = NULL;
+
     if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
         return translateTerminalMarker(scanner->last_marker);
     }
@@ -950,6 +987,8 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
     int ret;
     plLexicalToken token;
 
+    *tree = NULL;
+
     while (!TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
         plAstNode *node;
 
@@ -980,6 +1019,7 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
             if (!parent) {
                 plAstFree(*tree, scanner->table);
                 plAstFree(node, scanner->table);
+                *tree = NULL;
                 return PL_RET_OUT_OF_MEMORY;
             }
 
@@ -998,8 +1038,12 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
         }
         return PL_RET_OK;
     }
+    else {
+        plAstFree(*tree, scanner->table);
+        *tree = NULL;
+        return translateTerminalMarker(scanner->last_marker);
+    }
 
-    return translateTerminalMarker(scanner->last_marker);
 }
 
 int
