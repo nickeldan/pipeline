@@ -531,7 +531,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
 
         ret = expectMarker(scanner, PL_MARKER_SEMICOLON);
         if ( ret != PL_RET_OK ) {
-            goto error
+            goto error;
         }
 
         *node = plAstNew(PL_MARKER_ARROW);

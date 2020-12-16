@@ -1,15 +1,15 @@
 CC ?= gcc
-debug ?= no
+level ?= -1
 
 LIBNAME := pipeline
 INCLUDE_DIRS := ../vanilla_squad/include
 ACTUAL_INCLUDE_DIRS := ../vanilla_squad/include/vasq
 
-COMPILER_FLAGS := -std=gnu11 -fpic -ffunction-sections -fdiagnostics-color -Wall -Wextra -DVASQ_ENABLE_LOGGING
-ifeq ($(debug),yes)
-	COMPILER_FLAGS += -O0 -g -DDEBUG
-else
+COMPILER_FLAGS := -std=gnu11 -fpic -ffunction-sections -fdiagnostics-color -Wall -Wextra -DVASQ_ENABLE_LOGGING -DLL_USE=-1
+ifeq ($(level),-1)
 	COMPILER_FLAGS += -O3 -DNDEBUG
+else
+	COMPILER_FLAGS += -O0 -g -DDEBUG
 endif
 
 SHARED_LIBRARY := lib$(LIBNAME).so

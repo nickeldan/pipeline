@@ -1,15 +1,14 @@
 CC ?= gcc
-debug ?= no
-level ?= 3
+level ?= -1
 
 INCLUDE_DIRS := ./pipeline ./compiler ./vanilla_squad/include
 ACTUAL_INCLUDE_DIRS := ./pipeline ./compiler ./vanilla_squad/include/vasq
 
-COMPILER_FLAGS := -std=gnu11 -fdiagnostics-color -Wall -Wextra -DVASQ_ENABLE_LOGGING
-ifeq ($(debug),yes)
-	COMPILER_FLAGS += -O0 -g -DDEBUG -DLL_USE=$(level)
+COMPILER_FLAGS := -std=gnu11 -fdiagnostics-color -Wall -Wextra -DVASQ_ENABLE_LOGGING -DLL_USE=$(level)
+ifeq ($(level),-1)
+	COMPILER_FLAGS += -O3 -DNDEBUG
 else
-	COMPILER_FLAGS += -O3 -DNDEBUG -DLL_USE=-1
+	COMPILER_FLAGS += -O0 -g -DDEBUG
 endif
 
 BINARIES := scanner_check parser_check
@@ -25,7 +24,7 @@ all: $(BINARIES)
 	$(CC) $(COMPILER_FLAGS) $(patsubst %, -I%, $(INCLUDE_DIRS)) -c $<
 
 %.a: FORCE
-	cd $(dir $@) && make $(notdir $@) CC=$(CC) debug=$(debug) level=$(level)
+	cd $(dir $@) && make $(notdir $@) CC=$(CC) level=$(level)
 
 clean:
 	rm -f $(BINARIES) *.o

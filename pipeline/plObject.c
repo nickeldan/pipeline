@@ -192,7 +192,7 @@ plIntegerFromString(const char *string, unsigned int length, plObject **object)
 
     if (!object) {  // plPopulateIntegerFromString will check string and length.
         VASQ_ERROR("object cannot be NULL");
-        return PL_RET_BAD_ARGS;
+        return PL_RET_USAGE;
     }
 
     integer = (plInteger *)plNewInteger();
@@ -220,7 +220,7 @@ plPopulateIntegerFromString(const char *string, unsigned int length, plInteger *
 
     if (!string || !integer) {
         VASQ_ERROR("string and integer cannot be NULL");
-        return PL_RET_BAD_ARGS;
+        return PL_RET_USAGE;
     }
 
     if (length == 0 || string[0] == '\0') {
@@ -262,7 +262,7 @@ plFloatFromString(const char *string, unsigned int length, plObject **object)
 
     if (!string || !object) {
         VASQ_ERROR("string and object cannot be NULL");
-        return PL_RET_BAD_ARGS;
+        return PL_RET_USAGE;
     }
 
     if (length == 0) {
@@ -342,7 +342,7 @@ plIntegerFromHexString(const char *string, unsigned int length, plObject **objec
 
     if (!string || !object) {
         VASQ_ERROR("string and object cannot be NULL");
-        return PL_RET_BAD_ARGS;
+        return PL_RET_USAGE;
     }
 
     if (length == 0) {
