@@ -1,5 +1,4 @@
 #include <ctype.h>
-#include <stdarg.h>
 #include <string.h>
 
 #include "scanner.h"
@@ -17,18 +16,18 @@ struct optionRecord {
 };
 
 static const struct keywordRecord keywords[] = {
-    {"true", 4, PL_MARKER_OBJECT},  {"false", 4, PL_MARKER_OBJECT}, {"null", 4, PL_MARKER_OBJECT},
-    {"blank", 5, PL_MARKER_OBJECT}, {"Num", 3, PL_MARKER_TYPE},      {"Int", 3, PL_MARKER_TYPE},
-    {"Bool", 4, PL_MARKER_TYPE},     {"Float", 5, PL_MARKER_TYPE},    {"Array", 5, PL_MARKER_TYPE},
-    {"GenArray", 8, PL_MARKER_TYPE}, {"Bytes", 5, PL_MARKER_TYPE},    {"source", 6, PL_MARKER_SOURCE},
-    {"pipe", 4, PL_MARKER_PIPE},     {"sink", 4, PL_MARKER_SINK},     {"local", 5, PL_MARKER_LOCAL},
-    {"struct", 6, PL_MARKER_STRUCT}, {"while", 5, PL_MARKER_WHILE},   {"if", 2, PL_MARKER_IF},
-    {"eif", 3, PL_MARKER_EIF},       {"else", 4, PL_MARKER_ELSE},     {"prod", 4, PL_MARKER_PROD},
-    {"drop", 4, PL_MARKER_DROP},     {"end", 3, PL_MARKER_END},       {"not", 3, PL_MARKER_NOT},
-    {"or", 2, PL_MARKER_LOGICAL},    {"and", 3, PL_MARKER_LOGICAL},   {"cont", 4, PL_MARKER_CONT},
-    {"break", 5, PL_MARKER_BREAK},   {"verify", 6, PL_MARKER_VERIFY}, {"abort", 5, PL_MARKER_ABORT},
-    {"is", 2, PL_MARKER_IS},         {"as", 2, PL_MARKER_AS},         {"import", 6, PL_MARKER_IMPORT},
-    {"export", 6, PL_MARKER_EXPORT}, {"main", 4, PL_MARKER_MAIN},
+    {"true", 4, PL_MARKER_OBJECT},   {"false", 4, PL_MARKER_OBJECT},  {"null", 4, PL_MARKER_OBJECT},
+    {"blank", 5, PL_MARKER_OBJECT},  {"Any", 3, PL_MARKER_TYPE},      {"Num", 3, PL_MARKER_TYPE},
+    {"Int", 3, PL_MARKER_TYPE},      {"Bool", 4, PL_MARKER_TYPE},     {"Float", 5, PL_MARKER_TYPE},
+    {"Array", 5, PL_MARKER_TYPE},    {"GenArray", 8, PL_MARKER_TYPE}, {"Bytes", 5, PL_MARKER_TYPE},
+    {"source", 6, PL_MARKER_SOURCE}, {"pipe", 4, PL_MARKER_PIPE},     {"sink", 4, PL_MARKER_SINK},
+    {"local", 5, PL_MARKER_LOCAL},   {"struct", 6, PL_MARKER_STRUCT}, {"while", 5, PL_MARKER_WHILE},
+    {"if", 2, PL_MARKER_IF},         {"eif", 3, PL_MARKER_EIF},       {"else", 4, PL_MARKER_ELSE},
+    {"prod", 4, PL_MARKER_PROD},     {"drop", 4, PL_MARKER_DROP},     {"end", 3, PL_MARKER_END},
+    {"not", 3, PL_MARKER_NOT},       {"or", 2, PL_MARKER_LOGICAL},    {"and", 3, PL_MARKER_LOGICAL},
+    {"cont", 4, PL_MARKER_CONT},     {"break", 5, PL_MARKER_BREAK},   {"verify", 6, PL_MARKER_VERIFY},
+    {"abort", 5, PL_MARKER_ABORT},   {"is", 2, PL_MARKER_IS},         {"as", 2, PL_MARKER_AS},
+    {"import", 6, PL_MARKER_IMPORT}, {"export", 6, PL_MARKER_EXPORT}, {"main", 4, PL_MARKER_MAIN},
 };
 
 static const struct optionRecord options[] = {
@@ -65,8 +64,8 @@ resolveType(const char *word)
     case 'I': return PL_SUBMARKER_INT;
     case 'F': return PL_SUBMARKER_FLOAT;
     case 'N': return PL_SUBMARKER_NUM;
-    case 'A': return PL_SUBMARKER_ARRAY;
     case 'G': return PL_SUBMARKER_GENARRAY;
+    case 'A': return (word[1] == 'n') ? PL_SUBMARKER_ANY : PL_SUBMARKER_ARRAY;
     default:  // 'B'
         return (word[1] == 'o') ? PL_SUBMARKER_BOOL : PL_SUBMARKER_BYTES;
     }
@@ -216,12 +215,12 @@ good_string:
         c = scanner->line[k];
 
         if (c == '\\') {
-            if (k + 1 == scanner->line_length) {
+            if (++k == scanner->line_length) {
                 COMPILER_ERROR("Unresolved escape character in string literal");
                 goto error;
             }
 
-            switch (scanner->line[++k]) {
+            switch (scanner->line[k]) {
             case 't': c = '\t'; break;
             case 'n': c = '\n'; break;
             case 'r': c = '\r'; break;
@@ -401,7 +400,6 @@ read_token:
         ADVANCE_SCANNER(scanner, consumed);
         goto read_token;
 
-    case '+':
     case '-':
         if (scanner->line[1] == '>') {
             scanner->last_marker = PL_MARKER_ARROW;
@@ -409,6 +407,7 @@ read_token:
             goto done;
         }
         /* FALLTHROUGH */
+    case '+':
     case '*':
     case '%':
     case '|':
@@ -720,11 +719,11 @@ plTokenReadLog(const char *file_name, const char *function_name, unsigned int li
 
     ret = plTokenRead(scanner, token);
     if (!TERMINAL_MARKER(ret)) {
-        vasqLogStatement(VASQ_LL_DEBUG, file_name, function_name, line_no, "Read token: %s",
+        vasqLogStatement(VASQ_LL_INFO, file_name, function_name, line_no, "Read token: %s",
                          plLexicalMarkerName(ret));
     }
     else if (ret == PL_MARKER_EOF) {
-        vasqLogStatement(VASQ_LL_DEBUG, file_name, function_name, line_no, "End of file reached");
+        vasqLogStatement(VASQ_LL_INFO, file_name, function_name, line_no, "End of file reached");
     }
     return ret;
 }

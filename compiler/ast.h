@@ -4,8 +4,7 @@
 #include "nameTable.h"
 #include "scanner.h"
 
-#define AST_HEADER  \
-    plLexicalToken token;
+#define AST_HEADER plLexicalToken token;
 
 typedef struct plAstNode {
     AST_HEADER

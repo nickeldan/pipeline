@@ -14,7 +14,7 @@ endif
 
 SHARED_LIBRARY := lib$(LIBNAME).so
 STATIC_LIBRARY := lib$(LIBNAME).a
-OBJECT_FILES := plObject.o
+OBJECT_FILES := plObject.o plUtil.o
 
 .PHONY: all clean
 

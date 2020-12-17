@@ -2,6 +2,7 @@
 
 #include "vasq/logger.h"
 
+#include "plUtil.h"
 #include "scanner.h"
 
 int main(int argc, char **argv) {
@@ -12,8 +13,9 @@ int main(int argc, char **argv) {
     plNameTable *table;
     plLexicalToken token;
 
-    if ( VASQ_LOG_INIT(LL_USE, STDERR_FILENO, false) != VASQ_RET_OK ) {
-        return 1;
+    ret = VASQ_LOG_INIT(LL_USE, STDERR_FILENO, false);
+    if ( ret != VASQ_RET_OK ) {
+        return plTranslateVasqRet(ret);
     }
 
     if ( argc == 1 ) {
@@ -23,13 +25,13 @@ int main(int argc, char **argv) {
         f = fopen(argv[1], "r");
         if ( !f ) {
             VASQ_PERROR("fopen", errno);
-            return 2;
+            return PL_RET_NO_ACCESS;
         }
     }
 
     table = plNameTableNew();
     if ( !table ) {
-        ret = 3;
+        ret = PL_RET_OUT_OF_MEMORY;
         goto done;
     }
 
@@ -44,7 +46,7 @@ int main(int argc, char **argv) {
         }
         printf("%s ", plLexicalMarkerName(token.marker));
 
-        if ( token.marker == PL_MARKER_LITERAL ) {
+        if ( token.marker == PL_MARKER_OBJECT ) {
             plFreeObject(token.ctx.object);
         }
     }
@@ -52,11 +54,12 @@ int main(int argc, char **argv) {
     printf("\n");
     plNameTableFree(table);
 
-    if ( scanner.last_marker != PL_MARKER_EOF ) {
-        ret = 4;
-    }
-    else {
-        ret = 0;
+    switch ( scanner.last_marker ) {
+    case PL_MARKER_BAD_ARGS: ret = PL_RET_USAGE; break;
+    case PL_MARKER_READ_FAILURE: ret = PL_RET_IO; break;
+    case PL_MARKER_BAD_DATA: ret = PL_RET_BAD_DATA; break;
+    case PL_MARKER_OUT_OF_MEMORY: ret = PL_RET_OUT_OF_MEMORY; break;
+    default: ret = PL_RET_OK; break;
     }
 
 done:

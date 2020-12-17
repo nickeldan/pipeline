@@ -579,7 +579,7 @@ error:
 static int
 parseFunction(plLexicalScanner *scanner, plAstNode **node, bool allow_anonymous)
 {
-    int ret = PL_RET_BAD_DATA, function_marker = scanner->last_marker;
+    int ret, function_marker = scanner->last_marker;
     plLexicalToken token;
     plAstNode *function_name_node = NULL, *arg_list = NULL, *type_node = NULL, *statement_list;
 
@@ -616,6 +616,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, bool allow_anonymous)
     if (token.marker != PL_MARKER_LEFT_PARENS) {
         COMPILER_ERROR("Unexpected %s before argument list", plLexicalMarkerName(token.marker));
         plTokenCleanup(&token, scanner->table);
+        ret = PL_RET_BAD_DATA;
         goto error;
     }
 
@@ -630,6 +631,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, bool allow_anonymous)
         if (token.marker == PL_MARKER_RIGHT_PARENS) {
             if (previous_marker == PL_MARKER_COMMA) {
                 COMPILER_ERROR("Unexpected ')' following ',' in argument list");
+                ret = PL_RET_BAD_DATA;
                 goto error;
             }
             break;
@@ -639,11 +641,13 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, bool allow_anonymous)
             if (previous_marker == PL_MARKER_LEFT_PARENS || previous_marker == PL_MARKER_COMMA) {
                 COMPILER_ERROR("Unexpected ',' following %s in argument list",
                                plLexicalMarkerName(previous_marker));
+                ret = PL_RET_BAD_DATA;
                 goto error;
             }
 
             if (function_marker != PL_MARKER_SOURCE) {
                 COMPILER_ERROR("Multiple arguments are only allowed in a SOURCE");
+                ret = PL_RET_BAD_DATA;
                 goto error;
             }
 
@@ -654,6 +658,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, bool allow_anonymous)
             COMPILER_ERROR("Unexpected %s following %s in argunent list", plLexicalMarkerName(token.marker),
                            plLexicalMarkerName(previous_marker));
             plTokenCleanup(&token, scanner->table);
+            ret = PL_RET_BAD_DATA;
             goto error;
         }
 
@@ -665,15 +670,8 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, bool allow_anonymous)
         }
         memcpy(&name_node->token, &token, sizeof(token));
 
-        if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
-            plAstFree(name_node, scanner->table);
-            goto error;
-        }
-
-        if (token.marker != PL_MARKER_COLON) {
-            COMPILER_ERROR("Unexpected %s following NAME in argument list",
-                           plLexicalMarkerName(token.marker));
-            plTokenCleanup(&token, scanner->table);
+        ret = expectMarker(scanner, PL_MARKER_COLON);
+        if ( ret != PL_RET_OK ) {
             goto cleanup_name_node;
         }
 
@@ -681,7 +679,6 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, bool allow_anonymous)
         if (ret != PL_RET_OK) {
             goto cleanup_name_node;
         }
-        ret = PL_RET_BAD_DATA;
 
         arg_node = plAstNew(PL_MARKER_COLON);
         if (!arg_node) {
@@ -716,13 +713,8 @@ cleanup_name_node:
     }
 
     if (function_marker != PL_MARKER_SINK) {
-        if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
-            goto error;
-        }
-
-        if (token.marker != PL_MARKER_ARROW) {
-            COMPILER_ERROR("Unexpected %s following argument list", plLexicalMarkerName(token.marker));
-            plTokenCleanup(&token, scanner->table);
+        ret = expectMarker(scanner, PL_MARKER_ARROW);
+        if (ret != PL_RET_OK) {
             goto error;
         }
 
@@ -730,17 +722,10 @@ cleanup_name_node:
         if (ret != PL_RET_OK) {
             goto error;
         }
-        ret = PL_RET_BAD_DATA;
     }
 
-    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
-        goto error;
-    }
-
-    if (token.marker != PL_MARKER_LEFT_BRACE) {
-        COMPILER_ERROR("Unexpected %s following %s header", plLexicalMarkerName(token.marker),
-                       plLexicalMarkerName(function_marker));
-        plTokenCleanup(&token, scanner->table);
+    ret = expectMarker(scanner, PL_MARKER_LEFT_BRACE);
+    if ( ret != PL_RET_OK ) {
         goto error;
     }
 
@@ -786,17 +771,11 @@ static int
 parseMain(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
-    plLexicalToken token;
     plAstNode *statement_list;
 
-    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
-        return translateTerminalMarker(scanner->last_marker);
-    }
-
-    if (token.marker != PL_MARKER_LEFT_BRACE) {
-        COMPILER_ERROR("Unexpected %s following MAIN", plLexicalMarkerName(token.marker));
-        plTokenCleanup(&token, scanner->table);
-        return PL_RET_BAD_DATA;
+    ret = expectMarker(scanner, PL_MARKER_LEFT_BRACE);
+    if ( ret != PL_RET_OK ) {
+        return ret;
     }
 
     ret = parseStatementList(scanner, &statement_list);

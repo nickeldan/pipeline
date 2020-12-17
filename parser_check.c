@@ -2,6 +2,7 @@
 
 #include "vasq/logger.h"
 
+#include "plUtil.h"
 #include "parser.h"
 
 int main(int argc, char **argv) {
@@ -10,8 +11,9 @@ int main(int argc, char **argv) {
     plNameTable *table;
     plAstNode *tree;
 
-    if ( VASQ_LOG_INIT(LL_USE, STDERR_FILENO, false) != VASQ_RET_OK ) {
-        return 1;
+    ret = VASQ_LOG_INIT(LL_USE, STDERR_FILENO, false);
+    if ( ret != VASQ_RET_OK ) {
+        return plTranslateVasqRet(ret);
     }
 
     if ( argc == 1 ) {
@@ -21,7 +23,7 @@ int main(int argc, char **argv) {
         f = fopen(argv[1], "r");
         if ( !f ) {
             VASQ_PERROR("fopen", errno);
-            return 2;
+            return PL_RET_NO_ACCESS;
         }
     }
 
@@ -29,9 +31,6 @@ int main(int argc, char **argv) {
     if ( ret == PL_RET_OK ) {
         plAstFree(tree, table);
         plNameTableFree(table);
-    }
-    else {
-        ret = 4;
     }
 
     if ( argc > 1 ) {

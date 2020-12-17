@@ -79,24 +79,26 @@ plNameTableNew(void)
 void
 plNameTableFree(plNameTable *table)
 {
-    if (table) {
-        for (unsigned int k = 0; k < REF_TABLE_SIZE; k++) {
-            nameRecord *record;
-
-            record = table->records[k];
-            table->records[k] = NULL;
-            while (record) {
-                nameRecord *temp;
-
-                temp = record->next;
-                free(record->string);
-                free(record);
-                record = temp;
-            }
-        }
-
-        free(table);
+    if (!table) {
+        return;
     }
+
+    for (unsigned int k = 0; k < REF_TABLE_SIZE; k++) {
+        nameRecord *record;
+
+        record = table->records[k];
+        table->records[k] = NULL;
+        while (record) {
+            nameRecord *temp;
+
+            temp = record->next;
+            free(record->string);
+            free(record);
+            record = temp;
+        }
+    }
+
+    free(table);
 }
 
 const char *
@@ -144,12 +146,12 @@ plUnregisterName(plNameTable *table, const char *name)
     unsigned int hash;
     nameRecord *record, *prev;
 
-    if (!name) {
+    if (!table) {
+        VASQ_ERROR("table cannot be NULL");
         return;
     }
 
-    if (!table) {
-        VASQ_ERROR("table cannot be NULL");
+    if (!name) {
         return;
     }
 

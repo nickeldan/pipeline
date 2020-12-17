@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stdbool.h>
 #include <stdio.h>
 
 #include "definitions.h"
@@ -66,6 +65,7 @@ enum plLexicalSubmarker {
 
     PL_SUBMARKER_OR,
     PL_SUBMARKER_AND,
+    PL_SUBMARKER_ANY,
     PL_SUBMARKER_INT,
     PL_SUBMARKER_FLOAT,
     PL_SUBMARKER_NUM,
@@ -102,8 +102,8 @@ typedef struct plLexicalToken {
 typedef struct plLexicalScanner {
     plLexicalToken look_ahead[2];
     FILE *file;
-    const char *file_name;
     plNameTable *table;
+    const char *file_name;
     char *line;
     unsigned int line_no;
     unsigned int comment_block_line_no;
