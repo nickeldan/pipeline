@@ -949,6 +949,7 @@ parseMain(plLexicalScanner *scanner, plAstNode **node)
     ret = expectMarker(scanner, PL_MARKER_LEFT_BRACE);
     if ( ret != PL_RET_OK ) {
         return ret;
+    }
 
     ret = parseStatementList(scanner, &statement_list);
     if (ret != PL_RET_OK) {
