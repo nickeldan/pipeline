@@ -87,6 +87,7 @@ enum plLexicalSubmarker {
     PL_SUBMARKER_GREATER_THAN,
     PL_SUBMARKER_GREATER_THAN_EQ,
     PL_SUBMARKER_STORE,
+    PL_SUBMARKER_ATTACH,
 };
 
 typedef struct plLexicalToken {

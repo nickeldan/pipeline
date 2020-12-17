@@ -82,7 +82,6 @@ plNameTableFree(plNameTable *table)
     if (!table) {
         return;
     }
-
     for (unsigned int k = 0; k < REF_TABLE_SIZE; k++) {
         nameRecord *record;
 
