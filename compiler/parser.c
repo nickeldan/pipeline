@@ -554,7 +554,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             return translateTerminalMarker(scanner->last_marker);
         }
 
-        if (next_token.marker == PL_MARKER_IS || next_token.marker == PL_MARKER_AS) {
+        if (next_token.marker == PL_MARKER_AS) {
             plAstNode *name_node, *type_node;
 
             ret = parseExtendedType(scanner, &type_node);

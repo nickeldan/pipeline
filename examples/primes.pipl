@@ -54,8 +54,14 @@ pipe isPrime(n:Int) -> Bool {
 main {
     verify (1 -> sys.argv -> Int -> start);
     verify (2 -> sys.argv -> Int -> finish);
+
     icount(start,finish,1) -> isPrime.filter -> doCount.detour:num_primes -> doPrintLn;
-    ("There were ", num_primes, " primes found.\n") -> doPrint;
+    if num_primes is Int {
+        ("There were ", num_primes, " primes found.\n") -> doPrint;
+    }
+    else {
+        "There were no primes found." -> doPrintLn;
+    }
 
     prod 0;
 }
