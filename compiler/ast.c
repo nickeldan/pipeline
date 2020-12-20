@@ -94,12 +94,13 @@ plAstSplitSize(int node_type)
     case PL_MARKER_IMPORT:
     case PL_MARKER_EXPORT: return 0;
 
-    case PL_MARKER_LEFT_BRACKET: // For array declarations.
+    case PL_MARKER_LEFT_BRACKET:  // For array declarations.
     case PL_MARKER_PROD:
     case PL_MARKER_ELSE:
     case PL_MARKER_VERIFY:
     case PL_MARKER_ABORT:
-    case PL_MARKER_MAIN: return 1;
+    case PL_MARKER_MAIN:
+    case '%': return 1;
 
     case PL_MARKER_SEMICOLON:
     case PL_MARKER_COLON:
@@ -109,7 +110,8 @@ plAstSplitSize(int node_type)
     case PL_MARKER_IS:
     case PL_MARKER_AS:
     case PL_MARKER_LOCAL:
-    case 'A': return 2;
+    case 'A':
+    case 'C': return 2;
 
     case PL_MARKER_EIF:
     case PL_MARKER_SINK: return 3;

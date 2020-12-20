@@ -9,7 +9,7 @@ This is a multi-line comment block.
 export factor;
 export isPrime;
 
-import sys;
+import env;
 import math;
 
 source icount(start:Int, finish:Int, step:Int) -> Int {
@@ -52,8 +52,8 @@ pipe isPrime(n:Int) -> Bool {
 }
 
 main {
-    verify (1 -> sys.argv -> Int -> start);
-    verify (2 -> sys.argv -> Int -> finish);
+    verify (1 -> env.argv -> Int -> start);
+    verify (2 -> env.argv -> Int -> finish);
 
     icount(start,finish,1) -> isPrime.filter -> doCount.detour:num_primes -> doPrintLn;
     if num_primes is Int {
