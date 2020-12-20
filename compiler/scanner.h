@@ -107,6 +107,7 @@ typedef struct plLexicalScanner {
     const char *file_name;
     char *line;
     unsigned int line_no;
+    unsigned int last_look_ahead_line_no;
     unsigned int comment_block_line_no;
     unsigned int line_length;
     int last_marker;
@@ -142,6 +143,9 @@ plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned i
 #define LOOKAHEAD_STORE(scanner, token) plLookaheadStoreLog(__FILE__, __func__, __LINE__, scanner, token)
 
 #endif  // LL_USE == VASQ_LL_RAWONLY
+
+unsigned int
+plLastLineNo(const plLexicalScanner *scanner);
 
 void
 plTokenCleanup(plLexicalToken *token, plNameTable *table);

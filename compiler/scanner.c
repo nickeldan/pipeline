@@ -303,15 +303,12 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plNa
         return;
     }
 
+    *scanner = (plLexicalScanner){0};
+
     scanner->file = file;
     scanner->file_name = file_name ? file_name : "<anonymous file>";
     scanner->table = table;
-    scanner->line_no = 0;
-    scanner->line_length = 0;
-    scanner->inside_comment_block = false;
-    scanner->num_look_ahead = 0;
     scanner->last_marker = PL_MARKER_INIT;
-    scanner->buffer[0] = '\0';
     scanner->line = scanner->buffer;
 }
 
@@ -332,12 +329,16 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
     if (scanner->num_look_ahead > 0) {
         memcpy(token, scanner->look_ahead + 0, sizeof(*token));
         scanner->last_marker = scanner->look_ahead[0].marker;
+        scanner->last_look_ahead_line_no = scanner->look_ahead[0].line_no;
         if (scanner->num_look_ahead > 1) {
             memmove(scanner->look_ahead + 0, scanner->look_ahead + 1,
                     sizeof(*token) * (scanner->num_look_ahead - 1));
         }
         scanner->num_look_ahead--;
         goto return_marker;
+    }
+    else {
+        scanner->last_look_ahead_line_no = 0;
     }
 
 read_token:
@@ -617,6 +618,22 @@ done:
 return_marker:
 
     return scanner->last_marker;
+}
+
+unsigned int
+plLastLineNo(const plLexicalScanner *scanner)
+{
+    if ( !scanner ) {
+        VASQ_ERROR("scanner cannot be NULL");
+        return 0;
+    }
+
+    if ( scanner->last_look_ahead_line_no > 0 ) {
+        return scanner->last_look_ahead_line_no;
+    }
+    else {
+        return scanner->line_no;
+    }
 }
 
 void
