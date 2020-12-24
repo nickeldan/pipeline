@@ -95,7 +95,7 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
     plAstNode *name_node;
 
     marker = scanner->last_marker;
-    line_no = scanner->line_no;
+    line_no = plLastLineNo(scanner);
 
     if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
         return translateTerminalMarker(scanner->last_marker);
@@ -275,7 +275,7 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
     plAstNode *condition_node, *statement_list = NULL, *eif_node = NULL, *last_eif_node = NULL,
                                *else_node = NULL;
 
-    line_no = scanner->line_no;
+    line_no = plLastLineNo(scanner);
     *node = NULL;
 
     ret = parseExpression(scanner, &condition_node, false);
@@ -296,9 +296,14 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
     while (TOKEN_READ(scanner, &token) == PL_MARKER_EIF) {
         plAstNode *eif2_node, *eif_condition_node, *eif_statement_list = NULL;
 
-        ret = parseCondition(scanner, &eif_condition_node);
+        ret = parseExpression(scanner, &eif_condition_node);
         if (ret != PL_RET_OK) {
             goto error;
+        }
+
+        ret = expectMarker(scanner, PL_MARKER_LEFT_BRACE, NULL);
+        if ( ret != PL_RET_OK ) {
+            goto eif_loop_error;
         }
 
         ret = parseStatementList(scanner, &eif_statement_list);
@@ -330,11 +335,7 @@ eif_loop_error:
         plAstFree(eif_statement_list, scanner->table);
         goto error;
     }
-    if (TERMINAL_MARKER(scanner->last_marker)) {
-        goto error;
-    }
-
-    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
+    if (TERMINAL_MARKER(token.marker)) {
         goto error;
     }
 
@@ -400,7 +401,7 @@ parseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
     unsigned int line_no;
     plAstNode *condition_node, *statement_list;
 
-    line_no = scanner->line_no;
+    line_no = plLastLineNo(scanner);
     *node = NULL;
 
     ret = parseExpression(scanner, &condition_node, false);

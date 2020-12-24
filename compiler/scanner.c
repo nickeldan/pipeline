@@ -289,7 +289,13 @@ static void
 lookaheadStoreLogic(plLexicalScanner *scanner, const plLexicalToken *token)
 {
     if (scanner->num_look_ahead > 0) {
-        memmove(scanner->look_ahead + 1, scanner->look_ahead + 0, sizeof(*token) * scanner->num_look_ahead);
+        unsigned int num_to_move;
+
+        num_to_move = scanner->num_look_ahead;
+        if ( num_to_move == ARRAY_LENGTH(scanner->look_ahead) ) {
+            num_to_move--;
+        }
+        memmove(scanner->look_ahead + 1, scanner->look_ahead + 0, sizeof(*token) * num_to_move);
     }
     memcpy(scanner->look_ahead + 0, token, sizeof(*token));
     scanner->num_look_ahead++;
