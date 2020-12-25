@@ -41,9 +41,8 @@ plFreeObject(plObject *object)
     flags = object->flags;
 
     if (flags & PL_OBJ_PRED_TRUE_ARRAY) {
-        plArray *array;
+        plArray *array = (plArray *)object;
 
-        array = (plArray *)object;
         if (array->objects) {
             uint32_t length;
 
@@ -55,9 +54,8 @@ plFreeObject(plObject *object)
     }
 
     if (flags & PL_OBJ_PRED_GEN_ARRAY && !(flags & PL_OBJ_FLAG_STATIC_BYTES)) {
-        plGenArrayPtr ptr;
+        plGenArrayPtr ptr = (plGenArrayPtr)object;
 
-        ptr = (plGenArrayPtr)object;
         free(ptr->opaque);
     }
 
@@ -242,7 +240,7 @@ plPopulateIntegerFromString(const char *string, unsigned int length, plInteger *
         return PL_RET_BAD_DATA;
     }
 
-#if __LONG_LONG_WIDTH__ > PL_INTEGER_BYTE_SIZE * 8
+#if __LONG_LONG_WIDTH__ > PL_INTEGER_BIT_SIZE
     if (value < PL_MIN_INTEGER || value > PL_MAX_INTEGER) {
         return PL_RET_BAD_DATA;
     }
@@ -350,7 +348,7 @@ plIntegerFromHexString(const char *string, unsigned int length, plObject **objec
         return PL_RET_BAD_DATA;
     }
 
-    if (length > PL_INTEGER_BYTE_SIZE * 2) {
+    if (length > PL_INTEGER_BIT_SIZE / 4) {
         VASQ_ERROR("String is too long");
         return PL_RET_BAD_DATA;
     }

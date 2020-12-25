@@ -251,8 +251,10 @@ static int
 parseExpression(plLexicalScanner *scanner, plAstNode **node, bool inside_parentheses)
 {
     (void)scanner;
-    (void)node;
     (void)inside_parentheses;
+
+    *node = NULL;
+
     VASQ_ERROR("This function has not yet been implemented");
     return PL_RET_BAD_DATA;  // placeholder
 }
@@ -261,7 +263,9 @@ static int
 parseReceiver(plLexicalScanner *scanner, plAstNode **node)
 {
     (void)scanner;
-    (void)node;
+
+    *node = NULL;
+
     VASQ_ERROR("This function has not yet been implemented");
     return PL_RET_BAD_DATA;  // placeholder
 }
@@ -302,7 +306,7 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
         }
 
         ret = expectMarker(scanner, PL_MARKER_LEFT_BRACE, NULL);
-        if ( ret != PL_RET_OK ) {
+        if (ret != PL_RET_OK) {
             goto eif_loop_error;
         }
 

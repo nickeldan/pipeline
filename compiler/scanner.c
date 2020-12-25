@@ -9,12 +9,6 @@ struct keywordRecord {
     int marker;
 };
 
-struct optionRecord {
-    const char *word;
-    unsigned int len;
-    int submarker;
-};
-
 static const struct keywordRecord keywords[] = {
     {"true", 4, PL_MARKER_OBJECT},   {"false", 4, PL_MARKER_OBJECT},  {"null", 4, PL_MARKER_OBJECT},
     {"blank", 5, PL_MARKER_OBJECT},  {"Any", 3, PL_MARKER_TYPE},      {"Num", 3, PL_MARKER_TYPE},
@@ -30,7 +24,7 @@ static const struct keywordRecord keywords[] = {
     {"import", 6, PL_MARKER_IMPORT}, {"export", 6, PL_MARKER_EXPORT}, {"main", 4, PL_MARKER_MAIN},
 };
 
-static const struct optionRecord options[] = {
+static const struct keywordRecord options[] = {
     {"STORE", 5, PL_SUBMARKER_STORE},
     {"ATTACH", 6, PL_SUBMARKER_ATTACH},
 };
@@ -186,14 +180,12 @@ readByteString(plLexicalScanner *scanner, plObject **object)
     }
 
     for (unsigned int k = 0; k < scanner->line_length; k++) {
-        char c;
+        char c = scanner->line[k];
 
-        c = scanner->line[k];
-        if (c == '\\' && ++k == scanner->line_length) {
-            break;
+        if (c == '\\') {
+            k++;
         }
-
-        if (c == '"') {
+        else if (c == '"') {
             array->capacity = k;
             goto good_string;
         }
@@ -211,21 +203,20 @@ good_string:
     }
 
     for (unsigned int k = 0; k < array->capacity; k++) {
-        unsigned char c;
+        unsigned char c = scanner->line[k];
 
-        c = scanner->line[k];
+        if (!isprint(c) && c != '\t') {
+            COMPILER_ERROR("Invalid byte in string literal: 0x%02x", c);
+            goto error;
+        }
 
         if (c == '\\') {
-            if (++k == scanner->line_length) {
-                COMPILER_ERROR("Unresolved escape character in string literal");
-                goto error;
-            }
-
-            switch (scanner->line[k]) {
+            switch (scanner->line[++k]) {  // I've already checked in the above for loop that I haven't
+                                           // reached the end of the string.
             case 't': c = '\t'; break;
             case 'n': c = '\n'; break;
             case 'r': c = '\r'; break;
-            case '\\': c = '\\'; break;
+            case '\\': break;
             case '"': c = '"'; break;
             case 'x':
                 if (k + 2 >= scanner->line_length) {
@@ -260,15 +251,9 @@ good_string:
                 break;
 
             default:
-                COMPILER_ERROR("Invalied escaped character in string literal: %c", scanner->line[k]);
+                COMPILER_ERROR("Invalid escaped character in string literal: %c", scanner->line[k]);
                 goto error;
             }
-        }
-        else if (isprint(c) || c == '\t') {
-        }
-        else {
-            COMPILER_ERROR("Invalid byte in string literal: 0x%02x", c);
-            goto error;
         }
 
         array->bytes[array->length++] = c;
@@ -292,7 +277,7 @@ lookaheadStoreLogic(plLexicalScanner *scanner, const plLexicalToken *token)
         unsigned int num_to_move;
 
         num_to_move = scanner->num_look_ahead;
-        if ( num_to_move == ARRAY_LENGTH(scanner->look_ahead) ) {
+        if (num_to_move == ARRAY_LENGTH(scanner->look_ahead)) {
             num_to_move--;
         }
         memmove(scanner->look_ahead + 1, scanner->look_ahead + 0, sizeof(*token) * num_to_move);
@@ -483,7 +468,7 @@ arithmetic_token:
             for (unsigned int k = 0; k < ARRAY_LENGTH(options); k++) {
                 if (strncmp(scanner->line + 1, options[k].word, options[k].len) == 0) {
                     scanner->last_marker = PL_MARKER_OPTION;
-                    token->ctx.submarker = options[k].submarker;
+                    token->ctx.submarker = options[k].marker;
                     consumed = 1 + options[k].len;
                     goto done;
                 }
@@ -629,12 +614,12 @@ return_marker:
 unsigned int
 plLastLineNo(const plLexicalScanner *scanner)
 {
-    if ( !scanner ) {
+    if (!scanner) {
         VASQ_ERROR("scanner cannot be NULL");
         return 0;
     }
 
-    if ( scanner->last_look_ahead_line_no > 0 ) {
+    if (scanner->last_look_ahead_line_no > 0) {
         return scanner->last_look_ahead_line_no;
     }
     else {
