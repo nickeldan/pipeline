@@ -12,10 +12,10 @@ else
 endif
 
 COMPILER_LIBNAME := plcompiler
-COMPILER_OBJECT_FILES := compiler/nameTable.o compiler/scanner.o compiler/ast.o compiler/parser.o
+COMPILER_OBJECT_FILES := $(patsubst %.c,%.o,$(wildcard compiler/*.c))
 
 PIPELINE_LIBNAME := pipeline
-PIPELINE_OBJECT_FILES := pipeline/plObject.o pipeline/plUtil.o
+PIPELINE_OBJECT_FILES := $(patsubst %.c,%.o,$(wildcard pipeline/*.c))
 
 VASQ_LIBNAME := vanillasquad
 
@@ -59,7 +59,6 @@ lib:
 	mkdir $@
 
 clean:
-	rm -f $(BINARIES) *.o
+	rm -f $(BINARIES) *.o $(COMPILER_OBJECT_FILES) $(PIPELINE_OBJECT_FILES)
 	rm -rf lib
-	rm -f $(COMPILER_OBJECT_FILES) $(PIPELINE_OBJECT_FILES)
 	cd vanilla_squad && make clean

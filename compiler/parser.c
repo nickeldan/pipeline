@@ -296,7 +296,7 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
     while (TOKEN_READ(scanner, &token) == PL_MARKER_EIF) {
         plAstNode *eif2_node, *eif_condition_node, *eif_statement_list = NULL;
 
-        ret = parseExpression(scanner, &eif_condition_node);
+        ret = parseExpression(scanner, &eif_condition_node, false);
         if (ret != PL_RET_OK) {
             goto error;
         }
