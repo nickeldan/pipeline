@@ -24,6 +24,9 @@ static int
 parseFunction(plLexicalScanner *scanner, plAstNode **node, bool allow_anonymous);
 
 static int
+parseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node);
+
+static int
 translateTerminalMarker(int marker)
 {
     switch (marker) {
@@ -44,7 +47,15 @@ createFamily(plAstNode *parent, ...)
     split_size = plAstSplitSize(parent->token.marker);
     va_start(args, parent);
     for (int k = 0; k < split_size; k++) {
-        splitter->nodes[k] = va_arg(args, plAstNode *);
+        plAstNode *node;
+
+        node = va_arg(args, plAstNode*);
+#ifdef AST_HAS_PARENT
+        if ( node ) {
+            node->parent = parent;
+        }
+#endif
+        splitter->nodes[k] = node;
     }
     va_end(args);
 }
@@ -133,7 +144,7 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
 static int
 parseExtendedName(plLexicalScanner *scanner, plAstNode **node)
 {
-    int ret;
+    int ret = PL_RET_OK;
     plLexicalToken token;
     plAstNode *period_node = NULL;
 
@@ -235,7 +246,6 @@ parseExtendedType(plLexicalScanner *scanner, plAstNode **node)
             return PL_RET_OUT_OF_MEMORY;
         }
         memcpy(&(*node)->token, &token, sizeof(token));
-        return PL_RET_OK;
     }
     else {
         ret = LOOKAHEAD_STORE(scanner, &token);
@@ -243,20 +253,246 @@ parseExtendedType(plLexicalScanner *scanner, plAstNode **node)
             plTokenCleanup(&token, scanner->table);
             return ret;
         }
-        return parseExtendedName(scanner, node);
+
+        ret = parseExtendedName(scanner, node);
+        if ( ret != PL_RET_OK ) {
+            return ret;
+        }
+
+        if ( TERMINAL_MARKER(TOKEN_READ(scanner, &token)) ) {
+            goto error;
+        }
+
+        if ( token.marker == PL_MARKER_QUESTION ) {
+            (*node)->token.submarker = PL_SUBMARKER_QUESTION;
+        }
+        else {
+            ret = LOOKAHEAD_STORE(scanner, &token);
+            if ( ret != PL_RET_OK ) {
+                plTokenCleanup(&token, scanner->table);
+                goto error;
+            }
+        }
     }
+
+    return PL_RET_OK;
+
+error:
+
+    plAstFree(*node, scanner->table);
+    *node = NULL;
+
+    if (TERMINAL_MARKER(scanner->last_marker)) {
+        return translateTerminalMarker(scanner->last_marker);
+    }
+    else {
+        return ret;
+    }
+}
+
+static int
+adjustOperatorOrder(plAstNode *node)
+{
+    (void)node;
+    VASQ_ERROR("This funciton has not yet been implemented.");
+    return PL_RET_BAD_DATA;
 }
 
 static int
 parseExpression(plLexicalScanner *scanner, plAstNode **node, bool inside_parentheses)
 {
-    (void)scanner;
-    (void)inside_parentheses;
+    int ret;
+    unsigned int negation_line_no = 0;
+    bool negation = false;
+    plLexicalToken token;
+    plAstNode *connector_node = NULL, *second_node = NULL;
 
     *node = NULL;
 
-    VASQ_ERROR("This function has not yet been implemented");
-    return PL_RET_BAD_DATA;  // placeholder
+start:
+
+    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
+        return translateTerminalMarker(scanner->last_marker);
+    }
+
+    switch (token.marker) {
+    case PL_MARKER_LEFT_PARENS:
+        ret = parseExpression(scanner, node, true);
+        if ( ret != PL_RET_OK ) {
+            return ret;
+        }
+        break;
+
+    case PL_MARKER_NOT:
+        negation = !negation;
+        if ( negation ) {
+            negation_line_no = token.line_no;
+        }
+        goto start;
+
+    case PL_MARKER_NAME:
+        ret = LOOKAHEAD_STORE(scanner, &token);
+        if ( ret != PL_RET_OK ) {
+            plTokenCleanup(&token, scanner->table);
+            return ret;
+        }
+
+        ret = parseExtendedName(scanner, node);
+        if ( ret != PL_RET_OK ) {
+            return ret;
+        }
+        break;
+
+    case PL_MARKER_OBJECT:
+        *node = plAstNew(PL_MARKER_OBJECT);
+        if ( !*node ) {
+            plTokenCleanup(&token, scanner->table);
+            return PL_RET_OUT_OF_MEMORY;
+        }
+        memcpy(&(*node)->token, &token, sizeof(token));
+        break;
+
+    case PL_MARKER_LEFT_BRACKET:
+        ret = parseArrayDeclaration(scanner, node);
+        if ( ret != PL_RET_OK ) {
+            return ret;
+        }
+        break;
+
+    case PL_MARKER_RIGHT_PARENS:
+        if ( inside_parentheses ) {
+            COMPILER_ERROR("Empty parentheses.");
+            return PL_RET_BAD_DATA;
+        }
+        /* FALLTHROUGH */
+    default:
+        COMPILER_ERROR("Unexpected %s in place of expression.", plLexicalMarkerName(token.marker));
+        // I don't need to call plTokenCleanup since I know that it's neither a NAME nor an OBJECT.
+        return PL_RET_BAD_DATA;
+    }
+
+    // Check for attributes and array indexing.
+    while ( true ) {
+        if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
+            goto error;
+        }
+
+        if ( token.marker == PL_MARKER_LEFT_BRACKET ) {
+            ret = parseExpression(scanner, &second_node, false);
+            if ( ret != PL_RET_OK ) {
+                goto error;
+            }
+
+            ret = expectMarker(scanner, PL_MARKER_RIGHT_BRACKET, NULL);
+        }
+        else if ( token.marker == PL_MARKER_PERIOD ) {
+            ret = parseExtendedName(scanner, &second_node);
+        }
+        else {
+            break;
+        }
+
+        if ( ret != PL_RET_OK ) {
+            goto error;
+        }
+
+        connector_node = plAstNew(token.marker);
+        if ( !connector_node ) {
+            ret = PL_RET_OUT_OF_MEMORY;
+            goto error;
+        }
+        connector_node->token.line_no = token.line_no;
+        createFamily(connector_node, *node, second_node);
+        *node = connector_node;
+        connector_node = NULL;
+        second_node = NULL;
+    }
+
+    if ( negation ) {
+        connector_node = plAstNew(PL_MARKER_NOT);
+        if ( !connector_node ) {
+            ret = PL_RET_OUT_OF_MEMORY;
+            goto error;
+        }
+        connector_node->token.line_no = negation_line_no;
+        createFamily(connector_node, *node);
+        *node = connector_node;
+        connector_node = NULL;
+    }
+
+    switch (token.marker ) {
+    case PL_MARKER_ARROW:
+        if ( !inside_parentheses ) {
+            COMPILER_ERROR("Invalid ARROW in expression without parentheses.");
+            ret = PL_RET_BAD_DATA;
+            goto error;
+        }
+        ret = parseReceiver(scanner, &second_node);
+        goto combine_nodes;
+
+    case PL_MARKER_IS:
+        ret = parseExtendedType(scanner, &second_node);
+        goto combine_nodes;
+
+    case PL_MARKER_ARITHMETIC:
+    case PL_MARKER_LOGICAL:
+    case PL_MARKER_COMPARISON:
+        ret = parseExpression(scanner, &second_node, false);
+
+    combine_nodes:
+        if ( ret != PL_RET_OK ) {
+            goto error;
+        }
+
+        connector_node = plAstNew(token.marker);
+        if ( !connector_node ) {
+            ret = PL_RET_OUT_OF_MEMORY;
+            goto error;
+        }
+        memcpy(&connector_node->token, &token, sizeof(token));
+        createFamily(connector_node, *node, second_node);
+        *node = connector_node;
+        connector_node = NULL;
+        second_node = NULL;
+
+        ret = adjustOperatorOrder(*node);
+        if ( ret != PL_RET_OK ) {
+            goto error;
+        }
+        break;
+
+    default:
+        ret = LOOKAHEAD_STORE(scanner, &token);
+        if ( ret != PL_RET_OK ) {
+            plTokenCleanup(&token, scanner->table);
+            goto error;
+        }
+        break;
+    }
+
+    if ( inside_parentheses ) {
+        ret = expectMarker(scanner, PL_MARKER_RIGHT_PARENS, NULL);
+        if ( ret != PL_RET_OK ) {
+            goto error;
+        }
+    }
+
+    return PL_RET_OK;
+
+error:
+
+    plAstFree(*node, scanner->table);
+    plAstFree(connector_node, scanner->table);
+    plAstFree(second_node, scanner->table);
+
+    *node = NULL;
+
+    if (TERMINAL_MARKER(scanner->last_marker)) {
+        return translateTerminalMarker(scanner->last_marker);
+    }
+    else {
+        return ret;
+    }
 }
 
 static int
@@ -543,13 +779,13 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         else {
             ret = LOOKAHEAD_STORE(scanner, &next_token);
             if (ret != PL_RET_OK) {
-                plTokenCleanup(&next_token, scanner->table);
                 plTokenCleanup(&token, scanner->table);
+                plTokenCleanup(&next_token, scanner->table);
                 return ret;
             }
         }
     }
-    else if (token.marker == PL_MARKER_ARITHMETIC && token.ctx.submarker == PL_SUBMARKER_MODULO) {
+    else if (token.marker == PL_MARKER_ARITHMETIC && token.submarker == PL_SUBMARKER_MODULO) {
         plLexicalToken next_token;
 
         if (TERMINAL_MARKER(TOKEN_READ(scanner, &next_token))) {
@@ -740,10 +976,12 @@ static int
 parseFunction(plLexicalScanner *scanner, plAstNode **node, bool allow_anonymous)
 {
     int ret, function_marker = scanner->last_marker;
+    unsigned int line_no;
     plLexicalToken token;
     plAstNode *function_name_node = NULL, *arg_list = NULL, *type_node = NULL, *statement_list;
 
     *node = NULL;
+    line_no = plLastLineNo(scanner);
 
     if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
         return translateTerminalMarker(scanner->last_marker);
@@ -901,6 +1139,7 @@ cleanup_name_node:
         plAstFree(statement_list, scanner->table);
         goto error;
     }
+    (*node)->token.line_no = line_no;
 
     switch (function_marker) {
     case PL_MARKER_SOURCE:
@@ -930,12 +1169,24 @@ error:
 }
 
 static int
+parseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node)
+{
+    (void)scanner;
+
+    *node = NULL;
+    VASQ_ERROR("This function has not yet been implemented.");
+    return PL_RET_BAD_DATA;
+}
+
+static int
 parseMain(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
+    unsigned int line_no;
     plAstNode *statement_list;
 
     *node = NULL;
+    line_no = plLastLineNo(scanner);
 
     ret = expectMarker(scanner, PL_MARKER_LEFT_BRACE, NULL);
     if (ret != PL_RET_OK) {
@@ -952,6 +1203,7 @@ parseMain(plLexicalScanner *scanner, plAstNode **node)
         plAstFree(statement_list, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
     }
+    (*node)->token.line_no = line_no;
     createFamily(*node, statement_list);
 
     return PL_RET_OK;
@@ -966,7 +1218,7 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
     *tree = NULL;
 
     while (!TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
-        plAstNode *node;
+        plAstNode *node = NULL;
 
         switch (scanner->last_marker) {
         case PL_MARKER_IMPORT:
@@ -1044,6 +1296,7 @@ plFileParse(FILE *in, const char *file_name, plAstNode **tree, plNameTable **tab
     ret = parseGlobalSpace(&scanner, tree);
     if (ret != PL_RET_OK) {
         plAstFree(*tree, *table);
+        plScannerCleanup(&scanner);
         plNameTableFree(*table);
     }
     return ret;

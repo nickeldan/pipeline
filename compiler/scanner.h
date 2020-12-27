@@ -61,7 +61,7 @@ enum plLexicalMarker {
 #define TERMINAL_MARKER(marker) ((marker) <= PL_MARKER_EOF)
 
 enum plLexicalSubmarker {
-    PL_SUBMARKER_INIT = 0,
+    PL_SUBMARKER_NONE = 0,
 
     PL_SUBMARKER_OR,
     PL_SUBMARKER_AND,
@@ -73,6 +73,7 @@ enum plLexicalSubmarker {
     PL_SUBMARKER_GENARRAY,
     PL_SUBMARKER_BOOL,
     PL_SUBMARKER_BYTES,
+    PL_SUBMARKER_QUESTION,
     PL_SUBMARKER_PLUS,
     PL_SUBMARKER_MINUS,
     PL_SUBMARKER_MULTIPLY,
@@ -94,9 +95,9 @@ typedef struct plLexicalToken {
     union {
         const char *name;
         plObject *object;
-        int submarker;
     } ctx;
     int marker;
+    int submarker;
     unsigned int line_no;
 } plLexicalToken;
 
@@ -118,6 +119,9 @@ typedef struct plLexicalScanner {
 
 void
 plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plNameTable *table);
+
+void
+plScannerCleanup(plLexicalScanner *scanner);
 
 int
 plTokenRead(plLexicalScanner *scanner, plLexicalToken *token);

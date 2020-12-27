@@ -303,6 +303,19 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plNa
     scanner->line = scanner->buffer;
 }
 
+void
+plScannerCleanup(plLexicalScanner *scanner)
+{
+    if ( !scanner ) {
+        return;
+    }
+
+    for (unsigned int k=0; k<scanner->num_look_ahead; k++) {
+        plTokenCleanup(scanner->look_ahead+k, scanner->table);
+    }
+    scanner->num_look_ahead = 0;
+}
+
 int
 plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
 {
@@ -338,8 +351,9 @@ read_token:
         goto return_marker;
     }
 
-    token->line_no = scanner->line_no;
     token->ctx.object = NULL;
+    token->submarker = PL_SUBMARKER_NONE;
+    token->line_no = scanner->line_no;
     consumed = 1;
 
     switch (scanner->line[0]) {
@@ -408,12 +422,12 @@ read_token:
 arithmetic_token:
         if (scanner->line[1] == '=') {
             scanner->last_marker = PL_MARKER_REASSIGNMENT;
-            token->ctx.submarker = resolveArithmetic(scanner->line[0]);
+            token->submarker = resolveArithmetic(scanner->line[0]);
             consumed = 2;
         }
         else {
             scanner->last_marker = PL_MARKER_ARITHMETIC;
-            token->ctx.submarker = resolveArithmetic(scanner->line[0]);
+            token->submarker = resolveArithmetic(scanner->line[0]);
         }
 
         goto done;
@@ -422,7 +436,7 @@ arithmetic_token:
     case '!':
         if (scanner->line[1] == '=') {
             scanner->last_marker = PL_MARKER_COMPARISON;
-            token->ctx.submarker = (scanner->line[0] == '=') ? PL_SUBMARKER_EQUAL : PL_SUBMARKER_NOT_EQUAL;
+            token->submarker = (scanner->line[0] == '=') ? PL_SUBMARKER_EQUAL : PL_SUBMARKER_NOT_EQUAL;
             consumed = 2;
             goto done;
         }
@@ -444,16 +458,16 @@ arithmetic_token:
                 consumed = 2;
             }
 
-            token->ctx.submarker = (scanner->line[0] == '<') ? PL_SUBMARKER_LSHIFT : PL_SUBMARKER_RSHIFT;
+            token->submarker = (scanner->line[0] == '<') ? PL_SUBMARKER_LSHIFT : PL_SUBMARKER_RSHIFT;
         }
         else {
             if (scanner->line[1] == '=') {
-                token->ctx.submarker =
+                token->submarker =
                     (scanner->line[0] == '<') ? PL_SUBMARKER_LESS_THAN_EQ : PL_SUBMARKER_GREATER_THAN_EQ;
                 consumed = 2;
             }
             else {
-                token->ctx.submarker =
+                token->submarker =
                     (scanner->line[0] == '<') ? PL_SUBMARKER_LESS_THAN : PL_SUBMARKER_GREATER_THAN;
             }
 
@@ -468,7 +482,7 @@ arithmetic_token:
             for (unsigned int k = 0; k < ARRAY_LENGTH(options); k++) {
                 if (strncmp(scanner->line + 1, options[k].word, options[k].len) == 0) {
                     scanner->last_marker = PL_MARKER_OPTION;
-                    token->ctx.submarker = options[k].marker;
+                    token->submarker = options[k].marker;
                     consumed = 1 + options[k].len;
                     goto done;
                 }
@@ -494,10 +508,10 @@ arithmetic_token:
                 token->ctx.object = resolveStaticLiteral(scanner->line[0]);
             }
             else if (scanner->last_marker == PL_MARKER_LOGICAL) {
-                token->ctx.submarker = (scanner->line[0] == 'o') ? PL_SUBMARKER_OR : PL_SUBMARKER_AND;
+                token->submarker = (scanner->line[0] == 'o') ? PL_SUBMARKER_OR : PL_SUBMARKER_AND;
             }
             else if (scanner->last_marker == PL_MARKER_TYPE) {
-                token->ctx.submarker = resolveType(scanner->line);
+                token->submarker = resolveType(scanner->line);
             }
 
             consumed = keywords[k].len;
