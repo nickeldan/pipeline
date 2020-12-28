@@ -69,7 +69,7 @@ plCopyObject(const plObject *object)
 {
     plObject *new;
 
-    if ( !object ) {
+    if (!object) {
         VASQ_ERROR("object cannot be NULL");
         return NULL;
     }

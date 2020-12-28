@@ -1,8 +1,8 @@
 #pragma once
 
 #include "definitions.h"
-#include "scanner.h"
 #include "nameTable.h"
+#include "scanner.h"
 
 //#define AST_HAS_PARENT
 
@@ -12,7 +12,7 @@
 #define AST_PARENT_DECL
 #endif
 
-#define AST_HEADER \
+#define AST_HEADER  \
     AST_PARENT_DECL \
     plLexicalToken token;
 

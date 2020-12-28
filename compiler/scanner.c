@@ -306,12 +306,12 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plNa
 void
 plScannerCleanup(plLexicalScanner *scanner)
 {
-    if ( !scanner ) {
+    if (!scanner) {
         return;
     }
 
-    for (unsigned int k=0; k<scanner->num_look_ahead; k++) {
-        plTokenCleanup(scanner->look_ahead+k, scanner->table);
+    for (unsigned int k = 0; k < scanner->num_look_ahead; k++) {
+        plTokenCleanup(scanner->look_ahead + k, scanner->table);
     }
     scanner->num_look_ahead = 0;
 }
