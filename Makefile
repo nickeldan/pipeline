@@ -25,7 +25,7 @@ BINARIES := scanner_check parser_check
 SHARED_LIBRARIES := $(patsubst %,lib/lib%.so,$(LIBNAMES))
 STATIC_LIBRARIES := $(patsubst %,lib/lib%.a,$(LIBNAMES))
 
-.PHONY: all clean sharedlibs staticlibs FORCE
+.PHONY: all clean sharedlibs staticlibs
 
 all: $(BINARIES)
 
@@ -51,7 +51,7 @@ lib/lib$(PIPELINE_LIBNAME).so: $(PIPELINE_OBJECT_FILES) lib
 lib/lib$(PIPELINE_LIBNAME).a: $(PIPELINE_OBJECT_FILES) lib
 	ar rcs $@ $(PIPELINE_OBJECT_FILES)
 
-lib/lib$(VASQ_LIBNAME).so lib/lib$(VASQ_LIBNAME).a: lib FORCE
+lib/lib$(VASQ_LIBNAME).so lib/lib$(VASQ_LIBNAME).a: lib
 	cd vanilla_squad && make $(notdir $@)
 	cp vanilla_squad/$(notdir $@) $@
 

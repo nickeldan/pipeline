@@ -1,0 +1,68 @@
+#include "parserInternal.h"
+
+int
+parseExtendedType(plLexicalScanner *scanner, plAstNode **node)
+{
+    int ret;
+    plLexicalToken token;
+
+    *node = NULL;
+
+    ret = NEXT_TOKEN(scanner, &token);
+    if (ret != PL_RET_OK) {
+        return ret;
+    }
+
+    if (token.marker == PL_MARKER_TYPE) {
+        *node = plAstNew(PL_MARKER_TYPE);
+        if (!*node) {
+            plTokenCleanup(&token, scanner->table);
+            return PL_RET_OUT_OF_MEMORY;
+        }
+        memcpy(&(*node)->token, &token, sizeof(token));
+    }
+    else {
+        ret = LOOKAHEAD_STORE(scanner, &token);
+        if (ret != PL_RET_OK) {
+            return ret;
+        }
+
+        ret = parseExtendedName(scanner, node);
+        if (ret != PL_RET_OK) {
+            return ret;
+        }
+
+        ret = NEXT_TOKEN(scanner, &token);
+        if (ret != PL_RET_OK) {
+            goto error;
+        }
+
+        if (token.marker == PL_MARKER_QUESTION) {
+            plAstNode *question_node;
+
+            question_node = plAstNew(PL_MARKER_QUESTION);
+            if (!question_node) {
+                ret = PL_RET_OUT_OF_MEMORY;
+                goto error;
+            }
+            question_node->token.line_no = token.line_no;
+            createFamily(question_node, *node);
+            *node = question_node;
+        }
+        else {
+            ret = LOOKAHEAD_STORE(scanner, &token);
+            if (ret != PL_RET_OK) {
+                goto error;
+            }
+        }
+    }
+
+    return PL_RET_OK;
+
+error:
+
+    plAstFree(*node, scanner->table);
+    *node = NULL;
+
+    return ret;
+}

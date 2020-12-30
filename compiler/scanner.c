@@ -323,7 +323,7 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
 
     if (!scanner || !token) {
         VASQ_ERROR("The arguments cannot be NULL");
-        return PL_MARKER_BAD_ARGS;
+        return PL_MARKER_USAGE;
     }
 
     if (TERMINAL_MARKER(scanner->last_marker)) {
@@ -722,9 +722,14 @@ plStripLineBeginning(const char *line)
 #if LL_USE == VASQ_LL_RAWONLY
 
 int
-plLookaheadStoreNoLog(plLexicalScanner *scanner, const plLexicalToken *token)
+plLookaheadStoreNoLog(plLexicalScanner *scanner, plLexicalToken *token)
 {
-    if (!scanner || !token || scanner->num_look_ahead == ARRAY_LENGTH(scanner->look_ahead)) {
+    if (!scanner || !token) {
+        return PL_RET_USAGE;
+    }
+
+    if (scanner->num_look_ahead == ARRAY_LENGTH(scanner->look_ahead)) {
+        plTokenCleanup(token, scanner->table);
         return PL_RET_USAGE;
     }
 
@@ -753,7 +758,7 @@ plTokenReadLog(const char *file_name, const char *function_name, unsigned int li
 
 int
 plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned int line_no,
-                    plLexicalScanner *scanner, const plLexicalToken *token)
+                    plLexicalScanner *scanner, plLexicalToken *token)
 {
     if (!scanner || !token) {
         VASQ_ERROR("The arguments cannot be NULL");
@@ -763,6 +768,7 @@ plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned i
     if (scanner->num_look_ahead == ARRAY_LENGTH(scanner->look_ahead)) {
         vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no,
                          "Cannot store any more look ahead tokens");
+        plTokenCleanup(token, scanner->table);
         return PL_RET_USAGE;
     }
 

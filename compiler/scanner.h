@@ -7,7 +7,7 @@
 #include "plObject.h"
 
 enum plLexicalMarker {
-    PL_MARKER_BAD_ARGS = 256,
+    PL_MARKER_USAGE = 256,
     PL_MARKER_READ_FAILURE,
     PL_MARKER_BAD_DATA,
     PL_MARKER_OUT_OF_MEMORY,
@@ -73,7 +73,6 @@ enum plLexicalSubmarker {
     PL_SUBMARKER_GENARRAY,
     PL_SUBMARKER_BOOL,
     PL_SUBMARKER_BYTES,
-    PL_SUBMARKER_QUESTION,
     PL_SUBMARKER_PLUS,
     PL_SUBMARKER_MINUS,
     PL_SUBMARKER_MULTIPLY,
@@ -131,7 +130,7 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token);
 #define TOKEN_READ(scanner, token) plTokenRead(scanner, token)
 
 int
-plLookaheadStoreNoLog(plLexicalScanner *scanner, const plLexicalToken *token);
+plLookaheadStoreNoLog(plLexicalScanner *scanner, plLexicalToken *token);
 #define LOOKAHEAD_STORE(scanner, token) plLookaheadStoreNoLog(scanner, token)
 
 #else
@@ -143,7 +142,7 @@ plTokenReadLog(const char *file_name, const char *function_name, unsigned int li
 
 int
 plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned int line_no,
-                    plLexicalScanner *scanner, const plLexicalToken *token);
+                    plLexicalScanner *scanner, plLexicalToken *token);
 #define LOOKAHEAD_STORE(scanner, token) plLookaheadStoreLog(__FILE__, __func__, __LINE__, scanner, token)
 
 #endif  // LL_USE == VASQ_LL_RAWONLY
