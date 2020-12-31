@@ -24,8 +24,9 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
 
     *node = NULL;
 
-    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
-        return translateTerminalMarker(scanner->last_marker);
+    ret = NEXT_TOKEN(scanner, &token);
+    if (ret != PL_RET_OK) {
+        return ret;
     }
 
     switch (token.marker) {
@@ -79,9 +80,10 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
     if (token.marker == PL_MARKER_NAME) {
         plLexicalToken next_token;
 
-        if (TERMINAL_MARKER(TOKEN_READ(scanner, &next_token))) {
+        ret = NEXT_TOKEN(scanner, &next_token);
+        if (ret != PL_RET_OK) {
             plTokenCleanup(&token, scanner->table);
-            return translateTerminalMarker(scanner->last_marker);
+            return ret;
         }
 
         if (next_token.marker == PL_MARKER_AS) {
@@ -122,7 +124,6 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             ret = LOOKAHEAD_STORE(scanner, &next_token);
             if (ret != PL_RET_OK) {
                 plTokenCleanup(&token, scanner->table);
-                plTokenCleanup(&next_token, scanner->table);
                 return ret;
             }
         }
@@ -130,8 +131,9 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
     else if (token.marker == PL_MARKER_ARITHMETIC && token.submarker == PL_SUBMARKER_MODULO) {
         plLexicalToken next_token;
 
-        if (TERMINAL_MARKER(TOKEN_READ(scanner, &next_token))) {
-            return translateTerminalMarker(scanner->last_marker);
+        ret = NEXT_TOKEN(scanner, &next_token);
+        if (ret != PL_RET_OK) {
+            return ret;
         }
 
         if (next_token.marker == PL_MARKER_NAME) {
@@ -157,7 +159,6 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         else {
             ret = LOOKAHEAD_STORE(scanner, &next_token);
             if (ret != PL_RET_OK) {
-                plTokenCleanup(&next_token, scanner->table);
                 return ret;
             }
         }
@@ -165,7 +166,6 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
 
     ret = LOOKAHEAD_STORE(scanner, &token);
     if (ret != PL_RET_OK) {
-        plTokenCleanup(&token, scanner->table);
         return PL_RET_OK;
     }
 
@@ -174,7 +174,8 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         return ret;
     }
 
-    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
+    ret = NEXT_TOKEN(scanner, &token);
+    if (ret != PL_RET_OK) {
         goto error;
     }
 
@@ -243,12 +244,7 @@ error:
     plAstFree(first_node, scanner->table);
     plAstFree(receiver_node, scanner->table);
 
-    if (TERMINAL_MARKER(scanner->last_marker)) {
-        return translateTerminalMarker(scanner->last_marker);
-    }
-    else {
-        return ret;
-    }
+    return ret;
 }
 
 int
@@ -257,12 +253,19 @@ parseStatementList(plLexicalScanner *scanner, plAstNode **node)
     int ret;
     plLexicalToken token;
 
-    *node = NULL;
+    if (node) {
+        *node = NULL;
+    }
+    if (!scanner || !node) {
+        VASQ_ERROR("The arguments cannot be NULL.");
+        return PL_RET_USAGE;
+    }
 
     while (true) {
         plAstNode *statement_node;
 
-        if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
+        ret = NEXT_TOKEN(scanner, &token);
+        if (ret != PL_RET_OK) {
             goto error;
         }
 
@@ -272,7 +275,6 @@ parseStatementList(plLexicalScanner *scanner, plAstNode **node)
 
         ret = LOOKAHEAD_STORE(scanner, &token);
         if (ret != PL_RET_OK) {
-            plTokenCleanup(&token, scanner->table);
             goto error;
         }
 
@@ -306,10 +308,5 @@ error:
     plAstFree(*node, scanner->table);
     *node = NULL;
 
-    if (TERMINAL_MARKER(scanner->last_marker)) {
-        return translateTerminalMarker(scanner->last_marker);
-    }
-    else {
-        return ret;
-    }
+    return ret;
 }

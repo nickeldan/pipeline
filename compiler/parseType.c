@@ -6,7 +6,13 @@ parseExtendedType(plLexicalScanner *scanner, plAstNode **node)
     int ret;
     plLexicalToken token;
 
-    *node = NULL;
+    if (node) {
+        *node = NULL;
+    }
+    if (!scanner || !node) {
+        VASQ_ERROR("The arguments cannot be NULL.");
+        return PL_RET_USAGE;
+    }
 
     ret = NEXT_TOKEN(scanner, &token);
     if (ret != PL_RET_OK) {

@@ -7,7 +7,13 @@ parseExtendedName(plLexicalScanner *scanner, plAstNode **node)
     plLexicalToken token;
     plAstNode *period_node = NULL;
 
-    *node = NULL;
+    if (node) {
+        *node = NULL;
+    }
+    if (!scanner || !node) {
+        VASQ_ERROR("The arguments cannot be NULL.");
+        return PL_RET_USAGE;
+    }
 
     while (true) {
         int previous_marker;

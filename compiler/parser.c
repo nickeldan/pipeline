@@ -10,6 +10,8 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
     plLexicalToken token;
     plAstNode *name_node;
 
+    *node = NULL;
+
     marker = scanner->last_marker;
     line_no = plLastLineNo(scanner);
 
@@ -89,6 +91,17 @@ parseMain(plLexicalScanner *scanner, plAstNode **node)
 }
 
 static int
+translateTerminalMarker(int marker)
+{
+    switch (marker) {
+    case PL_MARKER_USAGE: return PL_RET_USAGE;
+    case PL_MARKER_READ_FAILURE: return PL_RET_IO;
+    case PL_MARKER_OUT_OF_MEMORY: return PL_RET_OUT_OF_MEMORY;
+    default: return PL_RET_BAD_DATA;
+    }
+}
+
+static int
 parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
 {
     int ret;
@@ -163,17 +176,6 @@ error:
     return ret;
 }
 
-static int
-translateTerminalMarker(int marker)
-{
-    switch ( marker ) {
-    case PL_MARKER_USAGE: return PL_RET_USAGE;
-    case PL_MARKER_READ_FAILURE: return PL_RET_IO;
-    case PL_MARKER_OUT_OF_MEMORY: return PL_RET_OUT_OF_MEMORY;
-    default: return PL_RET_BAD_DATA;
-    }
-}
-
 int
 plFileParse(FILE *in, const char *file_name, plAstNode **tree, plNameTable **table)
 {
@@ -182,6 +184,7 @@ plFileParse(FILE *in, const char *file_name, plAstNode **tree, plNameTable **tab
 
     if (!in || !tree || !table) {
         VASQ_ERROR("in, tree, and table cannot be NULL");
+        return PL_RET_USAGE;
     }
 
     *tree = NULL;
@@ -208,31 +211,22 @@ plFileParse(FILE *in, const char *file_name, plAstNode **tree, plNameTable **tab
 int
 nextToken(plLexicalScanner *scanner, plLexicalToken *token)
 {
-    if (TERMINAL_MARKER(plTokenRead(scanner, token))) {
-        switch (scanner->last_marker) {
-        case PL_MARKER_USAGE: return PL_RET_USAGE;
-        case PL_MARKER_READ_FAILURE: return PL_RET_IO;
-        case PL_MARKER_OUT_OF_MEMORY: return PL_RET_OUT_OF_MEMORY;
-        default: return PL_RET_BAD_DATA;
-        }
-    }
-    else {
-        return PL_RET_OK;
-    }
+    int marker;
+
+    marker = plTokenRead(scanner, token);
+    return TERMINAL_MARKER(marker) ? translateTerminalMarker(marker) : PL_RET_OK;
 }
 
 #else  // LL_USE == VASQ_LL_RAWONLY
 
 int
-nextTokenLog(const char *function_name, unsigned int line_no, plLexicalScanner *scanner,
-             plLexicalToken *token)
+nextTokenLog(const char *file_name, const char *function_name, unsigned int line_no,
+             plLexicalScanner *scanner, plLexicalToken *token)
 {
-    if (TERMINAL_MARKER(plTokenReadLog(__FILE__, function_name, line_no, scanner, token))) {
-        return translateTerminalMarker(scanner->last_marker);
-    }
-    else {
-        return PL_RET_OK;
-    }
+    int marker;
+
+    marker = plTokenReadLog(file_name, function_name, line_no, scanner, token);
+    return TERMINAL_MARKER(marker) ? translateTerminalMarker(marker) : PL_RET_OK;
 }
 
 #endif  // LL_USE == VASQ_LL_RAWONLY

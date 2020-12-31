@@ -9,8 +9,15 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
     plAstNode *condition_node, *statement_list = NULL, *eif_node = NULL, *last_eif_node = NULL,
                                *else_node = NULL;
 
+    if (node) {
+        *node = NULL;
+    }
+    if (!scanner || !node) {
+        VASQ_ERROR("The arguments cannot be NULL.");
+        return PL_RET_USAGE;
+    }
+
     line_no = plLastLineNo(scanner);
-    *node = NULL;
 
     ret = parseExpression(scanner, &condition_node, false);
     if (ret != PL_RET_OK) {
@@ -27,8 +34,16 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
         goto error;
     }
 
-    while (TOKEN_READ(scanner, &token) == PL_MARKER_EIF) {
+    while (true) {
         plAstNode *eif2_node, *eif_condition_node, *eif_statement_list = NULL;
+
+        ret = NEXT_TOKEN(scanner, &token);
+        if (ret != PL_RET_OK) {
+            goto error;
+        }
+        if (token.marker != PL_MARKER_EIF) {
+            break;
+        }
 
         ret = parseExpression(scanner, &eif_condition_node, false);
         if (ret != PL_RET_OK) {
@@ -69,9 +84,6 @@ eif_loop_error:
         plAstFree(eif_statement_list, scanner->table);
         goto error;
     }
-    if (TERMINAL_MARKER(token.marker)) {
-        goto error;
-    }
 
     if (token.marker == PL_MARKER_ELSE) {
         plAstNode *else_statement_list;
@@ -98,7 +110,6 @@ eif_loop_error:
     else {
         ret = LOOKAHEAD_STORE(scanner, &token);
         if (ret != PL_RET_OK) {
-            plTokenCleanup(&token, scanner->table);
             goto error;
         }
     }
@@ -120,10 +131,5 @@ error:
     plAstFree(eif_node, scanner->table);
     plAstFree(else_node, scanner->table);
 
-    if (TERMINAL_MARKER(scanner->last_marker)) {
-        return translateTerminalMarker(scanner->last_marker);
-    }
-    else {
-        return ret;
-    }
+    return ret;
 }

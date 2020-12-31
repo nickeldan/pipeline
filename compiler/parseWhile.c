@@ -7,8 +7,15 @@ parseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
     unsigned int line_no;
     plAstNode *condition_node, *statement_list;
 
+    if (node) {
+        *node = NULL;
+    }
+    if (!scanner || !node) {
+        VASQ_ERROR("The arguments cannot be NULL.");
+        return PL_RET_USAGE;
+    }
+
     line_no = plLastLineNo(scanner);
-    *node = NULL;
 
     ret = parseExpression(scanner, &condition_node, false);
     if (ret != PL_RET_OK) {

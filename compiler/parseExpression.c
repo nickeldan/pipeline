@@ -9,7 +9,14 @@ parseExpression(plLexicalScanner *scanner, plAstNode **node, bool inside_parenth
     plLexicalToken token;
     plAstNode *connector_node = NULL, *second_node = NULL;
 
-    *node = NULL;
+    if (node) {
+        *node = NULL;
+    }
+    if (!scanner || !node) {
+        VASQ_ERROR("scanner and node cannot be NULL.");
+
+        return PL_RET_USAGE;
+    }
 
 start:
 

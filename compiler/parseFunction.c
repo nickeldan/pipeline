@@ -11,18 +11,13 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node)
     *node = NULL;
     line_no = plLastLineNo(scanner);
 
-    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
-        return translateTerminalMarker(scanner->last_marker);
+    ret = NEXT_TOKEN(scanner, &token);
+    if (ret != PL_RET_OK) {
+        return ret;
     }
 
     if (token.marker != PL_MARKER_NAME) {
         COMPILER_ERROR("Anonymous %s not allowed in this context", plLexicalMarkerName(function_marker));
-        plTokenCleanup(&token, scanner->table);
-        return PL_RET_BAD_DATA;
-    }
-
-    if (function_marker == PL_MARKER_LOCAL) {
-        COMPILER_ERROR("LOCAL cannot be named");
         plTokenCleanup(&token, scanner->table);
         return PL_RET_BAD_DATA;
     }
@@ -34,7 +29,8 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node)
     }
     memcpy(&function_name_node->token, &token, sizeof(token));
 
-    if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
+    ret = NEXT_TOKEN(scanner, &token);
+    if (ret != PL_RET_OK) {
         goto error;
     }
 
@@ -50,7 +46,8 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node)
         unsigned int line_no;
         plAstNode *name_node, *arg_node;
 
-        if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
+        ret = NEXT_TOKEN(scanner, &token);
+        if (ret != PL_RET_OK) {
             goto error;
         }
 
@@ -172,35 +169,26 @@ cleanup_name_node:
     case PL_MARKER_SOURCE:
     case PL_MARKER_PIPE: createFamily(*node, function_name_node, arg_list, type_node, statement_list); break;
 
-    case PL_MARKER_SINK: createFamily(*node, function_name_node, arg_list, statement_list); break;
+    default:
+        createFamily(*node, function_name_node, arg_list, statement_list);
+        break;  // SINK
 
-    default:  // PL_MARKER_LOCAL
-        createFamily(*node, arg_list, statement_list);
-        break;
-    }
-
-    return PL_RET_OK;
+        return PL_RET_OK;
 
 error:
 
-    plAstFree(function_name_node, scanner->table);
-    plAstFree(arg_list, scanner->table);
-    plAstFree(type_node, scanner->table);
+        plAstFree(function_name_node, scanner->table);
+        plAstFree(arg_list, scanner->table);
+        plAstFree(type_node, scanner->table);
 
-    if (TERMINAL_MARKER(scanner->last_marker)) {
-        return translateTerminalMarker(scanner->last_marker);
-    }
-    else {
         return ret;
     }
-}
 
-int
-parseInlineFunction(plLexicalScanner *scanner, plAstNode **node)
-{
-    (void)scanner;
+    int parseInlineFunction(plLexicalScanner * scanner, plAstNode * *node)
+    {
+        (void)scanner;
 
-    *node = NULL;
-    VASQ_ERROR("This function has not yet been implemented.");
-    return PL_RET_BAD_DATA;
-}
+        *node = NULL;
+        VASQ_ERROR("This function has not yet been implemented.");
+        return PL_RET_BAD_DATA;
+    }
