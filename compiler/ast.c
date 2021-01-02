@@ -104,7 +104,7 @@ plAstSplitSize(int node_type)
     case PL_MARKER_TYPE:
     case PL_MARKER_IMPORT:
     case PL_MARKER_EXPORT:
-    case PL_MARKER_OPTION: return 0;
+    case PL_MARKER_CONTEXT: return 0;
 
     case PL_MARKER_PROD:
     case PL_MARKER_ELSE:

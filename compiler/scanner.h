@@ -56,7 +56,7 @@ enum plLexicalMarker {
     PL_MARKER_ARITHMETIC,
     PL_MARKER_REASSIGNMENT,
     PL_MARKER_COMPARISON,
-    PL_MARKER_OPTION,
+    PL_MARKER_CONTEXT,
 };
 #define TERMINAL_MARKER(marker) ((marker) <= PL_MARKER_EOF)
 
@@ -88,6 +88,7 @@ enum plLexicalSubmarker {
     PL_SUBMARKER_GREATER_THAN_EQ,
     PL_SUBMARKER_STORE,
     PL_SUBMARKER_ATTACH,
+    PL_SUBMARKER_CONTEXT,
 };
 
 typedef struct plLexicalLocation {

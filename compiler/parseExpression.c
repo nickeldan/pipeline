@@ -111,7 +111,7 @@ start:
         break;
 
     case PL_MARKER_OBJECT:
-    case PL_MARKER_OPTION:
+    case PL_MARKER_CONTEXT:
         *node = plAstNew(token.marker);
         if (!*node) {
             plTokenCleanup(&token, scanner->table);

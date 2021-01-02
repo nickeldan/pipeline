@@ -24,9 +24,10 @@ static const struct keywordRecord keywords[] = {
     {"import", 6, PL_MARKER_IMPORT}, {"export", 6, PL_MARKER_EXPORT}, {"main", 4, PL_MARKER_MAIN},
 };
 
-static const struct keywordRecord options[] = {
+static const struct keywordRecord contexts[] = {
     {"STORE", 5, PL_SUBMARKER_STORE},
     {"ATTACH", 6, PL_SUBMARKER_ATTACH},
+    {"CONTEXT", 7, PL_SUBMARKER_CONTEXT},
 };
 
 static bool
@@ -493,11 +494,11 @@ arithmetic_token:
         if (isVarChar(scanner->line[1])) {
             unsigned int end;
 
-            for (unsigned int k = 0; k < ARRAY_LENGTH(options); k++) {
-                if (strncmp(scanner->line + 1, options[k].word, options[k].len) == 0) {
-                    scanner->last_marker = PL_MARKER_OPTION;
-                    token->submarker = options[k].marker;
-                    consumed = 1 + options[k].len;
+            for (unsigned int k = 0; k < ARRAY_LENGTH(contexts); k++) {
+                if (strncmp(scanner->line + 1, contexts[k].word, contexts[k].len) == 0) {
+                    scanner->last_marker = PL_MARKER_CONTEXT;
+                    token->submarker = contexts[k].marker;
+                    consumed = 1 + contexts[k].len;
                     goto done;
                 }
             }
@@ -733,7 +734,7 @@ plLexicalMarkerName(int marker)
     case PL_MARKER_ARITHMETIC: return "ARITHMETIC";
     case PL_MARKER_REASSIGNMENT: return "REASSIGNMENT";
     case PL_MARKER_COMPARISON: return "COMPARISON";
-    case PL_MARKER_OPTION: return "OPTION";
+    case PL_MARKER_CONTEXT: return "CONTEXT";
     default: return "";
     }
 }

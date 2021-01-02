@@ -39,7 +39,7 @@ main(int argc, char **argv)
 
     plScannerInit(&scanner, f, argv[1], table);
 
-    while (!TERMINAL_MARKER(plTokenRead(&scanner, &token))) {
+    while (!TERMINAL_MARKER(TOKEN_READ(&scanner, &token))) {
         if (scanner.location.line_no > line_no) {
             if (line_no > 0) {
                 printf("\n");
