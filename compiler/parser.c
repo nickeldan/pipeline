@@ -6,14 +6,14 @@ static int
 parseImportExport(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret, marker;
-    unsigned int line_no;
+    plLexicalLocation location;
     plLexicalToken token;
     plAstNode *name_node;
 
     *node = NULL;
 
     marker = scanner->last_marker;
-    line_no = plLastLineNo(scanner);
+    plGetLastLocation(scanner, &location);
 
     ret = NEXT_TOKEN(scanner, &token);
     if (ret != PL_RET_OK) {
@@ -39,7 +39,7 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
         plAstFree(name_node, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
     }
-    (*node)->token.line_no = line_no;
+    plAstSetLocation(*node, &location);
     createFamily(*node, name_node);
 
     ret = expectMarker(scanner, PL_MARKER_SEMICOLON, NULL);
@@ -63,11 +63,11 @@ static int
 parseMain(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
-    unsigned int line_no;
+    plLexicalLocation location;
     plAstNode *statement_list;
 
     *node = NULL;
-    line_no = plLastLineNo(scanner);
+    plGetLastLocation(scanner, &location);
 
     ret = expectMarker(scanner, PL_MARKER_LEFT_BRACE, NULL);
     if (ret != PL_RET_OK) {
@@ -84,21 +84,10 @@ parseMain(plLexicalScanner *scanner, plAstNode **node)
         plAstFree(statement_list, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
     }
-    (*node)->token.line_no = line_no;
+    plAstSetLocation(*node, &location);
     createFamily(*node, statement_list);
 
     return PL_RET_OK;
-}
-
-static int
-translateTerminalMarker(int marker)
-{
-    switch (marker) {
-    case PL_MARKER_USAGE: return PL_RET_USAGE;
-    case PL_MARKER_READ_FAILURE: return PL_RET_IO;
-    case PL_MARKER_OUT_OF_MEMORY: return PL_RET_OUT_OF_MEMORY;
-    default: return PL_RET_BAD_DATA;
-    }
 }
 
 static int
@@ -165,7 +154,7 @@ cleanup_token:
         return PL_RET_OK;
     }
     else {
-        ret = translateTerminalMarker(scanner->last_marker);
+        ret = plTranslateTerminalMarker(scanner->last_marker);
     }
 
 error:
@@ -214,7 +203,7 @@ nextToken(plLexicalScanner *scanner, plLexicalToken *token)
     int marker;
 
     marker = plTokenRead(scanner, token);
-    return TERMINAL_MARKER(marker) ? translateTerminalMarker(marker) : PL_RET_OK;
+    return TERMINAL_MARKER(marker) ? plTranslateTerminalMarker(marker) : PL_RET_OK;
 }
 
 #else  // LL_USE == VASQ_LL_RAWONLY
@@ -226,13 +215,13 @@ nextTokenLog(const char *file_name, const char *function_name, unsigned int line
     int marker;
 
     marker = plTokenReadLog(file_name, function_name, line_no, scanner, token);
-    return TERMINAL_MARKER(marker) ? translateTerminalMarker(marker) : PL_RET_OK;
+    return TERMINAL_MARKER(marker) ? plTranslateTerminalMarker(marker) : PL_RET_OK;
 }
 
 #endif  // LL_USE == VASQ_LL_RAWONLY
 
 int
-expectMarker(plLexicalScanner *scanner, int marker, unsigned int *line_no)
+expectMarker(plLexicalScanner *scanner, int marker, plLexicalLocation *location)
 {
     int ret;
     plLexicalToken token;
@@ -248,8 +237,8 @@ expectMarker(plLexicalScanner *scanner, int marker, unsigned int *line_no)
         return PL_RET_BAD_DATA;
     }
 
-    if (line_no) {
-        *line_no = token.line_no;
+    if (location) {
+        memcpy(location, &token.location, sizeof(token.location));
     }
 
     return PL_RET_OK;

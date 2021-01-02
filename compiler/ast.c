@@ -80,6 +80,17 @@ plAstFree(plAstNode *node, plNameTable *table)
     free(node);
 }
 
+void
+plAstSetLocation(plAstNode *node, const plLexicalLocation *location)
+{
+    if (!node || !location) {
+        VASQ_ERROR("The arguments cannot be NULL.");
+        return;
+    }
+
+    memcpy(&node->token.location, location, sizeof(*location));
+}
+
 int
 plAstSplitSize(int node_type)
 {

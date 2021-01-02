@@ -1,22 +1,15 @@
 #include "parserInternal.h"
 
-int
-parseExpression(plLexicalScanner *scanner, plAstNode **node, bool inside_parentheses)
+static int
+parseMonomial(plLexicalScanner *scanner, plAstNode **node, bool inside_parentheses)
 {
     int ret;
-    unsigned int negation_line_no = 0;
+    plLexicalLocation negation_location = {0};
     bool negation = false;
     plLexicalToken token;
-    plAstNode *connector_node = NULL, *second_node = NULL;
+    plAstNode *connector_node, *second_node;
 
-    if (node) {
-        *node = NULL;
-    }
-    if (!scanner || !node) {
-        VASQ_ERROR("scanner and node cannot be NULL.");
-
-        return PL_RET_USAGE;
-    }
+    *node = NULL;
 
 start:
 
@@ -26,7 +19,7 @@ start:
     }
 
     switch (token.marker) {
-        unsigned int arrow_line_no;
+        plLexicalLocation arrow_location;
 
     case PL_MARKER_LEFT_PARENS:
         ret = parseExpression(scanner, node, true);
@@ -41,7 +34,7 @@ start:
             return PL_RET_BAD_DATA;
         }
 
-        if (negation_line_no > 0) {
+        if (negation_location.line_no > 0) {
             COMPILER_ERROR("SOURCE cannot be negated.");
             return PL_RET_BAD_DATA;
         }
@@ -51,7 +44,7 @@ start:
             return ret;
         }
 
-        ret = expectMarker(scanner, PL_MARKER_ARROW, &arrow_line_no);
+        ret = expectMarker(scanner, PL_MARKER_ARROW, &arrow_location);
         if (ret != PL_RET_OK) {
             goto error;
         }
@@ -66,17 +59,15 @@ start:
             ret = PL_RET_OUT_OF_MEMORY;
             goto error;
         }
-        connector_node->token.line_no = arrow_line_no;
+        plAstSetLocation(connector_node, &arrow_location);
         createFamily(connector_node, *node, second_node);
         *node = connector_node;
-        connector_node = NULL;
-        second_node = NULL;
-        goto done;
+        return PL_RET_OK;
 
     case PL_MARKER_NOT:
         negation = !negation;
         if (negation) {
-            negation_line_no = token.line_no;
+            memcpy(&negation_location, &token.location, sizeof(token.location));
         }
         goto start;
 
@@ -93,7 +84,7 @@ start:
 
         ret = NEXT_TOKEN(scanner, &token);
         if (ret != PL_RET_OK) {
-            goto error;
+            return ret;
         }
 
         if (token.marker == PL_MARKER_LEFT_PARENS) {
@@ -107,11 +98,9 @@ start:
                 ret = PL_RET_OUT_OF_MEMORY;
                 goto error;
             }
-            connector_node->token.line_no = token.line_no;
+            plAstSetLocation(connector_node, &token.location);
             createFamily(connector_node, *node, second_node);
             *node = connector_node;
-            connector_node = NULL;
-            second_node = NULL;
         }
         else {
             ret = LOOKAHEAD_STORE(scanner, &token);
@@ -138,70 +127,49 @@ start:
         }
         break;
 
-    case PL_MARKER_RIGHT_PARENS:
-        if (inside_parentheses) {
-            if (negation_line_no > 0) {
-                COMPILER_ERROR("There is nothing to negate.");
-            }
-            else {
-                COMPILER_ERROR("Empty parentheses.");
-            }
-            return PL_RET_BAD_DATA;
-        }
-        /* FALLTHROUGH */
     default:
         COMPILER_ERROR("Unexpected %s in place of expression.", plLexicalMarkerName(token.marker));
         // I don't need to call plTokenCleanup since I know that it's neither a NAME nor an OBJECT.
         return PL_RET_BAD_DATA;
     }
 
-    if (negation_line_no == 0) {
-        // Check for attributes and array indexing.
-        while (true) {
-            if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
-                goto error;
-            }
+    // Check for attributes and array indexing.
+    while (true) {
+        ret = NEXT_TOKEN(scanner, &token);
+        if (ret != PL_RET_OK) {
+            goto error;
+        }
 
-            if (token.marker == PL_MARKER_LEFT_BRACKET) {
-                ret = parseExpression(scanner, &second_node, false);
-                if (ret != PL_RET_OK) {
-                    goto error;
-                }
-
-                ret = expectMarker(scanner, PL_MARKER_RIGHT_BRACKET, NULL);
-            }
-            else if (token.marker == PL_MARKER_PERIOD) {
-                ret = parseExtendedName(scanner, &second_node);
-            }
-            else {
-                break;
-            }
-
+        if (token.marker == PL_MARKER_LEFT_BRACKET) {
+            ret = parseExpression(scanner, &second_node, false);
             if (ret != PL_RET_OK) {
                 goto error;
             }
 
-            connector_node = plAstNew(token.marker);
-            if (!connector_node) {
-                ret = PL_RET_OUT_OF_MEMORY;
-                goto error;
-            }
-            connector_node->token.line_no = token.line_no;
-            createFamily(connector_node, *node, second_node);
-            *node = connector_node;
-            connector_node = NULL;
-            second_node = NULL;
+            ret = expectMarker(scanner, PL_MARKER_RIGHT_BRACKET, NULL);
         }
+        else if (token.marker == PL_MARKER_PERIOD) {
+            ret = parseExtendedName(scanner, &second_node);
+        }
+        else {
+            break;
+        }
+
+        if (ret != PL_RET_OK) {
+            goto error;
+        }
+
+        connector_node = plAstNew(token.marker);
+        if (!connector_node) {
+            ret = PL_RET_OUT_OF_MEMORY;
+            goto error;
+        }
+        plAstSetLocation(connector_node, &token.location);
+        createFamily(connector_node, *node, second_node);
+        *node = connector_node;
     }
-    else if ((*node)->token.marker == PL_MARKER_COMMA) {
-        COMPILER_ERROR("COMMA-delimited list cannot be negated.");
-        ret = PL_RET_BAD_DATA;
-        goto error;
-    }
-    else if (TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
-        goto error;
-    }
-    else {
+
+    if (negation_location.line_no > 0) {
         // Even if negation is false (meaning that the NOT token appeared an even number of times), the
         // value of the expression must still be converted into a Bool.
         for (int k = 0; k <= 1 - (int)negation; k++) {  // negation, as an integer, is either 0 or 1.
@@ -211,85 +179,9 @@ start:
                 ret = PL_RET_OUT_OF_MEMORY;
                 goto error;
             }
-            connector_node->token.line_no = negation_line_no;
+            plAstSetLocation(connector_node, &negation_location);
             createFamily(connector_node, *node);
             *node = connector_node;
-            connector_node = NULL;
-        }
-    }
-
-    if ((*node)->token.marker == PL_MARKER_COMMA && token.marker != PL_MARKER_ARROW) {
-        COMPILER_ERROR("COMMA-delimited list must be followed by ARROW and not %s.",
-                       plLexicalMarkerName(token.marker));
-        plTokenCleanup(&token, scanner->table);
-        ret = PL_RET_BAD_DATA;
-        goto error;
-    }
-
-    switch (token.marker) {
-    case PL_MARKER_ARROW:
-        if (!inside_parentheses) {
-            COMPILER_ERROR("Invalid ARROW in expression without parentheses.");
-            ret = PL_RET_BAD_DATA;
-            goto error;
-        }
-        ret = parseReceiver(scanner, &second_node);
-        break;
-
-    case PL_MARKER_IS:
-        ret = parseExtendedType(scanner, &second_node);
-        break;
-        ;
-
-    case PL_MARKER_ARITHMETIC:
-        switch (token.submarker) {
-        case PL_SUBMARKER_PLUS:
-            // continue coding here
-        }
-        break;
-
-    case PL_MARKER_LOGICAL:
-        // continue coding here
-        break;
-
-    case PL_MARKER_COMPARISON:
-        // continue coding here
-        break;
-
-    case PL_MARKER_COMMA:
-        if (inside_parentheses) {
-            return PL_RET_OK;
-        }
-        /* FALLTHROUGH */
-    default:
-        ret = LOOKAHEAD_STORE(scanner, &token);
-        if (ret != PL_RET_OK) {
-            goto error;
-        }
-        goto done;
-    }
-
-    if (ret != PL_RET_OK) {
-        goto error;
-    }
-
-    connector_node = plAstNew(token.marker);
-    if (!connector_node) {
-        ret = PL_RET_OUT_OF_MEMORY;
-        goto error;
-    }
-    memcpy(&connector_node->token, &token, sizeof(token));
-    createFamily(connector_node, *node, second_node);
-    *node = connector_node;
-    connector_node = NULL;
-    second_node = NULL;
-
-done:
-
-    if (inside_parentheses) {
-        ret = expectMarker(scanner, PL_MARKER_RIGHT_PARENS, NULL);
-        if (ret != PL_RET_OK) {
-            goto error;
         }
     }
 
@@ -298,10 +190,27 @@ done:
 error:
 
     plAstFree(*node, scanner->table);
-    plAstFree(connector_node, scanner->table);
-    plAstFree(second_node, scanner->table);
-
     *node = NULL;
 
     return ret;
+}
+
+int
+parseExpression(plLexicalScanner *scanner, plAstNode **node, bool inside_parentheses)
+{
+    //    int ret;
+    //    plLexicalToken token;
+    (void)inside_parentheses;
+
+    if (node) {
+        *node = NULL;
+    }
+    if (!scanner || !node) {
+        VASQ_ERROR("scanner and node cannot be NULL.");
+
+        return PL_RET_USAGE;
+    }
+
+    VASQ_ERROR("This function has not yet been implemented.");
+    return PL_RET_BAD_DATA;
 }

@@ -21,7 +21,7 @@ nextTokenLog(const char *file_name, const char *function_name, unsigned int line
 #endif  // LL_USE == VASQ_LL_RAWONLY
 
 int
-expectMarker(plLexicalScanner *scanner, int marker, unsigned int *line_no);
+expectMarker(plLexicalScanner *scanner, int marker, plLexicalLocation *location);
 
 void
 createFamily(plAstNode *parent, ...);
@@ -34,6 +34,9 @@ parseExtendedType(plLexicalScanner *scanner, plAstNode **node);
 
 int
 parseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node);
+
+int
+parseStructDefinition(plLexicalScanner *scanner, plAstNode **node);
 
 int
 parseStructDeclaration(plLexicalScanner *scanner, plAstNode **node);

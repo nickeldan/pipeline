@@ -84,6 +84,7 @@ static void
 advanceScanner(plLexicalScanner *scanner, unsigned int length)
 {
     scanner->line += length;
+    scanner->location.column_no += length;
     scanner->line_length -= length;
 }
 
@@ -129,10 +130,11 @@ prepLine(plLexicalScanner *scanner)
             return false;
         }
 
-        scanner->line_no++;
+        scanner->location.line_no++;
+        scanner->location.column_no = 0;
         scanner->line_length = strnlen(scanner->buffer, sizeof(scanner->buffer));
         if (scanner->line_length >= sizeof(scanner->buffer)) {
-            VASQ_RAWLOG("%s:%u: Line too long\n", scanner->file_name, scanner->line_no);
+            VASQ_RAWLOG("%s:%u: Line too long\n", scanner->file_name, scanner->location.line_no);
             scanner->last_marker = PL_MARKER_BAD_DATA;
             return false;
         }
@@ -146,6 +148,17 @@ prepLine(plLexicalScanner *scanner)
             }
             else {
                 break;
+            }
+        }
+
+        for (unsigned int k = 0; k < scanner->line_length; k++) {
+            char c = scanner->buffer[k];
+
+            if (!isprint(c) && c != '\t') {
+                VASQ_RAWLOG("%s:%u:%u: Unprintable character: 0x%02x\n", scanner->file_name,
+                            scanner->location.line_no, k, c);
+                scanner->last_marker = PL_MARKER_BAD_DATA;
+                return false;
             }
         }
 
@@ -333,7 +346,8 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
     if (scanner->num_look_ahead > 0) {
         memcpy(token, scanner->look_ahead + 0, sizeof(*token));
         scanner->last_marker = scanner->look_ahead[0].marker;
-        scanner->last_look_ahead_line_no = scanner->look_ahead[0].line_no;
+        memcpy(&scanner->last_look_ahead_loc, &scanner->look_ahead[0].location,
+               sizeof(scanner->last_look_ahead_loc));
         if (scanner->num_look_ahead > 1) {
             memmove(scanner->look_ahead + 0, scanner->look_ahead + 1,
                     sizeof(*token) * (scanner->num_look_ahead - 1));
@@ -342,7 +356,7 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
         goto return_marker;
     }
     else {
-        scanner->last_look_ahead_line_no = 0;
+        scanner->last_look_ahead_loc.line_no = 0;
     }
 
 read_token:
@@ -353,7 +367,7 @@ read_token:
 
     token->ctx.object = NULL;
     token->submarker = PL_SUBMARKER_NONE;
-    token->line_no = scanner->line_no;
+    memcpy(&token->location, &scanner->location, sizeof(scanner->location));
     consumed = 1;
 
     switch (scanner->line[0]) {
@@ -390,7 +404,7 @@ read_token:
         }
         else if (scanner->line[1] == '*') {
             scanner->inside_comment_block = true;
-            scanner->comment_block_line_no = scanner->line_no;
+            scanner->comment_block_line_no = scanner->location.line_no;
 
             for (consumed = 2; consumed < scanner->line_length; consumed++) {
                 if (scanner->line[consumed] == '*' && scanner->line[consumed + 1] == '/') {
@@ -625,20 +639,35 @@ return_marker:
     return scanner->last_marker;
 }
 
-unsigned int
-plLastLineNo(const plLexicalScanner *scanner)
+int
+plTranslateTerminalMarker(int marker)
 {
-    if (!scanner) {
-        VASQ_ERROR("scanner cannot be NULL");
-        return 0;
+    switch (marker) {
+    case PL_MARKER_USAGE: return PL_RET_USAGE;
+    case PL_MARKER_READ_FAILURE: return PL_RET_IO;
+    case PL_MARKER_OUT_OF_MEMORY: return PL_RET_OUT_OF_MEMORY;
+    default: return PL_RET_BAD_DATA;
+    }
+}
+
+void
+plGetLastLocation(const plLexicalScanner *scanner, plLexicalLocation *location)
+{
+    const plLexicalLocation *ptr;
+
+    if (!scanner || !location) {
+        VASQ_ERROR("The arguments cannot be NULL");
+        return;
     }
 
-    if (scanner->last_look_ahead_line_no > 0) {
-        return scanner->last_look_ahead_line_no;
+    if (scanner->last_look_ahead_loc.line_no > 0) {
+        ptr = &scanner->last_look_ahead_loc;
     }
     else {
-        return scanner->line_no;
+        ptr = &scanner->location;
     }
+
+    memcpy(location, ptr, sizeof(*ptr));
 }
 
 void

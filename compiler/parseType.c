@@ -51,7 +51,7 @@ parseExtendedType(plLexicalScanner *scanner, plAstNode **node)
                 ret = PL_RET_OUT_OF_MEMORY;
                 goto error;
             }
-            question_node->token.line_no = token.line_no;
+            plAstSetLocation(question_node, &token.location);
             createFamily(question_node, *node);
             *node = question_node;
         }

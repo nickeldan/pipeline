@@ -90,14 +90,19 @@ enum plLexicalSubmarker {
     PL_SUBMARKER_ATTACH,
 };
 
+typedef struct plLexicalLocation {
+    unsigned int line_no;
+    unsigned int column_no;
+} plLexicalLocation;
+
 typedef struct plLexicalToken {
     union {
         const char *name;
         plObject *object;
     } ctx;
+    plLexicalLocation location;
     int marker;
     int submarker;
-    unsigned int line_no;
 } plLexicalToken;
 
 typedef struct plLexicalScanner {
@@ -106,8 +111,8 @@ typedef struct plLexicalScanner {
     plNameTable *table;
     const char *file_name;
     char *line;
-    unsigned int line_no;
-    unsigned int last_look_ahead_line_no;
+    plLexicalLocation location;
+    plLexicalLocation last_look_ahead_loc;
     unsigned int comment_block_line_no;
     unsigned int line_length;
     int last_marker;
@@ -124,6 +129,9 @@ plScannerCleanup(plLexicalScanner *scanner);
 
 int
 plTokenRead(plLexicalScanner *scanner, plLexicalToken *token);
+
+int
+plTranslateTerminalMarker(int marker);
 
 #if LL_USE == VASQ_LL_RAWONLY
 
@@ -147,8 +155,8 @@ plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned i
 
 #endif  // LL_USE == VASQ_LL_RAWONLY
 
-unsigned int
-plLastLineNo(const plLexicalScanner *scanner);
+void
+plGetLastLocation(const plLexicalScanner *scanner, plLexicalLocation *location);
 
 void
 plTokenCleanup(plLexicalToken *token, plNameTable *table);
@@ -161,18 +169,20 @@ plStripLineBeginning(const char *line);
 
 #if LL_USE == VASQ_LL_RAWONLY
 
-#define COMPILER_ERROR(format, ...)                                                              \
-    do {                                                                                         \
-        VASQ_RAWLOG("%s:%u: " format "\n", scanner->file_name, scanner->line_no, ##__VA_ARGS__); \
-        VASQ_RAWLOG("\t%s\n", plStripLineBeginning(scanner->buffer));                            \
+#define COMPILER_ERROR(format, ...)                                                          \
+    do {                                                                                     \
+        VASQ_RAWLOG("%s:%u:%u: " format "\n", scanner->file_name, scanner->location.line_no, \
+                    scanner->location.column_no, ##__VA_ARGS__);                             \
+        VASQ_RAWLOG("\t%s\n", plStripLineBeginning(scanner->buffer));                        \
     } while (0)
 
 #else
 
-#define COMPILER_ERROR(format, ...)                                                       \
-    do {                                                                                  \
-        VASQ_ERROR("%s:%u " format, scanner->file_name, scanner->line_no, ##__VA_ARGS__); \
-        VASQ_ERROR("%s", plStripLineBeginning(scanner->buffer));                          \
+#define COMPILER_ERROR(format, ...)                                                    \
+    do {                                                                               \
+        VASQ_ERROR("%s:%u:%u: " format, scanner->file_name, scanner->location.line_no, \
+                   scanner->location.column_no, ##__VA_ARGS__);                        \
+        VASQ_ERROR("%s", plStripLineBeginning(scanner->buffer));                       \
     } while (0)
 
 #endif  // LL_USE == VASQ_LL_RAWONLY

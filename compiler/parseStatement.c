@@ -43,7 +43,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         if (!*node) {
             return PL_RET_OUT_OF_MEMORY;
         }
-        (*node)->token.line_no = token.line_no;
+        plAstSetLocation(*node, &token.location);
 
         return PL_RET_OK;
 
@@ -65,7 +65,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             ret = PL_RET_OUT_OF_MEMORY;
             goto error;
         }
-        (*node)->token.line_no = token.line_no;
+        plAstSetLocation(*node, &token.location);
         createFamily(*node, first_node);
 
         return PL_RET_OK;
@@ -116,7 +116,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
                 plAstFree(type_node, scanner->table);
                 return PL_RET_OUT_OF_MEMORY;
             }
-            (*node)->token.line_no = next_token.line_no;
+            plAstSetLocation(*node, &next_token.location);
             createFamily(*node, name_node, type_node);
             return PL_RET_OK;
         }
@@ -151,7 +151,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
                 plAstFree(name_node, scanner->table);
                 return PL_RET_OUT_OF_MEMORY;
             }
-            (*node)->token.line_no = token.line_no;
+            plAstSetLocation(*node, &token.location);
             createFamily(*node, name_node);
 
             return PL_RET_OK;
@@ -234,7 +234,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
     }
-    (*node)->token.line_no = token.line_no;
+    plAstSetLocation(*node, &token.location);
     createFamily(*node, first_node, receiver_node);
 
     return PL_RET_OK;
@@ -292,7 +292,7 @@ parseStatementList(plLexicalScanner *scanner, plAstNode **node)
                 ret = PL_RET_OUT_OF_MEMORY;
                 goto error;
             }
-            semicolon_node->token.line_no = token.line_no;
+            plAstSetLocation(semicolon_node, &token.location);
             createFamily(semicolon_node, *node, statement_node);
             *node = semicolon_node;
         }

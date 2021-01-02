@@ -48,5 +48,8 @@ plAstNew(int node_type);
 void
 plAstFree(plAstNode *node, plNameTable *table);
 
+void
+plAstSetLocation(plAstNode *node, const plLexicalLocation *location);
+
 int
 plAstSplitSize(int node_type);

@@ -4,7 +4,7 @@ int
 parseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
-    unsigned int line_no;
+    plLexicalLocation location;
     plAstNode *condition_node, *statement_list;
 
     if (node) {
@@ -15,7 +15,7 @@ parseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
         return PL_RET_USAGE;
     }
 
-    line_no = plLastLineNo(scanner);
+    plGetLastLocation(scanner, &location);
 
     ret = parseExpression(scanner, &condition_node, false);
     if (ret != PL_RET_OK) {
@@ -40,7 +40,7 @@ parseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
         plAstFree(statement_list, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
     }
-    (*node)->token.line_no = line_no;
+    plAstSetLocation(*node, &location);
     createFamily(*node, condition_node, statement_list);
 
     return PL_RET_OK;

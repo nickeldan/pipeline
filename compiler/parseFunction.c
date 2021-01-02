@@ -4,12 +4,12 @@ int
 parseFunction(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret, function_marker = scanner->last_marker;
-    unsigned int line_no;
+    plLexicalLocation function_location;
     plLexicalToken token;
     plAstNode *function_name_node = NULL, *arg_list = NULL, *type_node = NULL, *statement_list;
 
     *node = NULL;
-    line_no = plLastLineNo(scanner);
+    plGetLastLocation(scanner, &function_location);
 
     ret = NEXT_TOKEN(scanner, &token);
     if (ret != PL_RET_OK) {
@@ -43,7 +43,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node)
 
     while (true) {
         int previous_marker = scanner->last_marker;
-        unsigned int line_no;
+        plLexicalLocation location;
         plAstNode *name_node, *arg_node;
 
         ret = NEXT_TOKEN(scanner, &token);
@@ -93,7 +93,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node)
         }
         memcpy(&name_node->token, &token, sizeof(token));
 
-        ret = expectMarker(scanner, PL_MARKER_COLON, &line_no);
+        ret = expectMarker(scanner, PL_MARKER_COLON, &location);
         if (ret != PL_RET_OK) {
             goto cleanup_name_node;
         }
@@ -108,7 +108,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node)
             ret = PL_RET_OUT_OF_MEMORY;
             goto cleanup_name_node;
         }
-        arg_node->token.line_no = line_no;
+        plAstSetLocation(arg_node, &location);
         createFamily(arg_node, name_node, type_node);
         type_node = NULL;
 
@@ -163,7 +163,7 @@ cleanup_name_node:
         plAstFree(statement_list, scanner->table);
         goto error;
     }
-    (*node)->token.line_no = line_no;
+    plAstSetLocation(*node, &function_location);
 
     switch (function_marker) {
     case PL_MARKER_SOURCE:
@@ -174,21 +174,23 @@ cleanup_name_node:
         break;  // SINK
 
         return PL_RET_OK;
+    }
 
 error:
 
-        plAstFree(function_name_node, scanner->table);
-        plAstFree(arg_list, scanner->table);
-        plAstFree(type_node, scanner->table);
+    plAstFree(function_name_node, scanner->table);
+    plAstFree(arg_list, scanner->table);
+    plAstFree(type_node, scanner->table);
 
-        return ret;
-    }
+    return ret;
+}
 
-    int parseInlineFunction(plLexicalScanner * scanner, plAstNode * *node)
-    {
-        (void)scanner;
+int
+parseInlineFunction(plLexicalScanner *scanner, plAstNode **node)
+{
+    (void)scanner;
 
-        *node = NULL;
-        VASQ_ERROR("This function has not yet been implemented.");
-        return PL_RET_BAD_DATA;
-    }
+    *node = NULL;
+    VASQ_ERROR("This function has not yet been implemented.");
+    return PL_RET_BAD_DATA;
+}

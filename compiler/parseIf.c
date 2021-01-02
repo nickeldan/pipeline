@@ -4,7 +4,7 @@ int
 parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
-    unsigned int line_no;
+    plLexicalLocation location;
     plLexicalToken token;
     plAstNode *condition_node, *statement_list = NULL, *eif_node = NULL, *last_eif_node = NULL,
                                *else_node = NULL;
@@ -17,7 +17,7 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
         return PL_RET_USAGE;
     }
 
-    line_no = plLastLineNo(scanner);
+    plGetLastLocation(scanner, &location);
 
     ret = parseExpression(scanner, &condition_node, false);
     if (ret != PL_RET_OK) {
@@ -65,7 +65,7 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
             ret = PL_RET_OUT_OF_MEMORY;
             goto eif_loop_error;
         }
-        eif2_node->token.line_no = token.line_no;
+        plAstSetLocation(eif2_node, &token.location);
         createFamily(eif2_node, eif_condition_node, eif_statement_list, NULL);
 
         if (last_eif_node) {
@@ -104,7 +104,7 @@ eif_loop_error:
             ret = PL_RET_OUT_OF_MEMORY;
             goto error;
         }
-        else_node->token.line_no = token.line_no;
+        plAstSetLocation(else_node, &token.location);
         createFamily(else_node, else_statement_list);
     }
     else {
@@ -119,7 +119,7 @@ eif_loop_error:
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
     }
-    (*node)->token.line_no = line_no;
+    plAstSetLocation(*node, &location);
     createFamily(*node, condition_node, statement_list, eif_node, else_node);
 
     return PL_RET_OK;
