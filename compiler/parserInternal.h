@@ -23,8 +23,11 @@ nextTokenLog(const char *file_name, const char *function_name, unsigned int line
 int
 expectMarker(plLexicalScanner *scanner, int marker, plLexicalLocation *location);
 
-void
-createFamily(plAstNode *parent, ...);
+plAstNode *
+createFamily(int marker, ...);
+
+int
+createConnection(int marker, plAstNode **first, plAstNode *second);
 
 int
 parseExtendedName(plLexicalScanner *scanner, plAstNode **node);
@@ -39,10 +42,7 @@ int
 parseStructDefinition(plLexicalScanner *scanner, plAstNode **node);
 
 int
-parseStructDeclaration(plLexicalScanner *scanner, plAstNode **node);
-
-int
-parseExpression(plLexicalScanner *scanner, plAstNode **node, bool inside_parentheses);
+parseExpression(plLexicalScanner *scanner, plAstNode **node);
 
 int
 parseReceiver(plLexicalScanner *scanner, plAstNode **node);

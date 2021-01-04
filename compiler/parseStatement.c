@@ -50,7 +50,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
     case PL_MARKER_PROD:
     case PL_MARKER_VERIFY:
     case PL_MARKER_ABORT:
-        ret = parseExpression(scanner, &first_node, false);
+        ret = parseExpression(scanner, &first_node);
         if (ret != PL_RET_OK) {
             return ret;
         }
@@ -60,13 +60,12 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             goto error;
         }
 
-        *node = plAstNew(token.marker);
+        *node = createFamily(token.marker, first_node);
         if (!*node) {
             ret = PL_RET_OUT_OF_MEMORY;
             goto error;
         }
-        plAstSetLocation(*node, &token.location);
-        createFamily(*node, first_node);
+        memcpy(&(*node)->token, &token, sizeof(token));
 
         return PL_RET_OK;
 
@@ -110,14 +109,14 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             }
             memcpy(&name_node->token, &token, sizeof(token));
 
-            *node = plAstNew(next_token.marker);
+            *node = createFamily(next_token.marker, name_node, type_node);
             if (*node) {
                 plAstFree(name_node, scanner->table);
                 plAstFree(type_node, scanner->table);
                 return PL_RET_OUT_OF_MEMORY;
             }
-            plAstSetLocation(*node, &next_token.location);
-            createFamily(*node, name_node, type_node);
+            memcpy(&(*node)->token, &next_token, sizeof(next_token));
+
             return PL_RET_OK;
         }
         else {
@@ -146,13 +145,12 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             }
             memcpy(&name_node->token, &next_token, sizeof(next_token));
 
-            *node = plAstNew('%');
+            *node = createFamily('%', name_node);
             if (!*node) {
                 plAstFree(name_node, scanner->table);
                 return PL_RET_OUT_OF_MEMORY;
             }
-            plAstSetLocation(*node, &token.location);
-            createFamily(*node, name_node);
+            memcpy(&(*node)->token, &token, sizeof(token));
 
             return PL_RET_OK;
         }
@@ -169,7 +167,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         return PL_RET_OK;
     }
 
-    ret = parseExpression(scanner, &first_node, false);
+    ret = parseExpression(scanner, &first_node);
     if (ret != PL_RET_OK) {
         return ret;
     }
@@ -188,7 +186,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             goto error;
         }
 
-        ret = parseExpression(scanner, &rvalue_node, false);
+        ret = parseExpression(scanner, &rvalue_node);
         if (ret != PL_RET_OK) {
             goto error;
         }
@@ -199,14 +197,13 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             goto error;
         }
 
-        *node = plAstNew(PL_MARKER_REASSIGNMENT);
+        *node = createFamily(PL_MARKER_REASSIGNMENT, first_node, rvalue_node);
         if (!*node) {
             plAstFree(rvalue_node, scanner->table);
             ret = PL_RET_OUT_OF_MEMORY;
             goto error;
         }
         memcpy(&(*node)->token, &token, sizeof(token));
-        createFamily(*node, first_node, rvalue_node);
 
         return PL_RET_OK;
     }
@@ -229,13 +226,12 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         goto error;
     }
 
-    *node = plAstNew(PL_MARKER_ARROW);
+    *node = createFamily(PL_MARKER_ARROW, first_node, receiver_node);
     if (!*node) {
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
     }
-    plAstSetLocation(*node, &token.location);
-    createFamily(*node, first_node, receiver_node);
+    memcpy(&(*node)->token, &token, sizeof(token));
 
     return PL_RET_OK;
 
@@ -284,17 +280,12 @@ parseStatementList(plLexicalScanner *scanner, plAstNode **node)
         }
 
         if (*node) {
-            plAstNode *semicolon_node;
-
-            semicolon_node = plAstNew(PL_MARKER_SEMICOLON);
-            if (!semicolon_node) {
+            ret = createConnection(PL_MARKER_SEMICOLON, node, statement_node);
+            if (ret != PL_RET_OK) {
                 plAstFree(statement_node, scanner->table);
-                ret = PL_RET_OUT_OF_MEMORY;
                 goto error;
             }
-            plAstSetLocation(semicolon_node, &token.location);
-            createFamily(semicolon_node, *node, statement_node);
-            *node = semicolon_node;
+            memcpy(&(*node)->token, &token, sizeof(token));
         }
         else {
             *node = statement_node;

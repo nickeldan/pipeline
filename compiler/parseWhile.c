@@ -17,7 +17,7 @@ parseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
 
     plGetLastLocation(scanner, &location);
 
-    ret = parseExpression(scanner, &condition_node, false);
+    ret = parseExpression(scanner, &condition_node);
     if (ret != PL_RET_OK) {
         return ret;
     }
@@ -34,14 +34,13 @@ parseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
         return ret;
     }
 
-    *node = plAstNew(PL_MARKER_WHILE);
+    *node = createFamily(PL_MARKER_WHILE, condition_node, statement_list);
     if (!*node) {
         plAstFree(condition_node, scanner->table);
         plAstFree(statement_list, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
     }
     plAstSetLocation(*node, &location);
-    createFamily(*node, condition_node, statement_list);
 
     return PL_RET_OK;
 }

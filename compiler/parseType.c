@@ -46,13 +46,12 @@ parseExtendedType(plLexicalScanner *scanner, plAstNode **node)
         if (token.marker == PL_MARKER_QUESTION) {
             plAstNode *question_node;
 
-            question_node = plAstNew(PL_MARKER_QUESTION);
+            question_node = createFamily(PL_MARKER_QUESTION, *node);
             if (!question_node) {
                 ret = PL_RET_OUT_OF_MEMORY;
                 goto error;
             }
-            plAstSetLocation(question_node, &token.location);
-            createFamily(question_node, *node);
+            memcpy(&question_node->token, &token, sizeof(token));
             *node = question_node;
         }
         else {

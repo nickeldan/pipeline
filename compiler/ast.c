@@ -125,7 +125,7 @@ plAstSplitSize(int node_type)
     case PL_MARKER_AS:
     case PL_MARKER_LOCAL:
     case PL_MARKER_LEFT_BRACKET:  // For array indexing.
-    case 'C': return 2;
+    case PL_MARKER_LEFT_PARENS: return 2;
 
     case PL_MARKER_EIF:
     case PL_MARKER_SINK: return 3;

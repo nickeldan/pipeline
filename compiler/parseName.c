@@ -68,7 +68,10 @@ parseExtendedName(plLexicalScanner *scanner, plAstNode **node)
         memcpy(&name_node->token, &token, sizeof(token));
 
         if (period_node) {
-            createFamily(period_node, *node, name_node);
+            plAstMaxSplitNode *splitter = (plAstMaxSplitNode *)period_node;
+
+            splitter->nodes[0] = *node;
+            splitter->nodes[1] = name_node;
             *node = period_node;
         }
         else {

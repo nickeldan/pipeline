@@ -6,7 +6,9 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node)
     int ret, function_marker = scanner->last_marker;
     plLexicalLocation function_location;
     plLexicalToken token;
+    plLexicalLocation comma_location = {0};
     plAstNode *function_name_node = NULL, *arg_list = NULL, *type_node = NULL, *statement_list;
+    plAstMaxSplitNode *splitter;
 
     *node = NULL;
     plGetLastLocation(scanner, &function_location);
@@ -74,6 +76,8 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node)
                 goto error;
             }
 
+            memcpy(&comma_location, &token.location, sizeof(token.location));
+
             continue;
         }
 
@@ -103,26 +107,21 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node)
             goto cleanup_name_node;
         }
 
-        arg_node = plAstNew(PL_MARKER_COLON);
+        arg_node = createFamily(PL_MARKER_COLON, name_node, type_node);
         if (!arg_node) {
             ret = PL_RET_OUT_OF_MEMORY;
             goto cleanup_name_node;
         }
         plAstSetLocation(arg_node, &location);
-        createFamily(arg_node, name_node, type_node);
         type_node = NULL;
 
         if (arg_list) {
-            plAstNode *comma_node;
-
-            comma_node = plAstNew(PL_MARKER_COMMA);
-            if (!comma_node) {
+            ret = createConnection(PL_MARKER_COMMA, &arg_list, arg_node);
+            if (ret != PL_RET_OK) {
                 plAstFree(arg_node, scanner->table);
-                ret = PL_RET_OUT_OF_MEMORY;
                 goto error;
             }
-            createFamily(comma_node, arg_list, arg_node);
-            arg_list = comma_node;
+            plAstSetLocation(arg_list, &comma_location);
         }
         else {
             arg_list = arg_node;
@@ -165,16 +164,18 @@ cleanup_name_node:
     }
     plAstSetLocation(*node, &function_location);
 
-    switch (function_marker) {
-    case PL_MARKER_SOURCE:
-    case PL_MARKER_PIPE: createFamily(*node, function_name_node, arg_list, type_node, statement_list); break;
-
-    default:
-        createFamily(*node, function_name_node, arg_list, statement_list);
-        break;  // SINK
-
-        return PL_RET_OK;
+    splitter = (plAstMaxSplitNode *)(*node);
+    splitter->nodes[0] = function_name_node;
+    splitter->nodes[1] = arg_list;
+    if (function_marker == PL_MARKER_SINK) {
+        splitter->nodes[2] = statement_list;
     }
+    else {
+        splitter->nodes[2] = type_node;
+        splitter->nodes[3] = statement_list;
+    }
+
+    return PL_RET_OK;
 
 error:
 

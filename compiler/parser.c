@@ -34,13 +34,12 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
     }
     memcpy(&name_node->token, &token, sizeof(token));
 
-    *node = plAstNew(marker);
+    *node = createFamily(marker, name_node);
     if (!*node) {
         plAstFree(name_node, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
     }
     plAstSetLocation(*node, &location);
-    createFamily(*node, name_node);
 
     ret = expectMarker(scanner, PL_MARKER_SEMICOLON, NULL);
     if (ret != PL_RET_OK) {
@@ -79,13 +78,12 @@ parseMain(plLexicalScanner *scanner, plAstNode **node)
         return ret;
     }
 
-    *node = plAstNew(PL_MARKER_MAIN);
+    *node = createFamily(PL_MARKER_MAIN, statement_list);
     if (!*node) {
         plAstFree(statement_list, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
     }
     plAstSetLocation(*node, &location);
-    createFamily(*node, statement_list);
 
     return PL_RET_OK;
 }
@@ -129,17 +127,11 @@ cleanup_token:
         }
 
         if (*tree) {
-            plAstNode *parent;
-
-            parent = plAstNew(PL_MARKER_SEMICOLON);
-            if (!parent) {
+            ret = createConnection(PL_MARKER_SEMICOLON, tree, node);
+            if (ret != PL_RET_OK) {
                 plAstFree(node, scanner->table);
-                ret = PL_RET_OUT_OF_MEMORY;
                 goto error;
             }
-
-            createFamily(parent, *tree, node);
-            *tree = parent;
         }
         else {
             *tree = node;
@@ -244,15 +236,22 @@ expectMarker(plLexicalScanner *scanner, int marker, plLexicalLocation *location)
     return PL_RET_OK;
 }
 
-void
-createFamily(plAstNode *parent, ...)
+plAstNode *
+createFamily(int marker, ...)
 {
     int split_size;
     va_list args;
-    plAstMaxSplitNode *splitter = (plAstMaxSplitNode *)parent;
+    plAstNode *parent;
+    plAstMaxSplitNode *splitter;
 
-    split_size = plAstSplitSize(parent->token.marker);
-    va_start(args, parent);
+    parent = plAstNew(marker);
+    if (!parent) {
+        return NULL;
+    }
+    splitter = (plAstMaxSplitNode *)parent;
+
+    split_size = plAstSplitSize(marker);
+    va_start(args, marker);
     for (int k = 0; k < split_size; k++) {
         plAstNode *node;
 
@@ -265,4 +264,30 @@ createFamily(plAstNode *parent, ...)
         splitter->nodes[k] = node;
     }
     va_end(args);
+
+    return parent;
+}
+
+int
+createConnection(int marker, plAstNode **first, plAstNode *second)
+{
+    plAstNode *parent;
+
+    if (!first || !second) {
+        VASQ_ERROR("The arguments cannot be NULL.");
+        return PL_RET_USAGE;
+    }
+
+    if (!*first) {
+        VASQ_ERROR("*first cannot be NULL.");
+        return PL_RET_USAGE;
+    }
+
+    parent = createFamily(marker, *first, second);
+    if (!parent) {
+        return PL_RET_OUT_OF_MEMORY;
+    }
+    *first = parent;
+
+    return PL_RET_OK;
 }

@@ -19,7 +19,7 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
 
     plGetLastLocation(scanner, &location);
 
-    ret = parseExpression(scanner, &condition_node, false);
+    ret = parseExpression(scanner, &condition_node);
     if (ret != PL_RET_OK) {
         return ret;
     }
@@ -45,7 +45,7 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
             break;
         }
 
-        ret = parseExpression(scanner, &eif_condition_node, false);
+        ret = parseExpression(scanner, &eif_condition_node);
         if (ret != PL_RET_OK) {
             goto error;
         }
@@ -60,13 +60,12 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
             goto eif_loop_error;
         }
 
-        eif2_node = plAstNew(PL_MARKER_EIF);
+        eif2_node = createFamily(PL_MARKER_EIF, eif_condition_node, eif_statement_list, NULL);
         if (!eif2_node) {
             ret = PL_RET_OUT_OF_MEMORY;
             goto eif_loop_error;
         }
-        plAstSetLocation(eif2_node, &token.location);
-        createFamily(eif2_node, eif_condition_node, eif_statement_list, NULL);
+        memcpy(&eif2_node->token, &token, sizeof(token));
 
         if (last_eif_node) {
             ((plAstThreeSplitNode *)last_eif_node)->nodes[2] = eif2_node;
@@ -98,14 +97,13 @@ eif_loop_error:
             goto error;
         }
 
-        else_node = plAstNew(PL_MARKER_ELSE);
+        else_node = createFamily(PL_MARKER_ELSE, else_statement_list);
         if (!else_node) {
             plAstFree(else_statement_list, scanner->table);
             ret = PL_RET_OUT_OF_MEMORY;
             goto error;
         }
-        plAstSetLocation(else_node, &token.location);
-        createFamily(else_node, else_statement_list);
+        memcpy(&else_node->token, &token, sizeof(token));
     }
     else {
         ret = LOOKAHEAD_STORE(scanner, &token);
@@ -114,13 +112,12 @@ eif_loop_error:
         }
     }
 
-    *node = plAstNew(PL_MARKER_IF);
+    *node = createFamily(PL_MARKER_IF, condition_node, statement_list, eif_node, else_node);
     if (!*node) {
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
     }
     plAstSetLocation(*node, &location);
-    createFamily(*node, condition_node, statement_list, eif_node, else_node);
 
     return PL_RET_OK;
 
