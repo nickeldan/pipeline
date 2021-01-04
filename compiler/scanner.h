@@ -106,8 +106,10 @@ typedef struct plLexicalToken {
     int submarker;
 } plLexicalToken;
 
+#define PL_SCANNER_MAX_LOOK_AHEAD 2
+
 typedef struct plLexicalScanner {
-    plLexicalToken look_ahead[2];
+    plLexicalToken look_ahead[PL_SCANNER_MAX_LOOK_AHEAD];
     FILE *file;
     plNameTable *table;
     const char *file_name;

@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include <string.h>
 
 #include "parserInternal.h"
@@ -75,9 +74,9 @@ static int
 parseMonomial(plLexicalScanner *scanner, plAstNode **node, bool allow_boolean)
 {
     int ret;
-    plLexicalLocation negation_location = {0};
     bool negation = false;
     plLexicalToken token;
+    plLexicalLocation negation_location = {0};
     plAstNode *second_node;
 
     *node = NULL;
@@ -122,6 +121,11 @@ start:
             plAstSetLocation(*node, &arrow_location);
         }
         else {
+            ret = LOOKAHEAD_STORE(scanner, &token);
+            if (ret != PL_RET_OK) {
+                return ret;
+            }
+
             ret = parseExpressionStart(scanner, node, PL_PRIORITY_COMMA);
             if (ret != PL_RET_OK) {
                 return ret;
@@ -231,7 +235,7 @@ start:
         }
         else {
             ret = LOOKAHEAD_STORE(scanner, &token);
-            if ( ret != PL_RET_OK ) {
+            if (ret != PL_RET_OK) {
                 goto error;
             }
             break;
@@ -246,7 +250,7 @@ start:
             plAstFree(second_node, scanner->table);
             goto error;
         }
-        plAstSetLocation(*node, &token.location);
+        memcpy(&(*node)->token, &token, sizeof(token));
     }
 
     if (negation_location.line_no > 0) {
@@ -257,7 +261,6 @@ start:
 
             connector_node = createFamily(PL_MARKER_NOT, *node);
             if (!connector_node) {
-                plTokenCleanup(&token, scanner->table);
                 ret = PL_RET_OUT_OF_MEMORY;
                 goto error;
             }
@@ -300,6 +303,10 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
             }
 
             if (new_priority > priority) {
+                ret = LOOKAHEAD_STORE(scanner, &token);
+                if (ret != PL_RET_OK) {
+                    goto error;
+                }
                 break;
             }
 
