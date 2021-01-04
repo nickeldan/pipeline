@@ -1,14 +1,15 @@
 CC ?= gcc
 level ?= -1
+debug ?= no
 
 INCLUDE_DIRS := ./pipeline ./compiler ./vanilla_squad/include
 ACTUAL_INCLUDE_DIRS := ./pipeline ./compiler ./vanilla_squad/include/vasq
 
 COMPILER_FLAGS := -std=gnu11 -fpic -ffunction-sections -fdiagnostics-color -Wall -Wextra -DVASQ_ENABLE_LOGGING -DLL_USE=$(level)
-ifeq ($(level),-1)
-	COMPILER_FLAGS += -O3 -DNDEBUG
-else
+ifeq ($(debug),yes)
 	COMPILER_FLAGS += -O0 -g -DDEBUG
+else
+	COMPILER_FLAGS += -O3 -DNDEBUG
 endif
 
 COMPILER_LIBNAME := plcompiler
@@ -52,7 +53,7 @@ lib/lib$(PIPELINE_LIBNAME).a: $(PIPELINE_OBJECT_FILES) lib
 	ar rcs $@ $(PIPELINE_OBJECT_FILES)
 
 lib/lib$(VASQ_LIBNAME).so lib/lib$(VASQ_LIBNAME).a: lib
-	cd vanilla_squad && make $(notdir $@)
+	cd vanilla_squad && make debug=$(debug) $(notdir $@)
 	cp vanilla_squad/$(notdir $@) $@
 
 lib:

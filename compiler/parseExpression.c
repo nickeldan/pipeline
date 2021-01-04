@@ -230,6 +230,10 @@ start:
             ret = parseExtendedName(scanner, &second_node);
         }
         else {
+            ret = LOOKAHEAD_STORE(scanner, &token);
+            if ( ret != PL_RET_OK ) {
+                goto error;
+            }
             break;
         }
 

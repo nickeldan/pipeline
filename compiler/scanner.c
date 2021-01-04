@@ -803,7 +803,7 @@ plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned i
     }
 
     lookaheadStoreLogic(scanner, token);
-    vasqLogStatement(VASQ_LL_DEBUG, file_name, function_name, line_no, "%s stored as look ahead",
+    vasqLogStatement(VASQ_LL_INFO, file_name, function_name, line_no, "%s stored as look ahead",
                      plLexicalMarkerName(token->marker));
     return PL_RET_OK;
 }
