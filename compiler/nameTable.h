@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdbool.h>
-
 #include "definitions.h"
 
 typedef struct plNameTable plNameTable;

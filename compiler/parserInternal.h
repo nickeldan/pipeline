@@ -8,8 +8,8 @@
 #if LL_USE == VASQ_LL_RAWONLY
 
 int
-nextToken(plLexicalScanner *scanner, plLexicalToken *token);
-#define NEXT_TOKEN(scanner, token) nextToken(scanner, token)
+nextTokenNoLog(plLexicalScanner *scanner, plLexicalToken *token);
+#define NEXT_TOKEN(scanner, token) nextTokenNoLog(scanner, token)
 
 #else  // LL_USE == VASQ_LL_RAWONLY
 

@@ -2,67 +2,69 @@
 
 #include "parserInternal.h"
 
-typedef enum plOperatorPriority {
-    PL_PRIORITY_BIT = 0,
-    PL_PRIORITY_MULTIPLY,
-    PL_PRIORITY_ADD,
-    PL_PRIORITY_COMPARISON,
-    PL_PRIORITY_LOGICAL,
-    PL_PRIORITY_COMMA,
+typedef enum plOperatorOrder {
+    PL_ORDER_BIT = 0,
+    PL_ORDER_MULTIPLY,
+    PL_ORDER_ADD,
+    PL_ORDER_COMPARISON,
+    PL_ORDER_LOGICAL,
+    PL_ORDER_COMMA,
+    PL_ORDER_ARROW,
 
-    PL_PRIORITY_NA,
-} plOperatorPriority_t;
-#define PL_PRIORITY_START   PL_PRIORITY_LOGICAL
-#define PL_PRIORITY_NUMERIC PL_PRIORITY_ADD
+    PL_ORDER_NA,
+} plOperatorOrder_t;
+#define PL_ORDER_START   PL_ORDER_LOGICAL
+#define PL_ORDER_NUMERIC PL_ORDER_ADD
 
 static int
 parseMonomial(plLexicalScanner *scanner, plAstNode **node, bool allow_boolean);
 
 static int
-parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **node, plOperatorPriority_t priority);
+parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **node, plOperatorOrder_t order);
 
-static plOperatorPriority_t
-operatorPriority(const plLexicalToken *token)
+static plOperatorOrder_t
+operatorOrder(const plLexicalToken *token)
 {
     switch (token->marker) {
     case PL_MARKER_ARITHMETIC:
         switch (token->submarker) {
         case PL_SUBMARKER_AND:
-        case PL_SUBMARKER_OR: return PL_PRIORITY_BIT;
+        case PL_SUBMARKER_OR: return PL_ORDER_BIT;
 
         case PL_SUBMARKER_MULTIPLY:
         case PL_SUBMARKER_DIVIDE:
-        case PL_SUBMARKER_MODULO: return PL_PRIORITY_MULTIPLY;
+        case PL_SUBMARKER_MODULO: return PL_ORDER_MULTIPLY;
 
         case PL_SUBMARKER_PLUS:
         case PL_SUBMARKER_MINUS:
         case PL_SUBMARKER_LSHIFT:
 
-        default: return PL_PRIORITY_NA;  // This should never happen.
+        default: return PL_ORDER_NA;  // This should never happen.
         }
 
-    case PL_MARKER_COMPARISON: return PL_PRIORITY_COMPARISON;
+    case PL_MARKER_COMPARISON: return PL_ORDER_COMPARISON;
 
-    case PL_MARKER_LOGICAL: return PL_PRIORITY_LOGICAL;
+    case PL_MARKER_LOGICAL: return PL_ORDER_LOGICAL;
 
-    case PL_MARKER_COMMA:
-    case PL_MARKER_ARROW: return PL_PRIORITY_COMMA;
+    case PL_MARKER_COMMA: return PL_ORDER_COMMA;
 
-    default: return PL_PRIORITY_NA;
+    case PL_MARKER_ARROW: return PL_ORDER_ARROW;
+
+    default: return PL_ORDER_NA;
     }
 }
 
 static int
-parseExpressionStart(plLexicalScanner *scanner, plAstNode **node, plOperatorPriority_t priority)
+parseExpressionStart(plLexicalScanner *scanner, plAstNode **node, plOperatorOrder_t order)
 {
     int ret;
 
-    ret = parseMonomial(scanner, node, (priority > PL_PRIORITY_NUMERIC));
+    ret = parseMonomial(scanner, node, (order > PL_ORDER_NUMERIC));
     if (ret != PL_RET_OK) {
         return ret;
     }
 
-    ret = parseExpressionRecurse(scanner, node, priority);
+    ret = parseExpressionRecurse(scanner, node, order);
     if (ret != PL_RET_OK) {
         plAstFree(*node, scanner->table);
         *node = NULL;
@@ -126,7 +128,7 @@ start:
                 return ret;
             }
 
-            ret = parseExpressionStart(scanner, node, PL_PRIORITY_COMMA);
+            ret = parseExpressionStart(scanner, node, PL_ORDER_ARROW);
             if (ret != PL_RET_OK) {
                 return ret;
             }
@@ -167,7 +169,7 @@ start:
         }
 
         if (token.marker == PL_MARKER_LEFT_PARENS) {
-            ret = parseExpressionStart(scanner, &second_node, PL_PRIORITY_COMMA);
+            ret = parseExpressionStart(scanner, &second_node, PL_ORDER_COMMA);
             if (ret != PL_RET_OK) {
                 goto error;
             }
@@ -223,7 +225,7 @@ start:
         }
 
         if (token.marker == PL_MARKER_LEFT_BRACKET) {
-            ret = parseExpressionStart(scanner, &second_node, PL_PRIORITY_NUMERIC);
+            ret = parseExpressionStart(scanner, &second_node, PL_ORDER_NUMERIC);
             if (ret != PL_RET_OK) {
                 goto error;
             }
@@ -280,14 +282,14 @@ error:
 }
 
 static int
-parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperatorPriority_t priority)
+parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperatorOrder_t order)
 {
     int ret;
     plLexicalToken token1;
     plAstNode *second_node = NULL;
 
     while (true) {
-        plOperatorPriority_t new_priority;
+        plOperatorOrder_t new_order;
         plLexicalToken token2;
 
         ret = NEXT_TOKEN(scanner, &token2);
@@ -295,27 +297,46 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
             goto error;
         }
 
-        new_priority = operatorPriority(&token2);
-        if (new_priority != priority) {
+        if ((*current)->token.marker == PL_MARKER_COMMA && order < PL_ORDER_COMMA &&
+            token2.marker != PL_MARKER_ARROW) {
+            COMPILER_ERROR("Expected ARROW after comma-delimited source list.");
+            ret = PL_RET_BAD_DATA;
+            goto error;
+        }
+
+        new_order = operatorOrder(&token2);
+        if (new_order != order) {
             ret = LOOKAHEAD_STORE(scanner, &token2);
             if (ret != PL_RET_OK) {
                 goto error;
             }
 
-            if (new_priority > priority) {
-                ret = LOOKAHEAD_STORE(scanner, &token);
-                if (ret != PL_RET_OK) {
-                    goto error;
-                }
+            if (new_order > order) {
                 break;
             }
 
-            ret = parseExpressionRecurse(scanner, second_node ? &second_node : current, new_priority);
+            ret = parseExpressionRecurse(scanner, second_node ? &second_node : current, new_order);
             if (ret != PL_RET_OK) {
                 goto error;
             }
 
             continue;
+        }
+
+        if (token2.marker == PL_MARKER_ARROW) {
+            // second_node must be NULL here.
+            ret = parseReceiver(scanner, &second_node);
+            if (ret != PL_RET_OK) {
+                goto error;
+            }
+
+            ret = createConnection(PL_MARKER_ARROW, current, second_node);
+            if (ret != PL_RET_OK) {
+                goto error;
+            }
+            memcpy(&(*current)->token, &token2, sizeof(token2));
+
+            return PL_RET_OK;
         }
 
         if (second_node) {
@@ -324,12 +345,13 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
                 goto error;
             }
             memcpy(&(*current)->token, &token1, sizeof(token1));
+            second_node = NULL;
         }
         else {
             memcpy(&token1, &token2, sizeof(token2));
         }
 
-        ret = parseMonomial(scanner, &second_node, (priority > PL_PRIORITY_NUMERIC));
+        ret = parseMonomial(scanner, &second_node, (order > PL_ORDER_NUMERIC));
         if (ret != PL_RET_OK) {
             goto error;
         }
@@ -362,5 +384,5 @@ parseExpression(plLexicalScanner *scanner, plAstNode **node)
         return PL_RET_USAGE;
     }
 
-    return parseExpressionStart(scanner, node, PL_PRIORITY_START);
+    return parseExpressionStart(scanner, node, PL_ORDER_START);
 }

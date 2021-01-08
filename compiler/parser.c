@@ -114,15 +114,14 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
         default:
             ret = LOOKAHEAD_STORE(scanner, &token);
             if (ret != PL_RET_OK) {
-                goto cleanup_token;
+                plTokenCleanup(&token, scanner->table);
+                goto error;
             }
             ret = parseConstantDeclaration(scanner, &node);
             break;
         }
 
         if (ret != PL_RET_OK) {
-cleanup_token:
-            plTokenCleanup(&token, scanner->table);
             goto error;
         }
 
@@ -140,14 +139,13 @@ cleanup_token:
 
     if (scanner->last_marker == PL_MARKER_EOF) {
         if (!*tree) {
-            COMPILER_ERROR("File is empty");
+            COMPILER_ERROR("File is empty.");
             return PL_RET_BAD_DATA;
         }
         return PL_RET_OK;
     }
-    else {
-        ret = plTranslateTerminalMarker(scanner->last_marker);
-    }
+
+    ret = plTranslateTerminalMarker(scanner->last_marker);
 
 error:
 
@@ -164,7 +162,7 @@ plFileParse(FILE *in, const char *file_name, plAstNode **tree, plNameTable **tab
     plLexicalScanner scanner;
 
     if (!in || !tree || !table) {
-        VASQ_ERROR("in, tree, and table cannot be NULL");
+        VASQ_ERROR("in, tree, and table cannot be NULL.");
         return PL_RET_USAGE;
     }
 
@@ -176,7 +174,7 @@ plFileParse(FILE *in, const char *file_name, plAstNode **tree, plNameTable **tab
     }
 
     plScannerInit(&scanner, in, file_name, *table);
-    VASQ_INFO("Parsing %s", scanner.file_name);
+    VASQ_INFO("Parsing %s.", scanner.file_name);
 
     ret = parseGlobalSpace(&scanner, tree);
     if (ret != PL_RET_OK) {
@@ -190,7 +188,7 @@ plFileParse(FILE *in, const char *file_name, plAstNode **tree, plNameTable **tab
 #if LL_USE == VASQ_LL_RAWONLY
 
 int
-nextToken(plLexicalScanner *scanner, plLexicalToken *token)
+nextTokenNoLog(plLexicalScanner *scanner, plLexicalToken *token)
 {
     int marker;
 
