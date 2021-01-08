@@ -37,7 +37,7 @@ operatorOrder(const plLexicalToken *token)
 
         case PL_SUBMARKER_PLUS:
         case PL_SUBMARKER_MINUS:
-        case PL_SUBMARKER_LSHIFT:
+        case PL_SUBMARKER_LSHIFT: return PL_ORDER_ADD;
 
         default: return PL_ORDER_NA;  // This should never happen.
         }
