@@ -202,6 +202,34 @@ start:
             return PL_RET_OUT_OF_MEMORY;
         }
         memcpy(&(*node)->token, &token, sizeof(token));
+
+        if (token.marker == PL_MARKER_OBJECT && OBJ_TYPE(token.ctx.object) == PL_OBJ_TYPE_BYTE_ARRAY) {
+            while (true) {
+                plLexicalToken token2;
+
+                ret = NEXT_TOKEN(scanner, &token2);
+                if (ret != PL_RET_OK) {
+                    goto error;
+                }
+
+                if (token2.marker == PL_MARKER_OBJECT &&
+                    OBJ_TYPE(token2.ctx.object) == PL_OBJ_TYPE_BYTE_ARRAY) {
+                    ret = plConcatenateByteArrays((*node)->token.ctx.object, token2.ctx.object);
+                    plTokenCleanup(&token2, scanner->table);
+                    if (ret != PL_RET_OK) {
+                        goto error;
+                    }
+                }
+                else {
+                    ret = LOOKAHEAD_STORE(scanner, &token2);
+                    if (ret != PL_RET_OK) {
+                        goto error;
+                    }
+                    break;
+                }
+            }
+        }
+
         break;
 
     case PL_MARKER_LEFT_BRACKET:

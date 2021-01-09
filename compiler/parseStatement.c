@@ -247,7 +247,6 @@ int
 parseStatementList(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
-    plLexicalToken token;
 
     if (node) {
         *node = NULL;
@@ -258,6 +257,7 @@ parseStatementList(plLexicalScanner *scanner, plAstNode **node)
     }
 
     while (true) {
+        plLexicalToken token;
         plAstNode *statement_node;
 
         ret = NEXT_TOKEN(scanner, &token);

@@ -3,6 +3,10 @@
 int
 parseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
 {
+    int ret;
+    plLexicalLocation location;
+    plAstNode *arg_list = NULL;
+
     if (node) {
         *node = NULL;
     }
@@ -11,6 +15,101 @@ parseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
         return PL_RET_USAGE;
     }
 
-    VASQ_ERROR("This function has not yet been implemented.");
-    return PL_RET_BAD_DATA;
+    plGetLastLocation(scanner, &location);
+
+    ret = expectMarker(scanner, PL_MARKER_LEFT_BRACE, NULL);
+    if (ret != PL_RET_OK) {
+        return ret;
+    }
+
+    while (true) {
+        plLexicalToken token;
+        plLexicalLocation colon_location;
+        plAstNode *name_node, *type_node, *arg_node;
+
+        ret = NEXT_TOKEN(scanner, &token);
+        if (ret != PL_RET_OK) {
+            goto error;
+        }
+
+        if (token.marker == PL_MARKER_RIGHT_BRACE) {
+            break;
+        }
+
+        if (token.marker != PL_MARKER_NAME) {
+            COMPILER_ERROR("Expected NAME at beginning of struct field definition.");
+            ret = PL_RET_BAD_DATA;
+            goto loop_error;
+        }
+
+        ret = expectMarker(scanner, PL_MARKER_COLON, &colon_location);
+        if (ret != PL_RET_OK) {
+            goto loop_error;
+        }
+
+        ret = parseExtendedType(scanner, &type_node);
+        if (ret != PL_RET_OK) {
+            goto loop_error;
+        }
+
+        name_node = plAstNew(PL_MARKER_NAME);
+        if (!name_node) {
+            plAstFree(type_node, scanner->table);
+            ret = PL_RET_OUT_OF_MEMORY;
+            goto loop_error;
+        }
+        memcpy(&name_node->token, &token, sizeof(token));
+
+        arg_node = createFamily(PL_MARKER_COLON, name_node, type_node);
+        if (!arg_node) {
+            plAstFree(name_node, scanner->table);
+            plAstFree(type_node, scanner->table);
+            ret = PL_RET_OUT_OF_MEMORY;
+            goto error;
+        }
+        plAstSetLocation(arg_node, &colon_location);
+
+        if (arg_list) {
+            ret = createConnection(PL_MARKER_SEMICOLON, &arg_list, arg_node);
+            if (ret != PL_RET_OK) {
+                plAstFree(arg_node, scanner->table);
+                goto error;
+            }
+        }
+        else {
+            arg_list = arg_node;
+        }
+
+        ret = expectMarker(scanner, PL_MARKER_SEMICOLON, NULL);
+        if (ret != PL_RET_OK) {
+            goto error;
+        }
+
+        continue;
+
+loop_error:
+
+        plTokenCleanup(&token, scanner->table);
+        goto error;
+    }
+
+    if (!arg_list) {
+        COMPILER_ERROR("STRUCT definition cannot have zero fields.");
+        return PL_RET_BAD_DATA;
+    }
+
+    *node = createFamily(PL_MARKER_STRUCT, arg_list);
+    if (!*node) {
+        ret = PL_RET_OUT_OF_MEMORY;
+        goto error;
+    }
+    plAstSetLocation(*node, &location);
+
+    return PL_RET_OK;
+
+error:
+
+    plAstFree(arg_list, scanner->table);
+
+    return ret;
 }

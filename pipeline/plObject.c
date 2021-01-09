@@ -6,6 +6,8 @@
 
 #include "plObject.h"
 
+#define CAPACITY_EXPANSION(capacity) ((capacity)*5 / 4)
+
 // External variables
 plObject true_object = {.flags = PL_OBJ_TYPE_BOOL | PL_OBJ_FLAG_STATIC | PL_OBJ_FLAG_TRUE};
 plObject false_object = {.flags = PL_OBJ_TYPE_BOOL | PL_OBJ_FLAG_STATIC};
@@ -402,4 +404,49 @@ error:
 
     plFreeObject((plObject *)array);
     return ret;
+}
+
+int
+plConcatenateByteArrays(plObject *first, const plObject *second)
+{
+    uint32_t new_length;
+    plByteArray *array1 = (plByteArray *)first;
+    const plByteArray *array2 = (const plByteArray *)second;
+
+    new_length = array1->length + array2->length;
+    if (new_length < array1->length) {
+        VASQ_ERROR("Integer overflow detected.");
+        return PL_RET_OVERFLOW;
+    }
+
+    if (new_length > array1->capacity) {
+        uint32_t new_capacity;
+        uint8_t *success;
+
+        new_capacity = CAPACITY_EXPANSION(new_length);
+        if (new_capacity < new_length) {
+            VASQ_ERROR("Integer overflow detected.");
+            return PL_RET_OVERFLOW;
+        }
+
+        if (array1->flags & PL_OBJ_FLAG_STATIC_BYTES) {
+            success = VASQ_MALLOC(new_capacity);
+        }
+        else {
+            success = VASQ_REALLOC(array1->bytes, new_capacity);
+        }
+
+        if (!success) {
+            return PL_RET_OUT_OF_MEMORY;
+        }
+
+        array1->bytes = success;
+        array1->capacity = new_capacity;
+        array1->flags &= ~PL_OBJ_FLAG_STATIC_BYTES;
+    }
+
+    memcpy(array1->bytes + array1->length, array2->bytes, array2->length);
+    array1->length = new_length;
+
+    return PL_RET_OK;
 }

@@ -4,8 +4,6 @@ int
 parseExtendedName(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret = PL_RET_OK;
-    plLexicalToken token;
-    plAstNode *period_node = NULL;
 
     if (node) {
         *node = NULL;
@@ -16,10 +14,8 @@ parseExtendedName(plLexicalScanner *scanner, plAstNode **node)
     }
 
     while (true) {
-        int previous_marker;
-        plAstNode *name_node;
-
-        previous_marker = scanner->last_marker;
+        plLexicalToken token;
+        plAstNode *period_node, *name_node;
 
         ret = NEXT_TOKEN(scanner, &token);
         if (ret != PL_RET_OK) {
@@ -52,18 +48,17 @@ parseExtendedName(plLexicalScanner *scanner, plAstNode **node)
         }
 
         if (token.marker != PL_MARKER_NAME) {
-            COMPILER_ERROR("Unexpected %s following %s", plLexicalMarkerName(token.marker),
-                           plLexicalMarkerName(previous_marker));
+            COMPILER_ERROR("Unexpected %s where NAME was expected.", plLexicalMarkerName(token.marker));
             plTokenCleanup(&token, scanner->table);
             ret = PL_RET_BAD_DATA;
-            goto error;
+            goto loop_error;
         }
 
         name_node = plAstNew(PL_MARKER_NAME);
         if (!name_node) {
             plTokenCleanup(&token, scanner->table);
             ret = PL_RET_OUT_OF_MEMORY;
-            goto error;
+            goto loop_error;
         }
         memcpy(&name_node->token, &token, sizeof(token));
 
@@ -77,6 +72,13 @@ parseExtendedName(plLexicalScanner *scanner, plAstNode **node)
         else {
             *node = name_node;
         }
+
+        continue;
+
+loop_error:
+
+        plAstFree(period_node, scanner->table);
+        goto error;
     }
 
     return PL_RET_OK;
@@ -84,8 +86,6 @@ parseExtendedName(plLexicalScanner *scanner, plAstNode **node)
 error:
 
     plAstFree(*node, scanner->table);
-    plAstFree(period_node, scanner->table);
-
     *node = NULL;
 
     return ret;

@@ -109,6 +109,9 @@ plFloatFromString(const char *string, unsigned int length, plObject **object);
 int
 plIntegerFromHexString(const char *string, unsigned int length, plObject **object);
 
+int
+plConcatenateByteArrays(plObject *first, const plObject *second);
+
 extern plObject true_object;
 extern plObject false_object;
 extern plObject blank_object;

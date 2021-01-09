@@ -7,6 +7,7 @@ enum plRetValue {
     PL_RET_BAD_DATA,
     PL_RET_NO_ACCESS,
     PL_RET_IO,
+    PL_RET_OVERFLOW,
 };
 
 int
