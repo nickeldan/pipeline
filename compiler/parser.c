@@ -135,6 +135,9 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
         else {
             *tree = node;
         }
+
+        VASQ_RAWLOG("Printing tree so far:\n");
+        plAstPrint(*tree, 0);
     }
 
     if (scanner->last_marker == PL_MARKER_EOF) {
@@ -166,8 +169,6 @@ plFileParse(FILE *in, const char *file_name, plAstNode **tree, plNameTable **tab
         return PL_RET_USAGE;
     }
 
-    *tree = NULL;
-
     *table = plNameTableNew();
     if (!*table) {
         return PL_RET_OUT_OF_MEMORY;
@@ -178,7 +179,6 @@ plFileParse(FILE *in, const char *file_name, plAstNode **tree, plNameTable **tab
 
     ret = parseGlobalSpace(&scanner, tree);
     if (ret != PL_RET_OK) {
-        plAstFree(*tree, *table);
         plScannerCleanup(&scanner);
         plNameTableFree(*table);
     }

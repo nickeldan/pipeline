@@ -285,7 +285,6 @@ parseStatementList(plLexicalScanner *scanner, plAstNode **node)
                 plAstFree(statement_node, scanner->table);
                 goto error;
             }
-            memcpy(&(*node)->token, &token, sizeof(token));
         }
         else {
             *node = statement_node;

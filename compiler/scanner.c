@@ -117,11 +117,11 @@ prepLine(plLexicalScanner *scanner)
 
         if (!fgets(scanner->buffer, sizeof(scanner->buffer), scanner->file)) {
             if (ferror(scanner->file)) {
-                VASQ_ERROR("Failed to read from %s", scanner->file_name);
+                VASQ_ERROR("Failed to read from %s.", scanner->file_name);
                 scanner->last_marker = PL_MARKER_READ_FAILURE;
             }
             else if (scanner->inside_comment_block) {
-                COMPILER_ERROR("EOF encountered while inside comment block starting on line %u",
+                COMPILER_ERROR("EOF encountered while inside comment block starting on line %u.",
                                scanner->comment_block_line_no);
                 scanner->last_marker = PL_MARKER_BAD_DATA;
             }
@@ -135,7 +135,7 @@ prepLine(plLexicalScanner *scanner)
         scanner->location.column_no = 0;
         scanner->line_length = strnlen(scanner->buffer, sizeof(scanner->buffer));
         if (scanner->line_length >= sizeof(scanner->buffer)) {
-            VASQ_RAWLOG("%s:%u: Line too long\n", scanner->file_name, scanner->location.line_no);
+            VASQ_RAWLOG("%s:%u: Line too long.\n", scanner->file_name, scanner->location.line_no);
             scanner->last_marker = PL_MARKER_BAD_DATA;
             return false;
         }
@@ -205,7 +205,7 @@ readByteString(plLexicalScanner *scanner, plObject **object)
         }
     }
 
-    COMPILER_ERROR("Unterminated string literal");
+    COMPILER_ERROR("Unterminated string literal.");
     goto error;
 
 good_string:
@@ -234,7 +234,7 @@ good_string:
             case '"': c = '"'; break;
             case 'x':
                 if (k + 2 >= scanner->line_length) {
-                    COMPILER_ERROR("Unresolved hex byte in string literal");
+                    COMPILER_ERROR("Unresolved hex byte in string literal.");
                     goto error;
                 }
 
@@ -245,7 +245,7 @@ good_string:
 
                     c2 = scanner->line[k + 1 + j];
                     if (!isxdigit(c2)) {
-                        COMPILER_ERROR("Invalid hex byte in string literal");
+                        COMPILER_ERROR("Invalid hex byte in string literal.");
                         goto error;
                     }
 
@@ -304,7 +304,7 @@ void
 plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plNameTable *table)
 {
     if (!scanner || !file || !table) {
-        VASQ_ERROR("scanner, file, and table cannot be NULL");
+        VASQ_ERROR("scanner, file, and table cannot be NULL.");
         return;
     }
 
@@ -336,7 +336,7 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
     unsigned int consumed;
 
     if (!scanner || !token) {
-        VASQ_ERROR("The arguments cannot be NULL");
+        VASQ_ERROR("The arguments cannot be NULL.");
         return PL_MARKER_USAGE;
     }
 
@@ -504,7 +504,7 @@ arithmetic_token:
             }
 
             for (end = 2; isVarChar(scanner->line[end]); end++) {}
-            COMPILER_ERROR("Invalid option: %.*s", end - 1, scanner->line + 1);
+            COMPILER_ERROR("Invalid context: %.*s", end - 1, scanner->line + 1);
             scanner->last_marker = PL_MARKER_BAD_DATA;
             goto return_marker;
         }
@@ -538,7 +538,7 @@ arithmetic_token:
         for (consumed = 0; consumed < scanner->line_length; consumed++) {
             if (!isxdigit(scanner->line[consumed])) {
                 if (isVarChar(scanner->line[consumed])) {
-                    COMPILER_ERROR("Invalid hex literal");
+                    COMPILER_ERROR("Invalid hex literal.");
                     scanner->last_marker = PL_MARKER_BAD_DATA;
                     goto return_marker;
                 }
@@ -560,7 +560,7 @@ arithmetic_token:
         }
 
         if (isVarChar(scanner->line[consumed])) {
-            COMPILER_ERROR("Invalid numeric literal");
+            COMPILER_ERROR("Invalid numeric literal.");
             scanner->last_marker = PL_MARKER_BAD_DATA;
             goto return_marker;
         }
@@ -570,7 +570,7 @@ arithmetic_token:
                  consumed++) {}
 
             if (isVarChar(scanner->line[consumed])) {
-                COMPILER_ERROR("Invalid numeric literal");
+                COMPILER_ERROR("Invalid numeric literal.");
                 scanner->last_marker = PL_MARKER_BAD_DATA;
                 goto return_marker;
             }
@@ -586,7 +586,7 @@ arithmetic_token:
                 scanner->last_marker = PL_MARKER_OUT_OF_MEMORY;
             }
             else {
-                COMPILER_ERROR("Invalid numeric literal");
+                COMPILER_ERROR("Invalid numeric literal.");
                 scanner->last_marker = PL_MARKER_BAD_DATA;
             }
             goto return_marker;
@@ -657,7 +657,7 @@ plGetLastLocation(const plLexicalScanner *scanner, plLexicalLocation *location)
     const plLexicalLocation *ptr;
 
     if (!scanner || !location) {
-        VASQ_ERROR("The arguments cannot be NULL");
+        VASQ_ERROR("The arguments cannot be NULL.");
         return;
     }
 
@@ -675,7 +675,7 @@ void
 plTokenCleanup(plLexicalToken *token, plNameTable *table)
 {
     if (!token) {
-        VASQ_ERROR("token cannot be NULL");
+        VASQ_ERROR("token cannot be NULL.");
         return;
     }
 
@@ -735,7 +735,7 @@ plLexicalMarkerName(int marker)
     case PL_MARKER_REASSIGNMENT: return "REASSIGNMENT";
     case PL_MARKER_COMPARISON: return "COMPARISON";
     case PL_MARKER_CONTEXT: return "CONTEXT";
-    default: return "";
+    default: return "INVALID";
     }
 }
 
@@ -781,7 +781,7 @@ plTokenReadLog(const char *file_name, const char *function_name, unsigned int li
                          plLexicalMarkerName(ret));
     }
     else if (ret == PL_MARKER_EOF) {
-        vasqLogStatement(VASQ_LL_INFO, file_name, function_name, line_no, "End of file reached");
+        vasqLogStatement(VASQ_LL_INFO, file_name, function_name, line_no, "End of file reached.");
     }
     return ret;
 }
@@ -791,19 +791,19 @@ plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned i
                     plLexicalScanner *scanner, plLexicalToken *token)
 {
     if (!scanner || !token) {
-        VASQ_ERROR("The arguments cannot be NULL");
+        VASQ_ERROR("The arguments cannot be NULL.");
         return PL_RET_USAGE;
     }
 
     if (scanner->num_look_ahead == ARRAY_LENGTH(scanner->look_ahead)) {
         vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no,
-                         "Cannot store any more look ahead tokens");
+                         "Cannot store any more look ahead tokens.");
         plTokenCleanup(token, scanner->table);
         return PL_RET_USAGE;
     }
 
     lookaheadStoreLogic(scanner, token);
-    vasqLogStatement(VASQ_LL_INFO, file_name, function_name, line_no, "%s stored as look ahead (%u total)",
+    vasqLogStatement(VASQ_LL_INFO, file_name, function_name, line_no, "%s stored as look ahead (%u total).",
                      plLexicalMarkerName(token->marker), scanner->num_look_ahead);
     return PL_RET_OK;
 }

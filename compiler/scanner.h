@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ctype.h>
 #include <stdio.h>
 
 #include "definitions.h"
@@ -57,7 +58,10 @@ enum plLexicalMarker {
     PL_MARKER_REASSIGNMENT,
     PL_MARKER_COMPARISON,
     PL_MARKER_CONTEXT,
+
+    PL_MARKER_UNUSED,
 };
+#define VALID_MARKER(marker)    (((marker) > PL_MARKER_INIT && (marker) < PL_MARKER_UNUSED) || isprint(marker))
 #define TERMINAL_MARKER(marker) ((marker) <= PL_MARKER_EOF)
 
 enum plLexicalSubmarker {

@@ -51,7 +51,7 @@ findRecord(const plNameTable *table, const char *name, unsigned int length, unsi
     }
 
     for (nameRecord *traverse = table->records[h]; traverse; traverse = traverse->next) {
-        if (strncmp(traverse->string, name, traverse->length) == 0) {
+        if (traverse->length == length + 1 && memcmp(traverse->string, name, length) == 0) {
             if (prev) {
                 *prev = p;
             }
@@ -113,7 +113,13 @@ plRegisterName(plNameTable *table, const char *name, unsigned int length, void *
 
     record = findRecord(table, name, length, &hash, NULL);
     if (record) {
+        if (record->num_references + 1 == 0) {
+            VASQ_ERROR("Integer overflow detected when trying to store '%.*s' in table <0x%p>.", length,
+                       name, table);
+            return NULL;
+        }
         record->num_references++;
+        VASQ_DEBUG("'%.*s' has %u references in table <0x%p>.", length, name, record->num_references, table);
     }
     else {
         record = VASQ_MALLOC(sizeof(*record));
@@ -134,6 +140,7 @@ plRegisterName(plNameTable *table, const char *name, unsigned int length, void *
 
         record->next = table->records[hash];
         table->records[hash] = record;
+        VASQ_DEBUG("'%.*s' has 1 reference in table <0x%p>.", length, name, table);
     }
 
     return record->string;
@@ -157,6 +164,8 @@ plUnregisterName(plNameTable *table, const char *name)
     record = findRecord(table, name, strlen(name), &hash, &prev);
     if (record) {
         if (--record->num_references == 0) {
+            VASQ_DEBUG("Removing '%s' from table <0x%p>.", name, table);
+
             if (prev) {
                 prev->next = record->next;
             }
@@ -167,9 +176,13 @@ plUnregisterName(plNameTable *table, const char *name)
             free(record->string);
             free(record);
         }
+        else {
+            VASQ_DEBUG("'%s' has %u reference%s in table <0x%p>.", name, record->num_references,
+                       (record->num_references == 1) ? "" : "s", table);
+        }
     }
     else {
-        VASQ_WARNING("String not found in name table: %s", name);
+        VASQ_WARNING("'%s' not found in table <0x%p>.", name, table);
     }
 }
 

@@ -53,3 +53,6 @@ plAstSetLocation(plAstNode *node, const plLexicalLocation *location);
 
 int
 plAstSplitSize(int node_type);
+
+void
+plAstPrint(const plAstNode *node, unsigned int margin);
