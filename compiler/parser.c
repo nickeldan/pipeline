@@ -135,9 +135,6 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
         else {
             *tree = node;
         }
-
-        VASQ_RAWLOG("Printing tree so far:\n");
-        plAstPrint(*tree, 0);
     }
 
     if (scanner->last_marker == PL_MARKER_EOF) {

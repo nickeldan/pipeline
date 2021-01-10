@@ -31,7 +31,7 @@ main(int argc, char **argv)
 
     ret = plFileParse(f, argv[1], &tree, &table);
     if (ret == PL_RET_OK) {
-        //        plAstPrint(tree, 0);
+        plAstPrint(tree, 0);
         plAstFree(tree, table);
         plNameTableFree(table);
     }
