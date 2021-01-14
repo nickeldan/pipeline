@@ -121,8 +121,8 @@ prepLine(plLexicalScanner *scanner)
                 scanner->last_marker = PL_MARKER_READ_FAILURE;
             }
             else if (scanner->inside_comment_block) {
-                COMPILER_ERROR("EOF encountered while inside comment block starting on line %u.",
-                               scanner->comment_block_line_no);
+                PARSER_ERROR("EOF encountered while inside comment block starting on line %u.",
+                             scanner->comment_block_line_no);
                 scanner->last_marker = PL_MARKER_BAD_DATA;
             }
             else {
@@ -205,7 +205,7 @@ readByteString(plLexicalScanner *scanner, plObject **object)
         }
     }
 
-    COMPILER_ERROR("Unterminated string literal.");
+    PARSER_ERROR("Unterminated string literal.");
     goto error;
 
 good_string:
@@ -220,7 +220,7 @@ good_string:
         unsigned char c = scanner->line[k];
 
         if (!isprint(c) && c != '\t') {
-            COMPILER_ERROR("Invalid byte in string literal: 0x%02x", c);
+            PARSER_ERROR("Invalid byte in string literal: 0x%02x", c);
             goto error;
         }
 
@@ -234,7 +234,7 @@ good_string:
             case '"': c = '"'; break;
             case 'x':
                 if (k + 2 >= scanner->line_length) {
-                    COMPILER_ERROR("Unresolved hex byte in string literal.");
+                    PARSER_ERROR("Unresolved hex byte in string literal.");
                     goto error;
                 }
 
@@ -245,7 +245,7 @@ good_string:
 
                     c2 = scanner->line[k + 1 + j];
                     if (!isxdigit(c2)) {
-                        COMPILER_ERROR("Invalid hex byte in string literal.");
+                        PARSER_ERROR("Invalid hex byte in string literal.");
                         goto error;
                     }
 
@@ -265,7 +265,7 @@ good_string:
                 break;
 
             default:
-                COMPILER_ERROR("Invalid escaped character in string literal: %c", scanner->line[k]);
+                PARSER_ERROR("Invalid escaped character in string literal: %c", scanner->line[k]);
                 goto error;
             }
         }
@@ -456,7 +456,7 @@ arithmetic_token:
             goto done;
         }
         else {
-            COMPILER_ERROR("Invalid token: '%c'", scanner->line[0]);
+            PARSER_ERROR("Invalid token: '%c'", scanner->line[0]);
             scanner->last_marker = PL_MARKER_BAD_DATA;
             goto return_marker;
         }
@@ -504,7 +504,7 @@ arithmetic_token:
             }
 
             for (end = 2; isVarChar(scanner->line[end]); end++) {}
-            COMPILER_ERROR("Invalid context: %.*s", end - 1, scanner->line + 1);
+            PARSER_ERROR("Invalid context: %.*s", end - 1, scanner->line + 1);
             scanner->last_marker = PL_MARKER_BAD_DATA;
             goto return_marker;
         }
@@ -538,7 +538,7 @@ arithmetic_token:
         for (consumed = 0; consumed < scanner->line_length; consumed++) {
             if (!isxdigit(scanner->line[consumed])) {
                 if (isVarChar(scanner->line[consumed])) {
-                    COMPILER_ERROR("Invalid hex literal.");
+                    PARSER_ERROR("Invalid hex literal.");
                     scanner->last_marker = PL_MARKER_BAD_DATA;
                     goto return_marker;
                 }
@@ -560,7 +560,7 @@ arithmetic_token:
         }
 
         if (isVarChar(scanner->line[consumed])) {
-            COMPILER_ERROR("Invalid numeric literal.");
+            PARSER_ERROR("Invalid numeric literal.");
             scanner->last_marker = PL_MARKER_BAD_DATA;
             goto return_marker;
         }
@@ -570,7 +570,7 @@ arithmetic_token:
                  consumed++) {}
 
             if (isVarChar(scanner->line[consumed])) {
-                COMPILER_ERROR("Invalid numeric literal.");
+                PARSER_ERROR("Invalid numeric literal.");
                 scanner->last_marker = PL_MARKER_BAD_DATA;
                 goto return_marker;
             }
@@ -586,7 +586,7 @@ arithmetic_token:
                 scanner->last_marker = PL_MARKER_OUT_OF_MEMORY;
             }
             else {
-                COMPILER_ERROR("Invalid numeric literal.");
+                PARSER_ERROR("Invalid numeric literal.");
                 scanner->last_marker = PL_MARKER_BAD_DATA;
             }
             goto return_marker;
@@ -620,10 +620,10 @@ arithmetic_token:
     }
     else {
         if (isprint(scanner->line[0])) {
-            COMPILER_ERROR("Unexpected character: %c", scanner->line[0]);
+            PARSER_ERROR("Unexpected character: %c", scanner->line[0]);
         }
         else {
-            COMPILER_ERROR("Unprintable character: 0x%02x", scanner->line[0]);
+            PARSER_ERROR("Unprintable character: 0x%02x", scanner->line[0]);
         }
 
         scanner->last_marker = PL_MARKER_BAD_DATA;

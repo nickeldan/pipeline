@@ -55,7 +55,7 @@ parseReceiver(plLexicalScanner *scanner, plAstNode **node)
             plAstNode *store_node;
 
             if (second_node->token.marker == PL_MARKER_TYPE) {
-                COMPILER_ERROR("Unexpected ':' following TYPE.");
+                PARSER_ERROR("Unexpected ':' following TYPE.");
                 ret = PL_RET_BAD_DATA;
                 goto loop_error;
             }
@@ -66,7 +66,7 @@ parseReceiver(plLexicalScanner *scanner, plAstNode **node)
             }
 
             if (token2.marker != PL_MARKER_NAME) {
-                COMPILER_ERROR("Expected NAME following ':', not %s.", plLexicalMarkerName(token2.marker));
+                PARSER_ERROR("Expected NAME following ':', not %s.", plLexicalMarkerName(token2.marker));
                 plTokenCleanup(&token2, scanner->table);
                 ret = PL_RET_BAD_DATA;
                 goto loop_error;

@@ -176,20 +176,16 @@ plStripLineBeginning(const char *line);
 
 #if LL_USE == VASQ_LL_RAWONLY
 
-#define COMPILER_ERROR(format, ...)                                                          \
-    do {                                                                                     \
-        VASQ_RAWLOG("%s:%u:%u: " format "\n", scanner->file_name, scanner->location.line_no, \
-                    scanner->location.column_no, ##__VA_ARGS__);                             \
-        VASQ_RAWLOG("\t%s\n", plStripLineBeginning(scanner->buffer));                        \
-    } while (0)
+void
+parserErrorNoLog(const plLexicalScanner *scanner, const char *format, ...);
+#define PARSER_ERROR(format, ...) parserErrorNoLog(scanner, format, ##__VA_ARGS__)
 
 #else
 
-#define COMPILER_ERROR(format, ...)                                                    \
-    do {                                                                               \
-        VASQ_ERROR("%s:%u:%u: " format, scanner->file_name, scanner->location.line_no, \
-                   scanner->location.column_no, ##__VA_ARGS__);                        \
-        VASQ_ERROR("%s", plStripLineBeginning(scanner->buffer));                       \
-    } while (0)
+void
+parserErrorLog(const char *file_name, const char *function_name, unsigned int line_no,
+               const plLexicalScanner *scanner, const char *format, ...);
+#define PARSER_ERROR(format, ...) \
+    parserErrorLog(__FILE__, __func__, __LINE__, scanner, format, ##__VA_ARGS__)
 
 #endif  // LL_USE == VASQ_LL_RAWONLY

@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "parserInternal.h"
 
 int
@@ -17,7 +19,7 @@ parseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
 
     plGetLastLocation(scanner, &location);
 
-    ret = expectMarker(scanner, PL_MARKER_LEFT_BRACE, NULL);
+    ret = EXPECT_MARKER(scanner, PL_MARKER_LEFT_BRACE, NULL);
     if (ret != PL_RET_OK) {
         return ret;
     }
@@ -37,12 +39,12 @@ parseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
         }
 
         if (token.marker != PL_MARKER_NAME) {
-            COMPILER_ERROR("Expected NAME at beginning of struct field definition.");
+            PARSER_ERROR("Expected NAME at beginning of struct field definition.");
             ret = PL_RET_BAD_DATA;
             goto loop_error;
         }
 
-        ret = expectMarker(scanner, PL_MARKER_COLON, &colon_location);
+        ret = EXPECT_MARKER(scanner, PL_MARKER_COLON, &colon_location);
         if (ret != PL_RET_OK) {
             goto loop_error;
         }
@@ -80,7 +82,7 @@ parseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
             arg_list = arg_node;
         }
 
-        ret = expectMarker(scanner, PL_MARKER_SEMICOLON, NULL);
+        ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
         if (ret != PL_RET_OK) {
             goto error;
         }
@@ -94,7 +96,7 @@ loop_error:
     }
 
     if (!arg_list) {
-        COMPILER_ERROR("STRUCT definition cannot have zero fields.");
+        PARSER_ERROR("STRUCT definition cannot have zero fields.");
         return PL_RET_BAD_DATA;
     }
 

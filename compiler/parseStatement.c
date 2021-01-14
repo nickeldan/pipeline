@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "parserInternal.h"
 
 static bool
@@ -34,7 +36,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
     case PL_MARKER_END:
     case PL_MARKER_BREAK:
     case PL_MARKER_CONT:
-        ret = expectMarker(scanner, PL_MARKER_SEMICOLON, NULL);
+        ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
         if (ret != PL_RET_OK) {
             return ret;
         }
@@ -55,7 +57,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             return ret;
         }
 
-        ret = expectMarker(scanner, PL_MARKER_SEMICOLON, NULL);
+        ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
         if (ret != PL_RET_OK) {
             goto error;
         }
@@ -94,7 +96,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
                 return ret;
             }
 
-            ret = expectMarker(scanner, PL_MARKER_SEMICOLON, NULL);
+            ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
             if (ret != PL_RET_OK) {
                 plTokenCleanup(&token, scanner->table);
                 plAstFree(type_node, scanner->table);
@@ -181,7 +183,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         plAstNode *rvalue_node;
 
         if (!isLvalue(first_node)) {
-            COMPILER_ERROR("Invalid REASSIGNMENT following what is not an lvalue");
+            PARSER_ERROR("Invalid REASSIGNMENT following what is not an lvalue");
             ret = PL_RET_BAD_DATA;
             goto error;
         }
@@ -191,7 +193,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             goto error;
         }
 
-        ret = expectMarker(scanner, PL_MARKER_SEMICOLON, NULL);
+        ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
         if (ret != PL_RET_OK) {
             plAstFree(rvalue_node, scanner->table);
             goto error;
@@ -209,7 +211,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
     }
 
     if (token.marker != PL_MARKER_ARROW) {
-        COMPILER_ERROR("Unexpected %s following expression", plLexicalMarkerName(token.marker));
+        PARSER_ERROR("Unexpected %s following expression", plLexicalMarkerName(token.marker));
         plTokenCleanup(&token, scanner->table);
         ret = PL_RET_BAD_DATA;
         goto error;
@@ -220,7 +222,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         goto error;
     }
 
-    ret = expectMarker(scanner, PL_MARKER_SEMICOLON, NULL);
+    ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
     if (ret != PL_RET_OK) {
         plAstFree(receiver_node, scanner->table);
         goto error;

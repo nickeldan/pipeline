@@ -105,7 +105,7 @@ start:
                 return ret;
             }
 
-            ret = expectMarker(scanner, PL_MARKER_ARROW, &arrow_location);
+            ret = EXPECT_MARKER(scanner, PL_MARKER_ARROW, &arrow_location);
             if (ret != PL_RET_OK) {
                 goto error;
             }
@@ -134,7 +134,7 @@ start:
             }
         }
 
-        ret = expectMarker(scanner, PL_MARKER_RIGHT_PARENS, NULL);
+        ret = EXPECT_MARKER(scanner, PL_MARKER_RIGHT_PARENS, NULL);
         if (ret != PL_RET_OK) {
             goto error;
         }
@@ -142,7 +142,7 @@ start:
 
     case PL_MARKER_NOT:
         if (!allow_boolean) {
-            COMPILER_ERROR("NOT not allowed in this context.");
+            PARSER_ERROR("NOT not allowed in this context.");
             return PL_RET_BAD_DATA;
         }
 
@@ -181,7 +181,7 @@ start:
             }
             plAstSetLocation(*node, &token.location);
 
-            ret = expectMarker(scanner, PL_MARKER_RIGHT_PARENS, NULL);
+            ret = EXPECT_MARKER(scanner, PL_MARKER_RIGHT_PARENS, NULL);
             if (ret != PL_RET_OK) {
                 goto error;
             }
@@ -240,7 +240,7 @@ start:
         break;
 
     default:
-        COMPILER_ERROR("Unexpected %s in place of expression.", plLexicalMarkerName(token.marker));
+        PARSER_ERROR("Unexpected %s in place of expression.", plLexicalMarkerName(token.marker));
         // I don't need to call plTokenCleanup since I know that it's neither a NAME nor an OBJECT.
         return PL_RET_BAD_DATA;
     }
@@ -258,7 +258,7 @@ start:
                 goto error;
             }
 
-            ret = expectMarker(scanner, PL_MARKER_RIGHT_BRACKET, NULL);
+            ret = EXPECT_MARKER(scanner, PL_MARKER_RIGHT_BRACKET, NULL);
         }
         else if (token.marker == PL_MARKER_PERIOD) {
             ret = parseExtendedName(scanner, &second_node);
@@ -327,7 +327,7 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
 
         if ((*current)->token.marker == PL_MARKER_COMMA && order < PL_ORDER_COMMA &&
             token2.marker != PL_MARKER_ARROW) {
-            COMPILER_ERROR("Expected ARROW after comma-delimited source list.");
+            PARSER_ERROR("Expected ARROW after comma-delimited source list.");
             ret = PL_RET_BAD_DATA;
             goto error;
         }

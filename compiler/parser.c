@@ -1,5 +1,7 @@
 #include <string.h>
 
+#include "vasq/safe_snprintf.h"
+
 #include "parserInternal.h"
 
 static int
@@ -21,8 +23,8 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
     }
 
     if (token.marker != PL_MARKER_NAME) {
-        COMPILER_ERROR("Unxpected %s after %s", plLexicalMarkerName(token.marker),
-                       plLexicalMarkerName(marker));
+        PARSER_ERROR("Unxpected %s after %s", plLexicalMarkerName(token.marker),
+                     plLexicalMarkerName(marker));
         plTokenCleanup(&token, scanner->table);
         return PL_RET_BAD_DATA;
     }
@@ -41,7 +43,7 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
     }
     plAstSetLocation(*node, &location);
 
-    ret = expectMarker(scanner, PL_MARKER_SEMICOLON, NULL);
+    ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
     if (ret != PL_RET_OK) {
         plAstFree(*node, scanner->table);
     }
@@ -68,7 +70,7 @@ parseMain(plLexicalScanner *scanner, plAstNode **node)
     *node = NULL;
     plGetLastLocation(scanner, &location);
 
-    ret = expectMarker(scanner, PL_MARKER_LEFT_BRACE, NULL);
+    ret = EXPECT_MARKER(scanner, PL_MARKER_LEFT_BRACE, NULL);
     if (ret != PL_RET_OK) {
         return ret;
     }
@@ -139,7 +141,7 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
 
     if (scanner->last_marker == PL_MARKER_EOF) {
         if (!*tree) {
-            COMPILER_ERROR("File is empty.");
+            PARSER_ERROR("File is empty.");
             return PL_RET_BAD_DATA;
         }
         return PL_RET_OK;
@@ -193,6 +195,45 @@ nextTokenNoLog(plLexicalScanner *scanner, plLexicalToken *token)
     return TERMINAL_MARKER(marker) ? plTranslateTerminalMarker(marker) : PL_RET_OK;
 }
 
+int
+expectMarkerNoLog(plLexicalScanner *scanner, int marker, plLexicalLocation *location)
+{
+    int ret;
+    plLexicalToken token;
+
+    ret = NEXT_TOKEN(scanner, &token);
+    if (ret != PL_RET_OK) {
+        return ret;
+    }
+
+    if (token.marker != marker) {
+        PARSER_ERROR("Unexpected %s", plLexicalMarkerName(token.marker));
+        plTokenCleanup(&token, scanner->table);
+        return PL_RET_BAD_DATA;
+    }
+
+    if (location) {
+        memcpy(location, &token.location, sizeof(token.location));
+    }
+
+    return PL_RET_OK;
+}
+
+void
+parserErrorNoLog(const plLexicalScanner *scanner, const char *format, ...)
+{
+    va_list args;
+    plLexicalLocation location;
+
+    plGetLastLocation(scanner, &location);
+
+    vasqRawLog("%s:%u:%u: ", scanner->file_name, location.line_no, location.column_no);
+    va_start(args, format);
+    vasqVRawLog(format, args);
+    va_end(args);
+    vasqRawLog("\n\t%s\n", plStripLineBeginning(scanner->buffer));
+}
+
 #else  // LL_USE == VASQ_LL_RAWONLY
 
 int
@@ -205,21 +246,24 @@ nextTokenLog(const char *file_name, const char *function_name, unsigned int line
     return TERMINAL_MARKER(marker) ? plTranslateTerminalMarker(marker) : PL_RET_OK;
 }
 
-#endif  // LL_USE == VASQ_LL_RAWONLY
-
 int
-expectMarker(plLexicalScanner *scanner, int marker, plLexicalLocation *location)
+expectMarkerLog(const char *file_name, const char *function_name, unsigned int line_no,
+                plLexicalScanner *scanner, int marker, plLexicalLocation *location)
 {
     int ret;
     plLexicalToken token;
 
-    ret = NEXT_TOKEN(scanner, &token);
+    ret = nextTokenLog(file_name, function_name, line_no, scanner, &token);
     if (ret != PL_RET_OK) {
         return ret;
     }
 
     if (token.marker != marker) {
-        COMPILER_ERROR("Unexpected %s", plLexicalMarkerName(token.marker));
+        vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no, "%s:%u:%u: Unexpected %s.",
+                         scanner->file_name, token.location.line_no, token.location.column_no,
+                         plLexicalMarkerName(token.marker));
+        vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no, "%s",
+                         plStripLineBeginning(scanner->buffer));
         plTokenCleanup(&token, scanner->table);
         return PL_RET_BAD_DATA;
     }
@@ -230,6 +274,28 @@ expectMarker(plLexicalScanner *scanner, int marker, plLexicalLocation *location)
 
     return PL_RET_OK;
 }
+
+void
+parserErrorLog(const char *file_name, const char *function_name, unsigned int line_no,
+               const plLexicalScanner *scanner, const char *format, ...)
+{
+    char temp[1024];
+    va_list args;
+    plLexicalLocation location;
+
+    plGetLastLocation(scanner, &location);
+
+    va_start(args, format);
+    vasqSafeVsnprintf(temp, sizeof(temp), format, args);
+    va_end(args);
+
+    vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no, "%u:%u:%u: %s", scanner->file_name,
+                     location.line_no, location.column_no, temp);
+    vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no, "%s",
+                     plStripLineBeginning(scanner->buffer));
+}
+
+#endif  // LL_USE == VASQ_LL_RAWONLY
 
 plAstNode *
 createFamily(int marker, ...)

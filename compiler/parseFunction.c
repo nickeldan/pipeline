@@ -1,16 +1,24 @@
+#include <string.h>
+
 #include "parserInternal.h"
 
 int
 parseFunction(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret, function_marker = scanner->last_marker;
-    plLexicalLocation function_location;
+    plLexicalLocation function_location, comma_location = {0};
     plLexicalToken token;
-    plLexicalLocation comma_location = {0};
     plAstNode *function_name_node = NULL, *arg_list = NULL, *type_node = NULL, *statement_list;
     plAstMaxSplitNode *splitter;
 
-    *node = NULL;
+    if (node) {
+        *node = NULL;
+    }
+    if (!scanner || !node) {
+        VASQ_ERROR("The arguments cannot be NULL.");
+        return PL_RET_USAGE;
+    }
+
     plGetLastLocation(scanner, &function_location);
 
     ret = NEXT_TOKEN(scanner, &token);
@@ -19,7 +27,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node)
     }
 
     if (token.marker != PL_MARKER_NAME) {
-        COMPILER_ERROR("Anonymous %s not allowed in this context", plLexicalMarkerName(function_marker));
+        PARSER_ERROR("Anonymous %s not allowed in this context", plLexicalMarkerName(function_marker));
         plTokenCleanup(&token, scanner->table);
         return PL_RET_BAD_DATA;
     }
@@ -37,7 +45,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node)
     }
 
     if (token.marker != PL_MARKER_LEFT_PARENS) {
-        COMPILER_ERROR("Unexpected %s before argument list", plLexicalMarkerName(token.marker));
+        PARSER_ERROR("Unexpected %s before argument list", plLexicalMarkerName(token.marker));
         plTokenCleanup(&token, scanner->table);
         ret = PL_RET_BAD_DATA;
         goto error;
@@ -55,7 +63,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node)
 
         if (token.marker == PL_MARKER_RIGHT_PARENS) {
             if (previous_marker == PL_MARKER_COMMA) {
-                COMPILER_ERROR("Unexpected ')' following ',' in argument list");
+                PARSER_ERROR("Unexpected ')' following ',' in argument list");
                 ret = PL_RET_BAD_DATA;
                 goto error;
             }
@@ -64,14 +72,14 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node)
 
         if (token.marker == PL_MARKER_COMMA) {
             if (previous_marker == PL_MARKER_LEFT_PARENS || previous_marker == PL_MARKER_COMMA) {
-                COMPILER_ERROR("Unexpected ',' following %s in argument list",
-                               plLexicalMarkerName(previous_marker));
+                PARSER_ERROR("Unexpected ',' following %s in argument list",
+                             plLexicalMarkerName(previous_marker));
                 ret = PL_RET_BAD_DATA;
                 goto error;
             }
 
             if (function_marker != PL_MARKER_SOURCE) {
-                COMPILER_ERROR("Multiple arguments are only allowed in a SOURCE");
+                PARSER_ERROR("Multiple arguments are only allowed in a SOURCE");
                 ret = PL_RET_BAD_DATA;
                 goto error;
             }
@@ -82,8 +90,8 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node)
         }
 
         if (token.marker != PL_MARKER_NAME) {
-            COMPILER_ERROR("Unexpected %s following %s in argunent list", plLexicalMarkerName(token.marker),
-                           plLexicalMarkerName(previous_marker));
+            PARSER_ERROR("Unexpected %s following %s in argunent list", plLexicalMarkerName(token.marker),
+                         plLexicalMarkerName(previous_marker));
             plTokenCleanup(&token, scanner->table);
             ret = PL_RET_BAD_DATA;
             goto error;
@@ -97,7 +105,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node)
         }
         memcpy(&name_node->token, &token, sizeof(token));
 
-        ret = expectMarker(scanner, PL_MARKER_COLON, &location);
+        ret = EXPECT_MARKER(scanner, PL_MARKER_COLON, &location);
         if (ret != PL_RET_OK) {
             goto cleanup_name_node;
         }
@@ -136,7 +144,7 @@ cleanup_name_node:
     }
 
     if (function_marker != PL_MARKER_SINK) {
-        ret = expectMarker(scanner, PL_MARKER_ARROW, NULL);
+        ret = EXPECT_MARKER(scanner, PL_MARKER_ARROW, NULL);
         if (ret != PL_RET_OK) {
             goto error;
         }
@@ -147,7 +155,7 @@ cleanup_name_node:
         }
     }
 
-    ret = expectMarker(scanner, PL_MARKER_LEFT_BRACE, NULL);
+    ret = EXPECT_MARKER(scanner, PL_MARKER_LEFT_BRACE, NULL);
     if (ret != PL_RET_OK) {
         goto error;
     }
@@ -189,9 +197,14 @@ error:
 int
 parseInlineFunction(plLexicalScanner *scanner, plAstNode **node)
 {
-    (void)scanner;
+    if (node) {
+        *node = NULL;
+    }
+    if (!scanner || !node) {
+        VASQ_ERROR("The arguments cannot be NULL.");
+        return PL_RET_USAGE;
+    }
 
-    *node = NULL;
     VASQ_ERROR("This function has not yet been implemented.");
     return PL_RET_BAD_DATA;
 }

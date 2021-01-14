@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "parserInternal.h"
 
 int
@@ -48,7 +50,7 @@ parseExtendedName(plLexicalScanner *scanner, plAstNode **node)
         }
 
         if (token.marker != PL_MARKER_NAME) {
-            COMPILER_ERROR("Unexpected %s where NAME was expected.", plLexicalMarkerName(token.marker));
+            PARSER_ERROR("Unexpected %s where NAME was expected.", plLexicalMarkerName(token.marker));
             plTokenCleanup(&token, scanner->table);
             ret = PL_RET_BAD_DATA;
             goto loop_error;

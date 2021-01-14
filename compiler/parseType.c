@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "parserInternal.h"
 
 int
