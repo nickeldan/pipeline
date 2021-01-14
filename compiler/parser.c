@@ -184,7 +184,7 @@ plFileParse(FILE *in, const char *file_name, plAstNode **tree, plNameTable **tab
     return ret;
 }
 
-#if LL_USE == VASQ_LL_RAWONLY
+#if LL_USE == -1
 
 int
 nextTokenNoLog(plLexicalScanner *scanner, plLexicalToken *token)
@@ -234,7 +234,7 @@ parserErrorNoLog(const plLexicalScanner *scanner, const char *format, ...)
     vasqRawLog("\n\t%s\n", plStripLineBeginning(scanner->buffer));
 }
 
-#else  // LL_USE == VASQ_LL_RAWONLY
+#else  // LL_USE == -1
 
 int
 nextTokenLog(const char *file_name, const char *function_name, unsigned int line_no,
@@ -259,11 +259,8 @@ expectMarkerLog(const char *file_name, const char *function_name, unsigned int l
     }
 
     if (token.marker != marker) {
-        vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no, "%s:%u:%u: Unexpected %s.",
-                         scanner->file_name, token.location.line_no, token.location.column_no,
-                         plLexicalMarkerName(token.marker));
-        vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no, "%s",
-                         plStripLineBeginning(scanner->buffer));
+        parserErrorLog(file_name, function_name, line_no, scanner, "Unexpected %s.",
+                       plLexicalMarkerName(token.marker));
         plTokenCleanup(&token, scanner->table);
         return PL_RET_BAD_DATA;
     }
@@ -289,13 +286,13 @@ parserErrorLog(const char *file_name, const char *function_name, unsigned int li
     vasqSafeVsnprintf(temp, sizeof(temp), format, args);
     va_end(args);
 
-    vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no, "%u:%u:%u: %s", scanner->file_name,
+    vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no, "%s:%u:%u: %s", scanner->file_name,
                      location.line_no, location.column_no, temp);
     vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no, "%s",
                      plStripLineBeginning(scanner->buffer));
 }
 
-#endif  // LL_USE == VASQ_LL_RAWONLY
+#endif  // LL_USE == -1
 
 plAstNode *
 createFamily(int marker, ...)

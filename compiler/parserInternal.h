@@ -5,7 +5,7 @@
 #include "ast.h"
 #include "scanner.h"
 
-#if LL_USE == VASQ_LL_RAWONLY
+#if LL_USE == -1
 
 int
 nextTokenNoLog(plLexicalScanner *scanner, plLexicalToken *token);
@@ -15,7 +15,7 @@ int
 expectMarkerNoLog(plLexicalScanner *scanner, int marker, plLexicalLocation *location);
 #define EXPECT_MARKER(scanner, marker, location) expectMarkerNoLog(scanner, marker, location)
 
-#else  // LL_USE == VASQ_LL_RAWONLY
+#else  // LL_USE == -1
 
 int
 nextTokenLog(const char *file_name, const char *function_name, unsigned int line_no,
@@ -28,7 +28,7 @@ expectMarkerLog(const char *file_name, const char *function_name, unsigned int l
 #define EXPECT_MARKER(scanner, marker, location) \
     expectMarkerLog(__FILE__, __func__, __LINE__, scanner, marker, location)
 
-#endif  // LL_USE == VASQ_LL_RAWONLY
+#endif  // LL_USE == -1
 
 int
 expectMarker(plLexicalScanner *scanner, int marker, plLexicalLocation *location);

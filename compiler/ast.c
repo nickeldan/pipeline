@@ -51,7 +51,7 @@ plAstNew(int node_type)
         break;
 
     default:
-#if LL_USE != VASQ_LL_RAWONLY
+#if LL_USE != -1
         if (VALID_MARKER(node_type)) {
             VASQ_ERROR("Invalid node type: %s", plLexicalMarkerName(node_type));
         }

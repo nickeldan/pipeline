@@ -140,7 +140,7 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token);
 int
 plTranslateTerminalMarker(int marker);
 
-#if LL_USE == VASQ_LL_RAWONLY
+#if LL_USE == -1
 
 #define TOKEN_READ(scanner, token) plTokenRead(scanner, token)
 
@@ -160,7 +160,7 @@ plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned i
                     plLexicalScanner *scanner, plLexicalToken *token);
 #define LOOKAHEAD_STORE(scanner, token) plLookaheadStoreLog(__FILE__, __func__, __LINE__, scanner, token)
 
-#endif  // LL_USE == VASQ_LL_RAWONLY
+#endif  // LL_USE == -1
 
 void
 plGetLastLocation(const plLexicalScanner *scanner, plLexicalLocation *location);
@@ -174,7 +174,7 @@ plLexicalMarkerName(int marker);
 const char *
 plStripLineBeginning(const char *line);
 
-#if LL_USE == VASQ_LL_RAWONLY
+#if LL_USE == -1
 
 void
 parserErrorNoLog(const plLexicalScanner *scanner, const char *format, ...);
@@ -188,4 +188,4 @@ parserErrorLog(const char *file_name, const char *function_name, unsigned int li
 #define PARSER_ERROR(format, ...) \
     parserErrorLog(__FILE__, __func__, __LINE__, scanner, format, ##__VA_ARGS__)
 
-#endif  // LL_USE == VASQ_LL_RAWONLY
+#endif  // LL_USE == -1
