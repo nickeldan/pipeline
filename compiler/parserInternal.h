@@ -67,7 +67,4 @@ int
 parseStatementList(plLexicalScanner *scanner, plAstNode **node);
 
 int
-parseFunction(plLexicalScanner *scanner, plAstNode **node);
-
-int
-parseInlineFunction(plLexicalScanner *scanner, plAstNode **node);
+parseFunction(plLexicalScanner *scanner, plAstNode **node, bool anonymous);

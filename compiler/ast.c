@@ -127,6 +127,7 @@ plAstSplitSize(int node_type)
     case '%': return 1;
 
     case PL_MARKER_ARROW:
+    case PL_MARKER_ARITHMETIC:
     case PL_MARKER_LOGICAL:
     case PL_MARKER_COMPARISON:
     case PL_MARKER_SEMICOLON:

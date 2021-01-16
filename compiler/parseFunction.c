@@ -3,9 +3,9 @@
 #include "parserInternal.h"
 
 int
-parseFunction(plLexicalScanner *scanner, plAstNode **node)
+parseFunction(plLexicalScanner *scanner, plAstNode **node, bool anonymous)
 {
-    int ret, function_marker = scanner->last_marker;
+    int ret, function_marker;
     plLexicalLocation function_location, comma_location = {0};
     plLexicalToken token;
     plAstNode *function_name_node = NULL, *arg_list = NULL, *type_node = NULL, *statement_list;
@@ -15,33 +15,41 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node)
         *node = NULL;
     }
     if (!scanner || !node) {
-        VASQ_ERROR("The arguments cannot be NULL.");
+        VASQ_ERROR("scanner and node cannot be NULL.");
         return PL_RET_USAGE;
     }
 
+    function_marker = scanner->last_marker;
     plGetLastLocation(scanner, &function_location);
+
+    if (function_marker == PL_MARKER_LOCAL && !anonymous) {
+        VASQ_ERROR("LOCAL functions can only be anonymous.");
+        return PL_RET_USAGE;
+    }
 
     ret = NEXT_TOKEN(scanner, &token);
     if (ret != PL_RET_OK) {
         return ret;
     }
 
-    if (token.marker != PL_MARKER_NAME) {
-        PARSER_ERROR("Anonymous %s not allowed in this context", plLexicalMarkerName(function_marker));
-        plTokenCleanup(&token, scanner->table);
-        return PL_RET_BAD_DATA;
-    }
+    if (!anonymous) {
+        if (token.marker != PL_MARKER_NAME) {
+            PARSER_ERROR("Anonymous %s not allowed in this context.", plLexicalMarkerName(function_marker));
+            plTokenCleanup(&token, scanner->table);
+            return PL_RET_BAD_DATA;
+        }
 
-    function_name_node = plAstNew(PL_MARKER_NAME);
-    if (!function_name_node) {
-        plTokenCleanup(&token, scanner->table);
-        return PL_RET_OUT_OF_MEMORY;
-    }
-    memcpy(&function_name_node->token, &token, sizeof(token));
+        function_name_node = plAstNew(PL_MARKER_NAME);
+        if (!function_name_node) {
+            plTokenCleanup(&token, scanner->table);
+            return PL_RET_OUT_OF_MEMORY;
+        }
+        memcpy(&function_name_node->token, &token, sizeof(token));
 
-    ret = NEXT_TOKEN(scanner, &token);
-    if (ret != PL_RET_OK) {
-        goto error;
+        ret = NEXT_TOKEN(scanner, &token);
+        if (ret != PL_RET_OK) {
+            goto error;
+        }
     }
 
     if (token.marker != PL_MARKER_LEFT_PARENS) {
@@ -143,7 +151,7 @@ cleanup_name_node:
         goto error;
     }
 
-    if (function_marker != PL_MARKER_SINK) {
+    if (function_marker != PL_MARKER_SINK && function_marker != PL_MARKER_LOCAL) {
         ret = EXPECT_MARKER(scanner, PL_MARKER_ARROW, NULL);
         if (ret != PL_RET_OK) {
             goto error;
@@ -173,14 +181,20 @@ cleanup_name_node:
     plAstSetLocation(*node, &function_location);
 
     splitter = (plAstMaxSplitNode *)(*node);
-    splitter->nodes[0] = function_name_node;
-    splitter->nodes[1] = arg_list;
-    if (function_marker == PL_MARKER_SINK) {
-        splitter->nodes[2] = statement_list;
+    if (function_marker == PL_MARKER_LOCAL) {
+        splitter->nodes[0] = arg_list;
+        splitter->nodes[1] = statement_list;
     }
     else {
-        splitter->nodes[2] = type_node;
-        splitter->nodes[3] = statement_list;
+        splitter->nodes[0] = function_name_node;
+        splitter->nodes[1] = arg_list;
+        if (function_marker == PL_MARKER_SINK) {
+            splitter->nodes[2] = statement_list;
+        }
+        else {
+            splitter->nodes[2] = type_node;
+            splitter->nodes[3] = statement_list;
+        }
     }
 
     return PL_RET_OK;
@@ -192,19 +206,4 @@ error:
     plAstFree(type_node, scanner->table);
 
     return ret;
-}
-
-int
-parseInlineFunction(plLexicalScanner *scanner, plAstNode **node)
-{
-    if (node) {
-        *node = NULL;
-    }
-    if (!scanner || !node) {
-        VASQ_ERROR("The arguments cannot be NULL.");
-        return PL_RET_USAGE;
-    }
-
-    VASQ_ERROR("This function has not yet been implemented.");
-    return PL_RET_BAD_DATA;
 }

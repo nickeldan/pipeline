@@ -101,7 +101,7 @@ advanceScannerLog(const char *function_name, unsigned int line_no, plLexicalScan
 {
     advanceScanner(scanner, length);
     if (length > 0) {
-        vasqLogStatement(VASQ_LL_DEBUG, __FILE__, function_name, line_no, "%u character%s consumed", length,
+        vasqLogStatement(VASQ_LL_DEBUG, __FILE__, function_name, line_no, "%u character%s consumed.", length,
                          (length == 1) ? "" : "s");
     }
 }
@@ -175,6 +175,11 @@ prepLine(plLexicalScanner *scanner)
             }
 
             ADVANCE_SCANNER(scanner, idx);
+        }
+
+        if (scanner->line_length > 0) {
+            VASQ_DEBUG("%s, line %u: %.*s", scanner->file_name, scanner->location.line_no,
+                       scanner->line_length, scanner->buffer);
         }
     }
 

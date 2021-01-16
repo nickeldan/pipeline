@@ -42,7 +42,8 @@ operatorOrder(const plLexicalToken *token)
         default: return PL_ORDER_NA;  // This should never happen.
         }
 
-    case PL_MARKER_COMPARISON: return PL_ORDER_COMPARISON;
+    case PL_MARKER_COMPARISON:
+    case PL_MARKER_IS: return PL_ORDER_COMPARISON;
 
     case PL_MARKER_LOGICAL: return PL_ORDER_LOGICAL;
 
@@ -100,7 +101,7 @@ start:
         if (token.marker == PL_MARKER_SOURCE) {
             plLexicalLocation arrow_location;
 
-            ret = parseInlineFunction(scanner, node);
+            ret = parseFunction(scanner, node, true);
             if (ret != PL_RET_OK) {
                 return ret;
             }
@@ -195,6 +196,7 @@ start:
         break;
 
     case PL_MARKER_OBJECT:
+    case PL_MARKER_TYPE:
     case PL_MARKER_CONTEXT:
         *node = plAstNew(token.marker);
         if (!*node) {

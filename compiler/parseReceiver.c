@@ -33,6 +33,14 @@ parseReceiver(plLexicalScanner *scanner, plAstNode **node)
             }
             memcpy(&second_node->token, &token, sizeof(token));
         }
+        else if (token.marker == PL_MARKER_PIPE || token.marker == PL_MARKER_SINK ||
+                 token.marker == PL_MARKER_LOCAL) {
+            ret = parseFunction(scanner, &second_node, true);
+            if (ret != PL_RET_OK) {
+                goto error;
+            }
+            memcpy(&second_node->token, &token, sizeof(token));
+        }
         else {
             ret = LOOKAHEAD_STORE(scanner, &token);
             if (ret != PL_RET_OK) {

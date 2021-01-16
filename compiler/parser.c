@@ -107,7 +107,7 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
 
         case PL_MARKER_SOURCE:
         case PL_MARKER_PIPE:
-        case PL_MARKER_SINK: ret = parseFunction(scanner, &node); break;
+        case PL_MARKER_SINK: ret = parseFunction(scanner, &node, false); break;
 
         case PL_MARKER_STRUCT: ret = parseStructDefinition(scanner, &node); break;
 
