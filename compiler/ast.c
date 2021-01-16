@@ -74,14 +74,13 @@ void
 plAstFree(plAstNode *node, plNameTable *table)
 {
     int split_size;
-    plAstMaxSplitNode *splitter;
+    plAstMaxSplitNode *splitter = (plAstMaxSplitNode *)node;
 
     if (!node) {
         return;
     }
 
     split_size = plAstSplitSize(node->token.marker);
-    splitter = (plAstMaxSplitNode *)node;
     for (int k = 0; k < split_size; k++) {
         plAstFree(splitter->nodes[k], table);
     }
