@@ -22,12 +22,13 @@ nameHash(const char *name, unsigned int length)
 {
     unsigned int hash = 0;
 
-    for (unsigned int k = 0; k < length; k++) {
-        unsigned char c;
+    for (int k=0; k<5; k++) {
+        for (unsigned int j = 0; j < length; j++) {
+            unsigned char c = name[j];
 
-        c = name[k];
-        hash *= 9;
-        hash ^= c;
+            hash *= 9;
+            hash ^= c;
+        }
     }
 
     return hash % REF_TABLE_SIZE;

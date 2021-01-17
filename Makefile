@@ -5,7 +5,8 @@ debug ?= no
 INCLUDE_DIRS := ./plobject ./compiler ./vanilla_squad/include
 ACTUAL_INCLUDE_DIRS := ./plobject ./compiler ./vanilla_squad/include/vasq
 
-COMPILER_FLAGS := -std=gnu11 -fpic -ffunction-sections -fdiagnostics-color -Wall -Wextra -DVASQ_ENABLE_LOGGING -DLL_USE=$(level)
+COMPILER_FLAGS := -std=gnu11 -fpic -ffunction-sections -fdiagnostics-color -Wall -Wextra
+COMPILER_FLAGS += -DVASQ_ENABLE_LOGGING -DLL_USE=$(level)
 ifeq ($(debug),yes)
 	COMPILER_FLAGS += -O0 -g -DDEBUG
 else

@@ -32,6 +32,7 @@ parseReceiver(plLexicalScanner *scanner, plAstNode **node)
                 goto error;
             }
             memcpy(&second_node->token, &token, sizeof(token));
+            goto connect_nodes;
         }
         else if (token.marker == PL_MARKER_PIPE || token.marker == PL_MARKER_SINK ||
                  token.marker == PL_MARKER_LOCAL) {
@@ -102,6 +103,8 @@ parseReceiver(plLexicalScanner *scanner, plAstNode **node)
             }
         }
 
+    connect_nodes:
+
         if (*node) {
             ret = createConnection(PL_MARKER_ARROW, node, second_node);
             if (ret != PL_RET_OK) {
@@ -114,13 +117,13 @@ parseReceiver(plLexicalScanner *scanner, plAstNode **node)
             *node = second_node;
         }
 
+        if ( second_node->token.marker == PL_MARKER_UNDERSCORE ) {
+            break;
+        }
+
         ret = NEXT_TOKEN(scanner, &token);
         if (ret != PL_RET_OK) {
             goto error;
-        }
-
-        if (token.marker == PL_MARKER_UNDERSCORE) {
-            break;
         }
 
         if (token.marker != PL_MARKER_ARROW) {
