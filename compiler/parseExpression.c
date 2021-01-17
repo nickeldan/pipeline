@@ -137,7 +137,12 @@ start:
                 return ret;
             }
 
-            ret = parseExpressionStart(scanner, node, PL_ORDER_ARROW, false);
+            if ( compilation_only ) {
+                ret = parseExpressionStart(scanner, node, PL_ORDER_START, true);
+            }
+            else {
+                ret = parseExpressionStart(scanner, node, PL_ORDER_ARROW, false);
+            }
             if (ret != PL_RET_OK) {
                 return ret;
             }

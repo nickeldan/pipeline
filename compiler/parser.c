@@ -255,7 +255,8 @@ expectMarkerNoLog(plLexicalScanner *scanner, int marker, plLexicalLocation *loca
     }
 
     if (token.marker != marker) {
-        PARSER_ERROR("Unexpected %s", plLexicalMarkerName(token.marker));
+        PARSER_ERROR("Expected %s instead of %s.", plLexicalMarkerName(marker),
+                     plLexicalMarkerName(token.marker));
         plTokenCleanup(&token, scanner->table);
         return PL_RET_BAD_DATA;
     }
