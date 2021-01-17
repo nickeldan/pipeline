@@ -46,13 +46,13 @@ int
 parseExtendedType(plLexicalScanner *scanner, plAstNode **node);
 
 int
-parseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node);
+parseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node, bool compilation_only);
 
 int
 parseStructDefinition(plLexicalScanner *scanner, plAstNode **node);
 
 int
-parseExpression(plLexicalScanner *scanner, plAstNode **node);
+parseExpression(plLexicalScanner *scanner, plAstNode **node, bool compilation_only);
 
 int
 parseReceiver(plLexicalScanner *scanner, plAstNode **node);

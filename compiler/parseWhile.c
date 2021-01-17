@@ -17,7 +17,7 @@ parseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
 
     plGetLastLocation(scanner, &location);
 
-    ret = parseExpression(scanner, &condition_node);
+    ret = parseExpression(scanner, &condition_node, false);
     if (ret != PL_RET_OK) {
         return ret;
     }

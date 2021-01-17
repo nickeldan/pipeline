@@ -17,10 +17,11 @@ typedef enum plOperatorOrder {
 #define PL_ORDER_NUMERIC PL_ORDER_ADD
 
 static int
-parseMonomial(plLexicalScanner *scanner, plAstNode **node, bool allow_boolean);
+parseMonomial(plLexicalScanner *scanner, plAstNode **node, bool allow_boolean, bool compilation_only);
 
 static int
-parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **node, plOperatorOrder_t order);
+parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **node, plOperatorOrder_t order,
+                       bool compilation_only);
 
 static plOperatorOrder_t
 operatorOrder(const plLexicalToken *token)
@@ -56,16 +57,17 @@ operatorOrder(const plLexicalToken *token)
 }
 
 static int
-parseExpressionStart(plLexicalScanner *scanner, plAstNode **node, plOperatorOrder_t order)
+parseExpressionStart(plLexicalScanner *scanner, plAstNode **node, plOperatorOrder_t order,
+                     bool compilation_only)
 {
     int ret;
 
-    ret = parseMonomial(scanner, node, (order > PL_ORDER_NUMERIC));
+    ret = parseMonomial(scanner, node, (order > PL_ORDER_NUMERIC), compilation_only);
     if (ret != PL_RET_OK) {
         return ret;
     }
 
-    ret = parseExpressionRecurse(scanner, node, order);
+    ret = parseExpressionRecurse(scanner, node, order, compilation_only);
     if (ret != PL_RET_OK) {
         plAstFree(*node, scanner->table);
         *node = NULL;
@@ -74,7 +76,7 @@ parseExpressionStart(plLexicalScanner *scanner, plAstNode **node, plOperatorOrde
 }
 
 static int
-parseMonomial(plLexicalScanner *scanner, plAstNode **node, bool allow_boolean)
+parseMonomial(plLexicalScanner *scanner, plAstNode **node, bool allow_boolean, bool compilation_only)
 {
     int ret;
     bool negation = false;
@@ -100,6 +102,12 @@ start:
 
         if (token.marker == PL_MARKER_SOURCE) {
             plLexicalLocation arrow_location;
+
+            if (compilation_only) {
+                PARSER_ERROR(
+                    "SOURCE is not allowed in an expression which must be resolved at compile time.");
+                return PL_RET_BAD_DATA;
+            }
 
             ret = parseFunction(scanner, node, true);
             if (ret != PL_RET_OK) {
@@ -129,7 +137,7 @@ start:
                 return ret;
             }
 
-            ret = parseExpressionStart(scanner, node, PL_ORDER_ARROW);
+            ret = parseExpressionStart(scanner, node, PL_ORDER_ARROW, false);
             if (ret != PL_RET_OK) {
                 return ret;
             }
@@ -170,7 +178,12 @@ start:
         }
 
         if (token.marker == PL_MARKER_LEFT_PARENS) {
-            ret = parseExpressionStart(scanner, &second_node, PL_ORDER_COMMA);
+            if (compilation_only) {
+                ret = parseExpressionStart(scanner, &second_node, PL_ORDER_START, true);
+            }
+            else {
+                ret = parseExpressionStart(scanner, &second_node, PL_ORDER_COMMA, false);
+            }
             if (ret != PL_RET_OK) {
                 goto error;
             }
@@ -235,7 +248,7 @@ start:
         break;
 
     case PL_MARKER_LEFT_BRACKET:
-        ret = parseArrayDeclaration(scanner, node);
+        ret = parseArrayDeclaration(scanner, node, compilation_only);
         if (ret != PL_RET_OK) {
             return ret;
         }
@@ -255,7 +268,7 @@ start:
         }
 
         if (token.marker == PL_MARKER_LEFT_BRACKET) {
-            ret = parseExpressionStart(scanner, &second_node, PL_ORDER_NUMERIC);
+            ret = parseExpressionStart(scanner, &second_node, PL_ORDER_NUMERIC, compilation_only);
             if (ret != PL_RET_OK) {
                 goto error;
             }
@@ -312,7 +325,8 @@ error:
 }
 
 static int
-parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperatorOrder_t order)
+parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperatorOrder_t order,
+                       bool compilation_only)
 {
     int ret;
     plLexicalToken token1;
@@ -345,7 +359,8 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
                 break;
             }
 
-            ret = parseExpressionRecurse(scanner, second_node ? &second_node : current, new_order);
+            ret = parseExpressionRecurse(scanner, second_node ? &second_node : current, new_order,
+                                         compilation_only);
             if (ret != PL_RET_OK) {
                 goto error;
             }
@@ -381,7 +396,7 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
             memcpy(&token1, &token2, sizeof(token2));
         }
 
-        ret = parseMonomial(scanner, &second_node, (order > PL_ORDER_NUMERIC));
+        ret = parseMonomial(scanner, &second_node, (order > PL_ORDER_NUMERIC), compilation_only);
         if (ret != PL_RET_OK) {
             goto error;
         }
@@ -404,7 +419,7 @@ error:
 }
 
 int
-parseExpression(plLexicalScanner *scanner, plAstNode **node)
+parseExpression(plLexicalScanner *scanner, plAstNode **node, bool compilation_only)
 {
     if (!scanner || !node) {
         VASQ_ERROR("The arguments cannot be NULL.");
@@ -414,5 +429,5 @@ parseExpression(plLexicalScanner *scanner, plAstNode **node)
         return PL_RET_USAGE;
     }
 
-    return parseExpressionStart(scanner, node, PL_ORDER_START);
+    return parseExpressionStart(scanner, node, PL_ORDER_START, compilation_only);
 }

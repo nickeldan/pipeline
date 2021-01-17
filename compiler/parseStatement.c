@@ -52,7 +52,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
     case PL_MARKER_PROD:
     case PL_MARKER_VERIFY:
     case PL_MARKER_ABORT:
-        ret = parseExpression(scanner, &first_node);
+        ret = parseExpression(scanner, &first_node, (token.marker == PL_MARKER_ABORT));
         if (ret != PL_RET_OK) {
             return ret;
         }
@@ -169,7 +169,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         return PL_RET_OK;
     }
 
-    ret = parseExpression(scanner, &first_node);
+    ret = parseExpression(scanner, &first_node, false);
     if (ret != PL_RET_OK) {
         return ret;
     }
@@ -188,7 +188,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             goto error;
         }
 
-        ret = parseExpression(scanner, &rvalue_node);
+        ret = parseExpression(scanner, &rvalue_node, false);
         if (ret != PL_RET_OK) {
             goto error;
         }

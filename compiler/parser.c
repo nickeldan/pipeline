@@ -50,30 +50,6 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
     return ret;
 }
 
-static bool
-isCompilationExpression(const plAstNode *node)
-{
-    int split_size;
-    const plAstMaxSplitNode *splitter = (const plAstMaxSplitNode *)node;
-
-    if ( !node ) {
-        return true;
-    }
-
-    if ( node->token.marker == PL_MARKER_ARROW ) {
-        return false;
-    }
-
-    split_size = plAstSplitSize(node->token.marker);
-    for (int k=0; k<split_size; k++) {
-        if ( !isCompilationExpression(splitter->nodes[k]) ) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 static int
 parseConstantDeclaration(plLexicalScanner *scanner, plAstNode **node)
 {
@@ -82,34 +58,28 @@ parseConstantDeclaration(plLexicalScanner *scanner, plAstNode **node)
     plLexicalToken token;
     plAstNode *name_node;
 
-    ret = parseExpression(scanner, node);
-    if ( ret != PL_RET_OK ) {
+    ret = parseExpression(scanner, node, true);
+    if (ret != PL_RET_OK) {
         return ret;
     }
 
-    if ( !isCompilationExpression(*node) ) {
-        PARSER_ERROR("Global variables must be resolvable at compilation time.");
-        ret = PL_RET_BAD_DATA;
-        goto error;
-    }
-
     ret = EXPECT_MARKER(scanner, PL_MARKER_ARROW, &location);
-    if ( ret != PL_RET_OK ) {
+    if (ret != PL_RET_OK) {
         goto error;
     }
 
     ret = NEXT_TOKEN(scanner, &token);
-    if ( ret != PL_RET_OK ) {
+    if (ret != PL_RET_OK) {
         goto error;
     }
-    if ( token.marker != PL_MARKER_NAME ) {
+    if (token.marker != PL_MARKER_NAME) {
         PARSER_ERROR("Unexpected %s in place of NAME.", plLexicalMarkerName(token.marker));
         plTokenCleanup(&token, scanner->table);
         ret = PL_RET_BAD_DATA;
         goto error;
     }
     name_node = plAstNew(PL_MARKER_NAME);
-    if ( !name_node ) {
+    if (!name_node) {
         plTokenCleanup(&token, scanner->table);
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
@@ -117,14 +87,14 @@ parseConstantDeclaration(plLexicalScanner *scanner, plAstNode **node)
     memcpy(&name_node->token, &token, sizeof(token));
 
     ret = createConnection(PL_MARKER_ARROW, node, name_node);
-    if ( ret != PL_RET_OK ) {
+    if (ret != PL_RET_OK) {
         plAstFree(name_node, scanner->table);
         goto error;
     }
     plAstSetLocation(*node, &location);
 
     ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
-    if ( ret != PL_RET_OK ) {
+    if (ret != PL_RET_OK) {
         goto error;
     }
 

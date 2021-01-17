@@ -103,7 +103,7 @@ parseReceiver(plLexicalScanner *scanner, plAstNode **node)
             }
         }
 
-    connect_nodes:
+connect_nodes:
 
         if (*node) {
             ret = createConnection(PL_MARKER_ARROW, node, second_node);
@@ -117,7 +117,7 @@ parseReceiver(plLexicalScanner *scanner, plAstNode **node)
             *node = second_node;
         }
 
-        if ( second_node->token.marker == PL_MARKER_UNDERSCORE ) {
+        if (second_node->token.marker == PL_MARKER_UNDERSCORE) {
             break;
         }
 

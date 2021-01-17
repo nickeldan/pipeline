@@ -22,7 +22,7 @@ nameHash(const char *name, unsigned int length)
 {
     unsigned int hash = 0;
 
-    for (int k=0; k<5; k++) {
+    for (int k = 0; k < 5; k++) {
         for (unsigned int j = 0; j < length; j++) {
             unsigned char c = name[j];
 
