@@ -11,6 +11,7 @@ main(int argc, char **argv)
     int ret;
     unsigned int line_no = 0;
     FILE *f;
+    const char *file_name;
     plLexicalScanner scanner;
     plNameTable *table;
     plLexicalToken token;
@@ -22,6 +23,7 @@ main(int argc, char **argv)
 
     if (argc == 1) {
         f = stdin;
+        file_name = "stdin";
     }
     else {
         f = fopen(argv[1], "r");
@@ -29,6 +31,7 @@ main(int argc, char **argv)
             VASQ_PERROR("fopen", errno);
             return PL_RET_NO_ACCESS;
         }
+        file_name = argv[1];
     }
 
     table = plNameTableNew();
@@ -37,7 +40,7 @@ main(int argc, char **argv)
         goto done;
     }
 
-    plScannerInit(&scanner, f, argv[1], table);
+    plScannerInit(&scanner, f, file_name, table);
 
     while (!TERMINAL_MARKER(TOKEN_READ(&scanner, &token))) {
         if (scanner.location.line_no > line_no) {

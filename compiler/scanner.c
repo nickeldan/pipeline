@@ -169,7 +169,7 @@ prepLine(plLexicalScanner *scanner)
         }
 
         scanner->location.line_no++;
-        scanner->location.column_no = 0;
+        scanner->location.column_no = 1;
         scanner->line_length = strnlen(scanner->buffer, sizeof(scanner->buffer));
         if (scanner->line_length >= sizeof(scanner->buffer)) {
             SCANNER_ERROR("Line too long.");
