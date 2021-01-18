@@ -1,6 +1,8 @@
 #include <ctype.h>
 #include <string.h>
 
+#include "vasq/safe_snprintf.h"
+
 #include "scanner.h"
 
 struct keywordRecord {
@@ -29,6 +31,41 @@ static const struct keywordRecord contexts[] = {
     {"ATTACH", 6, PL_SUBMARKER_ATTACH},
     {"CONTEXT", 7, PL_SUBMARKER_CONTEXT},
 };
+
+#if LL_USE == -1
+
+static void
+scannerErrorNoLog(const plLexicalScanner *scanner, const char *format, ...)
+{
+    char line[2048];
+    va_list args;
+
+    va_start(args, format);
+    vasqSafeVsnprintf(line, sizeof(line), format, args);
+    va_end(args);
+
+    VASQ_RAWLOG("%s:%u: %s\n", scanner->file_name, scanner->location.line_no, line);
+}
+#define SCANNER_ERROR(format, ...) scannerErrorNoLog(scanner, format, ##__VA_ARGS__)
+
+#else  // LL_USE == -1
+
+static void
+scannerErrorLog(const char *function_name, unsigned line_no, const char *scanner, const char *format, ...)
+{
+    char line[2048];
+    va_list args;
+
+    va_start(args, format);
+    vasqSafeVsnprintf(line, sizeof(line), format, args);
+    va_end(args);
+
+    vasqLogStatement(VASQ_LL_ERROR, __FILE__, function_name, line_no, "%s:%u: %s", scanner->file_name,
+                     scanner->location.line_no, line);
+}
+#define SCANNER_ERROR(format, ...) scannerErrorLog(__func__, __LINE__, scanner, format, ##__VA_ARGS__)
+
+#endif  // LL_USE == -1
 
 static bool
 isWhitespace(char c)
@@ -117,12 +154,12 @@ prepLine(plLexicalScanner *scanner)
 
         if (!fgets(scanner->buffer, sizeof(scanner->buffer), scanner->file)) {
             if (ferror(scanner->file)) {
-                VASQ_ERROR("Failed to read from %s.", scanner->file_name);
+                SCANNER_ERROR("Failed to read from %s.", scanner->file_name);
                 scanner->last_marker = PL_MARKER_READ_FAILURE;
             }
             else if (scanner->inside_comment_block) {
-                PARSER_ERROR("EOF encountered while inside comment block starting on line %u.",
-                             scanner->comment_block_line_no);
+                SCANNER_ERROR("EOF encountered while inside comment block starting on line %u.",
+                              scanner->comment_block_line_no);
                 scanner->last_marker = PL_MARKER_BAD_DATA;
             }
             else {
@@ -135,7 +172,7 @@ prepLine(plLexicalScanner *scanner)
         scanner->location.column_no = 0;
         scanner->line_length = strnlen(scanner->buffer, sizeof(scanner->buffer));
         if (scanner->line_length >= sizeof(scanner->buffer)) {
-            VASQ_RAWLOG("%s:%u: Line too long.\n", scanner->file_name, scanner->location.line_no);
+            SCANNER_ERROR("Line too long.");
             scanner->last_marker = PL_MARKER_BAD_DATA;
             return false;
         }
@@ -156,8 +193,7 @@ prepLine(plLexicalScanner *scanner)
             char c = scanner->buffer[k];
 
             if (!isprint(c) && c != '\t') {
-                VASQ_RAWLOG("%s:%u:%u: Unprintable character: 0x%02x\n", scanner->file_name,
-                            scanner->location.line_no, k, c);
+                SCANNER_ERROR("Unprintable character: 0x%02x", c);
                 scanner->last_marker = PL_MARKER_BAD_DATA;
                 return false;
             }
@@ -296,7 +332,7 @@ lookaheadStoreLogic(plLexicalScanner *scanner, const plLexicalToken *token)
         unsigned int num_to_move;
 
         num_to_move = scanner->num_look_ahead;
-        if (num_to_move == ARRAY_LENGTH(scanner->look_ahead)) {
+        if (num_to_move == PL_SCANNER_MAX_LOOK_AHEAD) {
             num_to_move--;
         }
         memmove(scanner->look_ahead + 1, scanner->look_ahead + 0, sizeof(*token) * num_to_move);
@@ -763,7 +799,7 @@ plLookaheadStoreNoLog(plLexicalScanner *scanner, plLexicalToken *token)
         return PL_RET_USAGE;
     }
 
-    if (scanner->num_look_ahead == ARRAY_LENGTH(scanner->look_ahead)) {
+    if (scanner->num_look_ahead == PL_SCANNER_MAX_LOOK_AHEAD) {
         plTokenCleanup(token, scanner->table);
         return PL_RET_USAGE;
     }
@@ -800,7 +836,7 @@ plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned i
         return PL_RET_USAGE;
     }
 
-    if (scanner->num_look_ahead == ARRAY_LENGTH(scanner->look_ahead)) {
+    if (scanner->num_look_ahead == PL_SCANNER_MAX_LOOK_AHEAD) {
         vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no,
                          "Cannot store any more look ahead tokens.");
         plTokenCleanup(token, scanner->table);

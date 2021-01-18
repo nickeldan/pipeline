@@ -1,8 +1,7 @@
 #pragma once
 
-#include "vasq/logger.h"
-
 #include "ast.h"
+#include "definitions.h"
 #include "scanner.h"
 
 #if LL_USE == -1

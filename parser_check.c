@@ -10,6 +10,7 @@ main(int argc, char **argv)
 {
     int ret;
     FILE *f;
+    const char *file_name;
     plNameTable *table;
     plAstNode *tree;
 
@@ -20,6 +21,7 @@ main(int argc, char **argv)
 
     if (argc == 1) {
         f = stdin;
+        file_name = "stdin";
     }
     else {
         f = fopen(argv[1], "r");
@@ -27,9 +29,10 @@ main(int argc, char **argv)
             VASQ_PERROR("fopen", errno);
             return PL_RET_NO_ACCESS;
         }
+        file_name = argv[1];
     }
 
-    ret = plFileParse(f, argv[1], &tree, &table);
+    ret = plFileParse(f, file_name, &tree, &table);
     if (ret == PL_RET_OK) {
         plAstPrint(tree, 0);
         plAstFree(tree, table);
