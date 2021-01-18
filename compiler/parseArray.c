@@ -4,6 +4,10 @@ int
 parseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node, bool compilation_only)
 {
     int ret;
+    plLexicalLocation location;
+    plAstNode *array_node;
+
+    plGetLastLocation(scanner, &location);
 
     ret = parseExpression(scanner, node, compilation_only);
     if (ret != PL_RET_OK) {
@@ -41,6 +45,14 @@ parseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node, bool compilat
         }
         memcpy(&(*node)->token, &token, sizeof(token));
     }
+
+    array_node = createFamily('A', *node);
+    if (!array_node) {
+        ret = PL_RET_OUT_OF_MEMORY;
+        goto error;
+    }
+    memcpy(&array_node->token.location, &location, sizeof(location));
+    *node = array_node;
 
     return PL_RET_OK;
 

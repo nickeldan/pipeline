@@ -52,6 +52,35 @@ parseReceiver(plLexicalScanner *scanner, plAstNode **node)
             if (ret != PL_RET_OK) {
                 goto error;
             }
+
+            if (second_node->token.marker != PL_MARKER_TYPE) {
+                ret = NEXT_TOKEN(scanner, &token);
+                if (ret != PL_RET_OK) {
+                    goto loop_error;
+                }
+
+                if (token.marker == PL_MARKER_LEFT_PARENS) {
+                    plAstNode *attached_node;
+
+                    ret = parseExpression(scanner, &attached_node, false);
+                    if (ret != PL_RET_OK) {
+                        goto loop_error;
+                    }
+
+                    ret = createConnection(PL_MARKER_LEFT_PARENS, &second_node, attached_node);
+                    if (ret != PL_RET_OK) {
+                        plAstFree(attached_node, scanner->table);
+                        goto loop_error;
+                    }
+                    memcpy(&second_node->token, &token, sizeof(token));
+                }
+                else {
+                    ret = LOOKAHEAD_STORE(scanner, &token);
+                    if (ret != PL_RET_OK) {
+                        goto loop_error;
+                    }
+                }
+            }
         }
 
         ret = NEXT_TOKEN(scanner, &token);
