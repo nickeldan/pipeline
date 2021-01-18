@@ -45,7 +45,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         if (!*node) {
             return PL_RET_OUT_OF_MEMORY;
         }
-        plAstSetLocation(*node, &token.location);
+        memcpy(&(*node)->token, &token, sizeof(token));
 
         return PL_RET_OK;
 

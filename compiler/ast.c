@@ -89,17 +89,6 @@ plAstFree(plAstNode *node, plNameTable *table)
     free(node);
 }
 
-void
-plAstSetLocation(plAstNode *node, const plLexicalLocation *location)
-{
-    if (!node || !location) {
-        VASQ_ERROR("The arguments cannot be NULL.");
-        return;
-    }
-
-    memcpy(&node->token.location, location, sizeof(*location));
-}
-
 int
 plAstSplitSize(int node_type)
 {
@@ -149,6 +138,62 @@ plAstSplitSize(int node_type)
 
     default: return -1;
     }
+}
+
+plAstNode *
+createFamily(int marker, ...)
+{
+    int split_size;
+    va_list args;
+    plAstNode *parent;
+    plAstMaxSplitNode *splitter;
+
+    parent = plAstNew(marker);
+    if (!parent) {
+        return NULL;
+    }
+    splitter = (plAstMaxSplitNode *)parent;
+
+    split_size = plAstSplitSize(marker);
+    va_start(args, marker);
+    for (int k = 0; k < split_size; k++) {
+        plAstNode *node;
+
+        node = va_arg(args, plAstNode *);
+#ifdef AST_HAS_PARENT
+        if (node) {
+            node->parent = parent;
+        }
+#endif
+        splitter->nodes[k] = node;
+    }
+    va_end(args);
+
+    return parent;
+}
+
+int
+createConnection(int marker, plAstNode **first, plAstNode *second)
+{
+    plAstNode *parent;
+
+    if (!first || !second) {
+        VASQ_ERROR("The arguments cannot be NULL.");
+        return PL_RET_USAGE;
+    }
+
+    if (!*first) {
+        VASQ_ERROR("*first cannot be NULL.");
+        return PL_RET_USAGE;
+    }
+
+    parent = createFamily(marker, *first, second);
+    if (!parent) {
+        return PL_RET_OUT_OF_MEMORY;
+    }
+    *first = parent;
+
+    return PL_RET_OK;
 }
 
 void

@@ -40,7 +40,7 @@ parseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
         plAstFree(statement_list, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
     }
-    plAstSetLocation(*node, &location);
+    memcpy(&(*node)->token.location, &location, sizeof(location));
 
     return PL_RET_OK;
 }

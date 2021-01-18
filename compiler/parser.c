@@ -41,7 +41,7 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
         plAstFree(name_node, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
     }
-    plAstSetLocation(*node, &location);
+    memcpy(&(*node)->token.location, &location, sizeof(location));
 
     ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
     if (ret != PL_RET_OK) {
@@ -91,7 +91,7 @@ parseConstantDeclaration(plLexicalScanner *scanner, plAstNode **node)
         plAstFree(name_node, scanner->table);
         goto error;
     }
-    plAstSetLocation(*node, &location);
+    memcpy(&(*node)->token.location, &location, sizeof(location));
 
     ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
     if (ret != PL_RET_OK) {
@@ -133,7 +133,7 @@ parseMain(plLexicalScanner *scanner, plAstNode **node)
         plAstFree(statement_list, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
     }
-    plAstSetLocation(*node, &location);
+    memcpy(&(*node)->token.location, &location, sizeof(location));
 
     return PL_RET_OK;
 }
@@ -342,59 +342,3 @@ parserErrorLog(const char *file_name, const char *function_name, unsigned int li
 }
 
 #endif  // LL_USE == -1
-
-plAstNode *
-createFamily(int marker, ...)
-{
-    int split_size;
-    va_list args;
-    plAstNode *parent;
-    plAstMaxSplitNode *splitter;
-
-    parent = plAstNew(marker);
-    if (!parent) {
-        return NULL;
-    }
-    splitter = (plAstMaxSplitNode *)parent;
-
-    split_size = plAstSplitSize(marker);
-    va_start(args, marker);
-    for (int k = 0; k < split_size; k++) {
-        plAstNode *node;
-
-        node = va_arg(args, plAstNode *);
-#ifdef AST_HAS_PARENT
-        if (node) {
-            node->parent = parent;
-        }
-#endif
-        splitter->nodes[k] = node;
-    }
-    va_end(args);
-
-    return parent;
-}
-
-int
-createConnection(int marker, plAstNode **first, plAstNode *second)
-{
-    plAstNode *parent;
-
-    if (!first || !second) {
-        VASQ_ERROR("The arguments cannot be NULL.");
-        return PL_RET_USAGE;
-    }
-
-    if (!*first) {
-        VASQ_ERROR("*first cannot be NULL.");
-        return PL_RET_USAGE;
-    }
-
-    parent = createFamily(marker, *first, second);
-    if (!parent) {
-        return PL_RET_OUT_OF_MEMORY;
-    }
-    *first = parent;
-
-    return PL_RET_OK;
-}

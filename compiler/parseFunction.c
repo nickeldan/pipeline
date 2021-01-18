@@ -153,7 +153,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, bool anonymous)
             ret = PL_RET_OUT_OF_MEMORY;
             goto cleanup_name_node;
         }
-        plAstSetLocation(arg_node, &location);
+        memcpy(&arg_node->token.location, &location, sizeof(location));
         type_node = NULL;
 
         if (arg_list) {
@@ -162,7 +162,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, bool anonymous)
                 plAstFree(arg_node, scanner->table);
                 goto error;
             }
-            plAstSetLocation(arg_list, &comma_location);
+            memcpy(&arg_list->token.location, &comma_location, sizeof(comma_location));
         }
         else {
             arg_list = arg_node;
@@ -203,7 +203,7 @@ cleanup_name_node:
         plAstFree(statement_list, scanner->table);
         goto error;
     }
-    plAstSetLocation(*node, &function_location);
+    memcpy(&(*node)->token.location, &function_location, sizeof(function_location));
 
     splitter = (plAstMaxSplitNode *)(*node);
     if (function_marker == PL_MARKER_LOCAL) {

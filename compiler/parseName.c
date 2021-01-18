@@ -38,7 +38,7 @@ parseExtendedName(plLexicalScanner *scanner, plAstNode **node)
                 ret = PL_RET_OUT_OF_MEMORY;
                 goto error;
             }
-            plAstSetLocation(period_node, &token.location);
+            memcpy(&period_node->token, &token, sizeof(token));
 
             ret = NEXT_TOKEN(scanner, &token);
             if (ret != PL_RET_OK) {

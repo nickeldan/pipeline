@@ -69,7 +69,7 @@ parseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
             ret = PL_RET_OUT_OF_MEMORY;
             goto error;
         }
-        plAstSetLocation(arg_node, &colon_location);
+        memcpy(&arg_node->token.location, &colon_location, sizeof(colon_location));
 
         if (arg_list) {
             ret = createConnection(PL_MARKER_SEMICOLON, &arg_list, arg_node);
@@ -105,7 +105,7 @@ loop_error:
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
     }
-    plAstSetLocation(*node, &location);
+    memcpy(&(*node)->token.location, &location, sizeof(location));
 
     return PL_RET_OK;
 

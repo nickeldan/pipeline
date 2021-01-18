@@ -33,12 +33,6 @@ expectMarkerLog(const char *file_name, const char *function_name, unsigned int l
 int
 expectMarker(plLexicalScanner *scanner, int marker, plLexicalLocation *location);
 
-plAstNode *
-createFamily(int marker, ...);
-
-int
-createConnection(int marker, plAstNode **first, plAstNode *second);
-
 int
 parseExtendedName(plLexicalScanner *scanner, plAstNode **node);
 

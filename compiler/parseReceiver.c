@@ -111,7 +111,7 @@ connect_nodes:
                 plAstFree(second_node, scanner->table);
                 goto error;
             }
-            plAstSetLocation(*node, &arrow_location);
+            memcpy(&(*node)->token.location, &arrow_location, sizeof(arrow_location));
         }
         else {
             *node = second_node;

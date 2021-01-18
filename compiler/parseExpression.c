@@ -17,7 +17,7 @@ typedef enum plOperatorOrder {
 #define PL_ORDER_NUMERIC PL_ORDER_ADD
 
 static int
-parseMonomial(plLexicalScanner *scanner, plAstNode **node, bool allow_boolean, bool compilation_only);
+parseMonomial(plLexicalScanner *scanner, plAstNode **node, bool allow_negation, bool compilation_only);
 
 static int
 parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **node, plOperatorOrder_t order,
@@ -76,7 +76,7 @@ parseExpressionStart(plLexicalScanner *scanner, plAstNode **node, plOperatorOrde
 }
 
 static int
-parseMonomial(plLexicalScanner *scanner, plAstNode **node, bool allow_boolean, bool compilation_only)
+parseMonomial(plLexicalScanner *scanner, plAstNode **node, bool allow_negation, bool compilation_only)
 {
     int ret;
     bool negation = false;
@@ -129,7 +129,7 @@ start:
                 plAstFree(second_node, scanner->table);
                 goto error;
             }
-            plAstSetLocation(*node, &arrow_location);
+            memcpy(&(*node)->token.location, &arrow_location, sizeof(arrow_location));
         }
         else {
             ret = LOOKAHEAD_STORE(scanner, &token);
@@ -137,7 +137,7 @@ start:
                 return ret;
             }
 
-            if ( compilation_only ) {
+            if (compilation_only) {
                 ret = parseExpressionStart(scanner, node, PL_ORDER_START, true);
             }
             else {
@@ -155,7 +155,7 @@ start:
         break;
 
     case PL_MARKER_NOT:
-        if (!allow_boolean) {
+        if (!allow_negation) {
             PARSER_ERROR("NOT not allowed in this context.");
             return PL_RET_BAD_DATA;
         }
@@ -198,7 +198,7 @@ start:
                 plAstFree(second_node, scanner->table);
                 goto error;
             }
-            plAstSetLocation(*node, &token.location);
+            memcpy(&(*node)->token.location, &token.location, sizeof(token.location));
 
             ret = EXPECT_MARKER(scanner, PL_MARKER_RIGHT_PARENS, NULL);
             if (ret != PL_RET_OK) {
@@ -314,7 +314,7 @@ start:
                 ret = PL_RET_OUT_OF_MEMORY;
                 goto error;
             }
-            plAstSetLocation(connector_node, &negation_location);
+            memcpy(&connector_node->token.location, &negation_location, sizeof(negation_location));
             *node = connector_node;
         }
     }

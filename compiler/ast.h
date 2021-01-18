@@ -48,11 +48,14 @@ plAstNew(int node_type);
 void
 plAstFree(plAstNode *node, plNameTable *table);
 
-void
-plAstSetLocation(plAstNode *node, const plLexicalLocation *location);
-
 int
 plAstSplitSize(int node_type);
+
+plAstNode *
+createFamily(int marker, ...);
+
+int
+createConnection(int marker, plAstNode **first, plAstNode *second);
 
 void
 plAstPrint(const plAstNode *node, unsigned int margin);
