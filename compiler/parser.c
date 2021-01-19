@@ -23,7 +23,7 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
     }
 
     if (token.marker != PL_MARKER_NAME) {
-        PARSER_ERROR("Unxpected %s after %s", plLexicalMarkerName(token.marker),
+        PARSER_ERROR("Unxpected %s after %s.", plLexicalMarkerName(token.marker),
                      plLexicalMarkerName(marker));
         plTokenCleanup(&token, scanner->table);
         return PL_RET_BAD_DATA;
@@ -147,7 +147,7 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
     *tree = NULL;
 
     while (!TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
-        plAstNode *node = NULL;
+        plAstNode *node;
 
         switch (scanner->last_marker) {
         case PL_MARKER_IMPORT:
@@ -164,7 +164,6 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
         default:
             ret = LOOKAHEAD_STORE(scanner, &token);
             if (ret != PL_RET_OK) {
-                plTokenCleanup(&token, scanner->table);
                 goto error;
             }
             ret = parseConstantDeclaration(scanner, &node);

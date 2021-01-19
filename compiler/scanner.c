@@ -178,9 +178,8 @@ prepLine(plLexicalScanner *scanner)
         }
 
         while (scanner->line_length > 0) {
-            char c;
+            char c = scanner->buffer[scanner->line_length - 1];
 
-            c = scanner->buffer[scanner->line_length - 1];
             if (c == '\r' || c == '\n' || isWhitespace(c)) {
                 scanner->line_length--;
             }
@@ -281,10 +280,9 @@ good_string:
 
                 c = 0;
                 for (int j = 0; j < 2; j++) {
-                    char c2;
+                    char c2 = scanner->line[k + 1 + j];
                     unsigned char x;
 
-                    c2 = scanner->line[k + 1 + j];
                     if (!isxdigit(c2)) {
                         PARSER_ERROR("Invalid hex byte in string literal.");
                         goto error;
@@ -660,13 +658,7 @@ arithmetic_token:
         consumed = 0;  // readByteString already advanced the scanner.
     }
     else {
-        if (isprint(scanner->line[0])) {
-            PARSER_ERROR("Unexpected character: %c", scanner->line[0]);
-        }
-        else {
-            PARSER_ERROR("Unprintable character: 0x%02x", scanner->line[0]);
-        }
-
+        PARSER_ERROR("Invalid token: '%c'", scanner->line[0]);
         scanner->last_marker = PL_MARKER_BAD_DATA;
         goto return_marker;
     }
@@ -721,7 +713,9 @@ plTokenCleanup(plLexicalToken *token, plNameTable *table)
     }
 
     switch (token->marker) {
-    case PL_MARKER_NAME: plUnregisterName(table, token->ctx.name); break;
+    case PL_MARKER_NAME:
+        plUnregisterName(table, token->ctx.name);  // plUnregisterName will check to see if table is NULL.
+        break;
 
     case PL_MARKER_OBJECT: plFreeObject(token->ctx.object); break;
 
