@@ -7,7 +7,8 @@ parseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
     plLexicalLocation location;
-    plAstNode *arg_list = NULL;
+    plLexicalToken token;
+    plAstNode *struct_name_node, *arg_list = NULL;
 
     if (node) {
         *node = NULL;
@@ -19,9 +20,26 @@ parseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
 
     plGetLastLocation(scanner, &location);
 
-    ret = EXPECT_MARKER(scanner, PL_MARKER_LEFT_BRACE, NULL);
+    ret = NEXT_TOKEN(scanner, &token);
     if (ret != PL_RET_OK) {
         return ret;
+    }
+
+    if (token.marker != PL_MARKER_NAME) {
+        PARSER_ERROR("Expected NAME instead of %s following STRUCT.", plLexicalMarkerName(token.marker));
+        plTokenCleanup(&token, scanner->table);
+        return PL_RET_BAD_DATA;
+    }
+    struct_name_node = plAstNew(PL_MARKER_NAME);
+    if (!struct_name_node) {
+        plTokenCleanup(&token, scanner->table);
+        return PL_RET_OUT_OF_MEMORY;
+    }
+    memcpy(&struct_name_node->token, &token, sizeof(token));
+
+    ret = EXPECT_MARKER(scanner, PL_MARKER_LEFT_BRACE, NULL);
+    if (ret != PL_RET_OK) {
+        goto error;
     }
 
     while (true) {
@@ -100,7 +118,7 @@ loop_error:
         return PL_RET_BAD_DATA;
     }
 
-    *node = createFamily(PL_MARKER_STRUCT, arg_list);
+    *node = createFamily(PL_MARKER_STRUCT, struct_name_node, arg_list);
     if (!*node) {
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
@@ -111,6 +129,7 @@ loop_error:
 
 error:
 
+    plAstFree(struct_name_node, scanner->table);
     plAstFree(arg_list, scanner->table);
 
     return ret;

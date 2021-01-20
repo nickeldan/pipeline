@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "parserInternal.h"
 
 int
@@ -5,7 +7,7 @@ parseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
     plLexicalLocation location;
-    plAstNode *condition_node, *statement_list;
+    plAstNode *condition_node, *statement_list = NULL;
 
     if (node) {
         *node = NULL;
@@ -24,23 +26,27 @@ parseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
 
     ret = EXPECT_MARKER(scanner, PL_MARKER_LEFT_BRACE, NULL);
     if (ret != PL_RET_OK) {
-        plAstFree(condition_node, scanner->table);
-        return ret;
+        goto error;
     }
 
     ret = parseStatementList(scanner, &statement_list);
     if (ret != PL_RET_OK) {
-        plAstFree(condition_node, scanner->table);
-        return ret;
+        goto error;
     }
 
     *node = createFamily(PL_MARKER_WHILE, condition_node, statement_list);
     if (!*node) {
-        plAstFree(condition_node, scanner->table);
-        plAstFree(statement_list, scanner->table);
-        return PL_RET_OUT_OF_MEMORY;
+        ret = PL_RET_OUT_OF_MEMORY;
+        goto error;
     }
     memcpy(&(*node)->token.location, &location, sizeof(location));
 
     return PL_RET_OK;
+
+error:
+
+    plAstFree(condition_node, scanner->table);
+    plAstFree(statement_list, scanner->table);
+
+    return ret;
 }
