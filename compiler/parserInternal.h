@@ -30,9 +30,6 @@ expectMarkerLog(const char *file_name, const char *function_name, unsigned int l
 #endif  // LL_USE == -1
 
 int
-expectMarker(plLexicalScanner *scanner, int marker, plLexicalLocation *location);
-
-int
 parseExtendedName(plLexicalScanner *scanner, plAstNode **node);
 
 int
