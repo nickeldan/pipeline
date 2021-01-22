@@ -38,7 +38,8 @@ operatorOrder(const plLexicalToken *token)
 
         case PL_SUBMARKER_PLUS:
         case PL_SUBMARKER_MINUS:
-        case PL_SUBMARKER_LSHIFT: return PL_ORDER_ADD;
+        case PL_SUBMARKER_LSHIFT:
+        case PL_SUBMARKER_RSHIFT: return PL_ORDER_ADD;
 
         default: return PL_ORDER_NA;  // This should never happen.
         }
@@ -132,17 +133,15 @@ start:
             memcpy(&(*node)->token.location, &arrow_location, sizeof(arrow_location));
         }
         else {
+            plOperatorOrder_t new_order;
+
             ret = LOOKAHEAD_STORE(scanner, &token);
             if (ret != PL_RET_OK) {
                 return ret;
             }
 
-            if (compilation_only) {
-                ret = parseExpressionStart(scanner, node, PL_ORDER_START, true);
-            }
-            else {
-                ret = parseExpressionStart(scanner, node, PL_ORDER_ARROW, false);
-            }
+            new_order = compilation_only ? PL_ORDER_START : PL_ORDER_ARROW;
+            ret = parseExpressionStart(scanner, node, new_order, compilation_only);
             if (ret != PL_RET_OK) {
                 return ret;
             }
@@ -183,12 +182,9 @@ start:
         }
 
         if (token.marker == PL_MARKER_LEFT_PARENS) {
-            if (compilation_only) {
-                ret = parseExpressionStart(scanner, &second_node, PL_ORDER_START, true);
-            }
-            else {
-                ret = parseExpressionStart(scanner, &second_node, PL_ORDER_COMMA, false);
-            }
+            plOperatorOrder_t new_order = compilation_only ? PL_ORDER_START : PL_ORDER_COMMA;
+
+            ret = parseExpressionStart(scanner, &second_node, new_order, compilation_only);
             if (ret != PL_RET_OK) {
                 goto error;
             }

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PIPELINE_OBJECT_H
+#define PIPELINE_OBJECT_H
 
 #include <stdint.h>
 
@@ -116,3 +117,5 @@ extern plObject true_object;
 extern plObject false_object;
 extern plObject blank_object;
 extern plObject null_object;
+
+#endif  // PIPELINE_OBJECT_H

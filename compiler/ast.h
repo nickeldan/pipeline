@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PIPELINE_COMPILER_AST_H
+#define PIPELINE_COMPILER_AST_H
 
 #include "definitions.h"
 #include "nameTable.h"
@@ -59,3 +60,5 @@ createConnection(int marker, plAstNode **first, plAstNode *second);
 
 void
 plAstPrint(const plAstNode *node, unsigned int margin);
+
+#endif  // PIPELINE_COMPILER_AST_H

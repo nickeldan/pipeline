@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PIPELINE_UTIL_H
+#define PIPELINE_UTIL_H
 
 enum plRetValue {
     PL_RET_OK = 0,
@@ -12,3 +13,5 @@ enum plRetValue {
 
 int
 plTranslateVasqRet(int value);
+
+#endif  // PIPELINE_UTIL_H

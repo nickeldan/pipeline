@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PIPELINE_COMPILER_SCANNER_H
+#define PIPELINE_COMPILER_SCANNER_H
 
 #include <ctype.h>
 #include <stdio.h>
@@ -189,3 +190,5 @@ parserErrorLog(const char *file_name, const char *function_name, unsigned int li
     parserErrorLog(__FILE__, __func__, __LINE__, scanner, format, ##__VA_ARGS__)
 
 #endif  // LL_USE == -1
+
+#endif  // PIPELINE_COMPILER_SCANNER_H

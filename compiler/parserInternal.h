@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PIPELINE_COMPILER_PARSER_INTERNAL_H
+#define PIPELINE_COMPILER_PARSER_INTERNAL_H
 
 #include "ast.h"
 #include "definitions.h"
@@ -58,3 +59,5 @@ parseStatementList(plLexicalScanner *scanner, plAstNode **node);
 
 int
 parseFunction(plLexicalScanner *scanner, plAstNode **node, bool anonymous);
+
+#endif  // PIPELINE_COMPILER_PARSER_INTERNAL_H
