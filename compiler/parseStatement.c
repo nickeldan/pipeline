@@ -152,7 +152,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
                 plAstFree(name_node, scanner->table);
                 return PL_RET_OUT_OF_MEMORY;
             }
-            memcpy(&(*node)->token, &token, sizeof(token));
+            memcpy(&(*node)->token.location, &token.location, sizeof(token.location));
 
             return PL_RET_OK;
         }

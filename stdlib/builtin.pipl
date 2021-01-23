@@ -34,6 +34,7 @@ sink do(x:Any) {}
 sink doCount(x:Any) {
     if ?STORE is Null {
         prod 1;
+    }
     else {
         prod ?STORE+1;
     }

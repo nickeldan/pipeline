@@ -51,7 +51,8 @@ scannerErrorNoLog(const plLexicalScanner *scanner, const char *format, ...)
 #else  // LL_USE == -1
 
 static void
-scannerErrorLog(const char *function_name, unsigned line_no, const char *scanner, const char *format, ...)
+scannerErrorLog(const char *function_name, unsigned line_no, const plLexicalScanner *scanner,
+                const char *format, ...)
 {
     char line[2048];
     va_list args;
@@ -770,6 +771,8 @@ plLexicalMarkerName(int marker)
     case PL_MARKER_REASSIGNMENT: return "REASSIGNMENT";
     case PL_MARKER_COMPARISON: return "COMPARISON";
     case PL_MARKER_CONTEXT: return "CONTEXT";
+    case 'A': return "'A'";
+    case '%': return "'%'";
     default: return "INVALID";
     }
 }
