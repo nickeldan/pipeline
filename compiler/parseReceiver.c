@@ -40,7 +40,6 @@ parseReceiver(plLexicalScanner *scanner, plAstNode **node)
             if (ret != PL_RET_OK) {
                 goto error;
             }
-            memcpy(&second_node->token, &token, sizeof(token));
         }
         else {
             ret = LOOKAHEAD_STORE(scanner, &token);

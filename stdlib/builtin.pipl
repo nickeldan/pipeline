@@ -1,0 +1,48 @@
+struct _context {
+    file:Bytes;
+    function:Bytes;
+    line:Int;
+    time:Int;
+}
+
+source icount(start:Int, finish:Int, step:Int) -> Int {
+    start -> n;
+    while n <= finish {
+        prod n;
+        n += step;
+    }
+}
+
+source forever(start:Int, step:Int) -> Int {
+    start -> n;
+    while true {
+        prod n;
+        n += step;
+    }
+}
+
+source enumerate(array:GenArray) -> Any {
+    0 -> i;
+    while ( i < array.length ) {
+        prod array[i];
+        i += 1;
+    }
+}
+
+sink do(x:Any) {}
+
+sink doCount(x:Any) {
+    if ?STORE is Null {
+        prod 1;
+    else {
+        prod ?STORE+1;
+    }
+}
+
+sink doPrintLn(x:Any) {
+    % plstd
+}
+
+sink doPrint(x:Any) {
+    % plstd
+}
