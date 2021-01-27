@@ -12,6 +12,22 @@ export isPrime;
 import env;
 import math;
 
+source icount(start:Int, finish:Int, step:Int) -> Int {
+    start -> n;
+    while n <= finish {
+        prod n;
+        n+=step;
+    }
+}
+
+source forever(start:Int, step:Int) -> Int {
+    start -> n;
+    while true {
+        prod n;
+        n+=step;
+    }
+}
+
 source factor(n:Int) -> Int {
     verify (n -> x -> math.sqrt -> s);
     (2, forever(3,2)) -> local (i:Int) {
@@ -25,6 +41,10 @@ source factor(n:Int) -> Int {
         if i > s {end;}
     };
     if x > 1 {prod x;}
+}
+
+sink doCount(x:Any) {
+    prod ?STORE+1;
 }
 
 pipe isPrime(n:Int) -> Bool {

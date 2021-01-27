@@ -3,6 +3,8 @@
 
 #include "vasq/logger.h"
 
+#include "plUtil.h"
+
 #define ARRAY_LENGTH(A) (sizeof(A) / sizeof((A)[0]))
 
 #endif  // PIPELINE_COMPILER_DEFINITIONS_H
