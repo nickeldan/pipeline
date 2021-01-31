@@ -709,7 +709,6 @@ void
 plTokenCleanup(plLexicalToken *token, plNameTable *table)
 {
     if (!token) {
-        VASQ_ERROR("token cannot be NULL.");
         return;
     }
 

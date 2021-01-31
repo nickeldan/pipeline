@@ -161,6 +161,8 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
 
         case PL_MARKER_MAIN: ret = parseMain(scanner, &node); break;
 
+        case PL_MARKER_SEMICOLON: continue;
+
         default:
             ret = LOOKAHEAD_STORE(scanner, &token);
             if (ret != PL_RET_OK) {
@@ -186,15 +188,17 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
         }
     }
 
-    if (scanner->last_marker == PL_MARKER_EOF) {
-        if (!*tree) {
-            PARSER_ERROR("File is empty.");
-            return PL_RET_BAD_DATA;
-        }
-        return PL_RET_OK;
+    if (scanner->last_marker != PL_MARKER_EOF) {
+        ret = plTranslateTerminalMarker(scanner->last_marker);
+        goto error;
     }
 
-    ret = plTranslateTerminalMarker(scanner->last_marker);
+    if (!*tree) {
+        PARSER_ERROR("File is empty.");
+        return PL_RET_BAD_DATA;
+    }
+
+    return PL_RET_OK;
 
 error:
 

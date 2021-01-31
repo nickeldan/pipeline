@@ -19,7 +19,10 @@ COMPILER_OBJECT_FILES := $(patsubst %.c,%.o,$(wildcard compiler/*.c))
 PLOBJECT_LIBNAME := plobject
 PLOBJECT_OBJECT_FILES := $(patsubst %.c,%.o,$(wildcard plobject/*.c))
 
-VASQ_LIBNAME := vanillasquad
+_all: all
+
+VASQ_DIR := $(PWD)/vanilla_squad
+include vanilla_squad/vasq.mk
 
 LIBNAMES := $(COMPILER_LIBNAME) $(PLOBJECT_LIBNAME) $(VASQ_LIBNAME)
 
@@ -27,7 +30,7 @@ BINARIES := scanner_check parser_check
 SHARED_LIBRARIES := $(patsubst %,lib/lib%.so,$(LIBNAMES))
 STATIC_LIBRARIES := $(patsubst %,lib/lib%.a,$(LIBNAMES))
 
-.PHONY: all clean sharedlibs staticlibs
+.PHONY: _all all clean sharedlibs staticlibs $(VASQ_PHONY_TARGETS)
 
 all: $(BINARIES)
 
@@ -53,14 +56,15 @@ lib/lib$(PLOBJECT_LIBNAME).so: $(PLOBJECT_OBJECT_FILES) lib
 lib/lib$(PLOBJECT_LIBNAME).a: $(PLOBJECT_OBJECT_FILES) lib
 	ar rcs $@ $(PLOBJECT_OBJECT_FILES)
 
-lib/lib$(VASQ_LIBNAME).so lib/lib$(VASQ_LIBNAME).a: lib
-	cd vanilla_squad && make debug=$(debug) $(notdir $@)
-	cp vanilla_squad/$(notdir $@) $@
+lib/lib$(VASQ_LIBNAME).so: $(VASQ_SHARED_LIBRARY) lib
+	cp $< $@
+
+lib/lib$(VASQ_LIBNAME).a: $(VASQ_STATIC_LIBRARY) lib
+	cp $< $@
 
 lib:
 	mkdir $@
 
-clean:
+clean: vasq_clean
 	rm -f $(BINARIES) *.o $(COMPILER_OBJECT_FILES) $(PLOBJECT_OBJECT_FILES)
 	rm -rf lib
-	cd vanilla_squad && make clean
