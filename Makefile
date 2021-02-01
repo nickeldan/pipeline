@@ -2,8 +2,8 @@ CC ?= gcc
 level ?= -1
 debug ?= no
 
-INCLUDE_DIRS := ./plobject ./compiler ./vanilla_squad/include
-ACTUAL_INCLUDE_DIRS := ./plobject ./compiler ./vanilla_squad/include/vasq
+INCLUDE_DIRS := ./plobject ./compiler
+HEADER_FILES := $(patsubst %,$(wildcard %/*.h),$(INCLUDE_DIRS))
 
 COMPILER_FLAGS := -std=gnu11 -fpic -ffunction-sections -fdiagnostics-color -Wall -Wextra
 COMPILER_FLAGS += -DVASQ_ENABLE_LOGGING -DLL_USE=$(level)
@@ -19,20 +19,19 @@ COMPILER_OBJECT_FILES := $(patsubst %.c,%.o,$(wildcard compiler/*.c))
 PLOBJECT_LIBNAME := plobject
 PLOBJECT_OBJECT_FILES := $(patsubst %.c,%.o,$(wildcard plobject/*.c))
 
-_all: all
+all: _all
 
-VASQ_DIR := $(PWD)/vanilla_squad
+VASQ_DIR := ./vanilla_squad
 include vanilla_squad/vasq.mk
 
-LIBNAMES := $(COMPILER_LIBNAME) $(PLOBJECT_LIBNAME) $(VASQ_LIBNAME)
-
 BINARIES := scanner_check parser_check
+LIBNAMES := $(COMPILER_LIBNAME) $(PLOBJECT_LIBNAME) $(VASQ_LIBNAME)
 SHARED_LIBRARIES := $(patsubst %,lib/lib%.so,$(LIBNAMES))
 STATIC_LIBRARIES := $(patsubst %,lib/lib%.a,$(LIBNAMES))
 
-.PHONY: _all all clean sharedlibs staticlibs $(VASQ_PHONY_TARGETS)
+.PHONY: all _all clean sharedlibs staticlibs $(VASQ_PHONY_TARGETS)
 
-all: $(BINARIES)
+_all: $(BINARIES)
 
 sharedlibs: $(SHARED_LIBRARIES)
 
@@ -41,30 +40,26 @@ staticlibs: $(STATIC_LIBRARIES)
 %_check: %_check.o $(STATIC_LIBRARIES)
 	$(CC) -o $@ $^
 
-%.o: %.c $(patsubst %, %/*.h, $(ACTUAL_INCLUDE_DIRS))
-	$(CC) $(COMPILER_FLAGS) $(patsubst %,-I%,$(INCLUDE_DIRS)) -c $< -o $@
+%.o: %.c $(HEADER_FILES) $(VASQ_HEADER_FILES)
+	$(CC) $(COMPILER_FLAGS) $(patsubst %,-I%,$(INCLUDE_DIRS)) -I$(VASQ_INCLUDE_DIR) -c $< -o $@
 
-lib/lib$(COMPILER_LIBNAME).so: $(COMPILER_OBJECT_FILES) lib
+lib/lib$(COMPILER_LIBNAME).so: $(COMPILER_OBJECT_FILES)
 	$(CC) -shared -o $@ $(COMPILER_OBJECT_FILES)
 
-lib/lib$(COMPILER_LIBNAME).a: $(COMPILER_OBJECT_FILES) lib
+lib/lib$(COMPILER_LIBNAME).a: $(COMPILER_OBJECT_FILES)
 	ar rcs $@ $(COMPILER_OBJECT_FILES)
 
-lib/lib$(PLOBJECT_LIBNAME).so: $(PLOBJECT_OBJECT_FILES) lib
+lib/lib$(PLOBJECT_LIBNAME).so: $(PLOBJECT_OBJECT_FILES)
 	$(CC) -shared -o $@ $(PLOBJECT_OBJECT_FILES)
 
-lib/lib$(PLOBJECT_LIBNAME).a: $(PLOBJECT_OBJECT_FILES) lib
+lib/lib$(PLOBJECT_LIBNAME).a: $(PLOBJECT_OBJECT_FILES)
 	ar rcs $@ $(PLOBJECT_OBJECT_FILES)
 
-lib/lib$(VASQ_LIBNAME).so: $(VASQ_SHARED_LIBRARY) lib
+lib/lib$(VASQ_LIBNAME).so: $(VASQ_SHARED_LIBRARY)
 	cp $< $@
 
-lib/lib$(VASQ_LIBNAME).a: $(VASQ_STATIC_LIBRARY) lib
+lib/lib$(VASQ_LIBNAME).a: $(VASQ_STATIC_LIBRARY)
 	cp $< $@
-
-lib:
-	mkdir $@
 
 clean: vasq_clean
-	rm -f $(BINARIES) *.o $(COMPILER_OBJECT_FILES) $(PLOBJECT_OBJECT_FILES)
-	rm -rf lib
+	rm -f $(BINARIES) *.o $(COMPILER_OBJECT_FILES) $(PLOBJECT_OBJECT_FILES) lib/*

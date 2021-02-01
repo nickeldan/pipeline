@@ -1,6 +1,5 @@
 scanner_check
 parser_check
-lib
 *.o
 *.a
 *.so
