@@ -279,7 +279,7 @@ parserErrorNoLog(const plLexicalScanner *scanner, const char *format, ...)
 
     plGetLastLocation(scanner, &location);
 
-    vasqRawLog("%s:%u:%u: ", scanner->file_name, location.line_no, location.column_no);
+    vasqRawLog(ERROR_STRING "%s:%u:%u: ", scanner->file_name, location.line_no, location.column_no);
     va_start(args, format);
     vasqVRawLog(format, args);
     va_end(args);
@@ -338,8 +338,8 @@ parserErrorLog(const char *file_name, const char *function_name, unsigned int li
     vasqSafeVsnprintf(temp, sizeof(temp), format, args);
     va_end(args);
 
-    vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no, "%s:%u:%u: %s", scanner->file_name,
-                     location.line_no, location.column_no, temp);
+    vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no, ERROR_STRING "%s:%u:%u: %s",
+                     scanner->file_name, location.line_no, location.column_no, temp);
     vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no, "%s",
                      plStripLineBeginning(scanner->buffer));
 }

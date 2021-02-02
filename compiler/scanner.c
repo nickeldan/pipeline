@@ -44,7 +44,7 @@ scannerErrorNoLog(const plLexicalScanner *scanner, const char *format, ...)
     vasqSafeVsnprintf(line, sizeof(line), format, args);
     va_end(args);
 
-    VASQ_RAWLOG("%s:%u: %s\n", scanner->file_name, scanner->location.line_no, line);
+    VASQ_RAWLOG(ERROR_STRING "%s:%u: %s\n", scanner->file_name, scanner->location.line_no, line);
 }
 #define SCANNER_ERROR(format, ...) scannerErrorNoLog(scanner, format, ##__VA_ARGS__)
 
@@ -61,8 +61,8 @@ scannerErrorLog(const char *function_name, unsigned line_no, const plLexicalScan
     vasqSafeVsnprintf(line, sizeof(line), format, args);
     va_end(args);
 
-    vasqLogStatement(VASQ_LL_ERROR, __FILE__, function_name, line_no, "%s:%u: %s", scanner->file_name,
-                     scanner->location.line_no, line);
+    vasqLogStatement(VASQ_LL_ERROR, __FILE__, function_name, line_no, ERROR_STRING "%s:%u: %s",
+                     scanner->file_name, scanner->location.line_no, line);
 }
 #define SCANNER_ERROR(format, ...) scannerErrorLog(__func__, __LINE__, scanner, format, ##__VA_ARGS__)
 

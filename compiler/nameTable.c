@@ -3,18 +3,18 @@
 
 #include "nameTable.h"
 
-#define REF_TABLE_SIZE 9997
+#define NUM_RECORDS 97
 
-typedef struct nameRecord {
-    struct nameRecord *next;
+typedef struct plNameRecord {
+    struct plNameRecord *next;
     char *string;
     void *ctx;
     unsigned int length;  // Includes the '\0'.
     unsigned int num_references;
-} nameRecord;
+} plNameRecord;
 
 struct plNameTable {
-    nameRecord *records[REF_TABLE_SIZE];
+    plNameRecord *records[NUM_RECORDS];
 };
 
 static unsigned int
@@ -31,15 +31,15 @@ nameHash(const char *name, unsigned int length)
         }
     }
 
-    return hash % REF_TABLE_SIZE;
+    return hash % NUM_RECORDS;
 }
 
-static nameRecord *
+static plNameRecord *
 findRecord(const plNameTable *table, const char *name, unsigned int length, unsigned int *hash,
-           nameRecord **prev)
+           plNameRecord **prev)
 {
     unsigned int h;
-    nameRecord *p = NULL;
+    plNameRecord *p = NULL;
 
     if (length == 0) {
         VASQ_ERROR("Length cannot be 0");
@@ -51,7 +51,7 @@ findRecord(const plNameTable *table, const char *name, unsigned int length, unsi
         *hash = h;
     }
 
-    for (nameRecord *traverse = table->records[h]; traverse; traverse = traverse->next) {
+    for (plNameRecord *traverse = table->records[h]; traverse; traverse = traverse->next) {
         if (traverse->length == length + 1 && memcmp(traverse->string, name, length) == 0) {
             if (prev) {
                 *prev = p;
@@ -63,6 +63,18 @@ findRecord(const plNameTable *table, const char *name, unsigned int length, unsi
     }
 
     return NULL;
+}
+
+static void
+advanceIterator(plNameTableIterator *iterator)
+{
+    while (iterator->idx < NUM_RECORDS && !iterator->table->records[iterator->idx]) {
+        iterator->idx++;
+    }
+
+    if (iterator->idx < NUM_RECORDS) {
+        iterator->opaque = iterator->table->records[k];
+    }
 }
 
 plNameTable *
@@ -83,13 +95,13 @@ plNameTableFree(plNameTable *table)
     if (!table) {
         return;
     }
-    for (unsigned int k = 0; k < REF_TABLE_SIZE; k++) {
-        nameRecord *record;
+    for (unsigned int k = 0; k < NUM_RECORDS; k++) {
+        plNameRecord *record;
 
         record = table->records[k];
         table->records[k] = NULL;
         while (record) {
-            nameRecord *temp;
+            plNameRecord *temp;
 
             temp = record->next;
             free(record->string);
@@ -105,7 +117,7 @@ const char *
 plRegisterName(plNameTable *table, const char *name, unsigned int length, void *ctx)
 {
     unsigned int hash = 0;
-    nameRecord *record;
+    plNameRecord *record;
 
     if (!table || !name) {
         VASQ_ERROR("table and name cannot be NULL");
@@ -151,7 +163,7 @@ void
 plUnregisterName(plNameTable *table, const char *name)
 {
     unsigned int hash;
-    nameRecord *record, *prev;
+    plNameRecord *record, *prev;
 
     if (!table) {
         VASQ_ERROR("table cannot be NULL");
@@ -190,7 +202,7 @@ plUnregisterName(plNameTable *table, const char *name)
 bool
 plLookupName(const plNameTable *table, const char *name, void **ctx)
 {
-    nameRecord *record;
+    plNameRecord *record;
 
     if (!table || !name) {
         VASQ_ERROR("table and name cannot be NULL");
@@ -211,7 +223,7 @@ plLookupName(const plNameTable *table, const char *name, void **ctx)
 bool
 plUpdateNameContext(const plNameTable *table, const char *name, void *new_ctx)
 {
-    nameRecord *record;
+    plNameRecord *record;
 
     if (!table || !name) {
         VASQ_ERROR("table and name cannot be NULL");
@@ -225,4 +237,53 @@ plUpdateNameContext(const plNameTable *table, const char *name, void *new_ctx)
 
     record->ctx = new_ctx;
     return true;
+}
+
+void
+plNameTableIteratorInit(plNameTableIterator *iterator, const plnameTable *table) if (!iterator || !itable)
+{
+    VASQ_ERROR("The arguments cannot be NULL.");
+    return;
+}
+
+iterator->table = table;
+iterator->idx = 0;
+
+advanceIterator(iterator);
+}
+
+const char *
+plNameTableIterator(plNameTableIterator *iterator, void **ctx)
+{
+    const char *ret;
+    const plNameRecord *record;
+
+    if (!iterator) {
+        VASQ_ERROR("iterator cannot be NULL.");
+        return NULL;
+    }
+    if (!iterator->table) {
+        VASQ_ERROR("iterator->table cannot be NULL.");
+        return NULL;
+    }
+
+    if (iterator->idx == NUM_RECORDS) {
+        return NULL;
+    }
+
+    record = (const plNameRecord *)iterator->opaque;
+    ret = record->string;
+    if (ctx) {
+        *ctx = record->ctx;
+    }
+
+    if (record->next) {
+        iterator->opaque = record->next;
+    }
+    else {
+        iterator->idx++;
+        advanceIterator(iterator);
+    }
+
+    return ret;
 }
