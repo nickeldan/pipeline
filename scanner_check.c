@@ -13,7 +13,7 @@ main(int argc, char **argv)
     FILE *f;
     const char *file_name;
     plLexicalScanner scanner;
-    plNameTable *table;
+    plWordTable *table;
     plLexicalToken token;
 
     ret = VASQ_LOG_INIT(LL_USE, STDERR_FILENO, false);
@@ -34,7 +34,7 @@ main(int argc, char **argv)
         file_name = argv[1];
     }
 
-    table = plNameTableNew();
+    table = plWordTableNew();
     if (!table) {
         ret = PL_RET_OUT_OF_MEMORY;
         goto done;
@@ -57,7 +57,7 @@ main(int argc, char **argv)
     }
 
     printf("\n");
-    plNameTableFree(table);
+    plWordTableFree(table);
 
     if (scanner.last_marker == PL_MARKER_EOF) {
         ret = PL_RET_OK;

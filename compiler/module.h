@@ -2,10 +2,10 @@
 #define PIPELINE_COMPILER_MODULE_H
 
 #include "definitions.h"
-#include "nameTable.h"
+#include "table.h"
 
 typedef struct plModule {
-    plNameTable *export_table;
+    plWordTable *export_table;
 } plModule;
 
 int

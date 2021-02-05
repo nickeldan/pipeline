@@ -115,7 +115,8 @@ loop_error:
 
     if (!arg_list) {
         PARSER_ERROR("STRUCT definition cannot have zero fields.");
-        return PL_RET_BAD_DATA;
+        ret = PL_RET_BAD_DATA;
+        goto error;
     }
 
     *node = createFamily(PL_MARKER_STRUCT, struct_name_node, arg_list);

@@ -5,8 +5,8 @@
 #include <stdio.h>
 
 #include "definitions.h"
-#include "nameTable.h"
 #include "plObject.h"
+#include "table.h"
 
 enum plLexicalMarker {
     PL_MARKER_USAGE = 256,
@@ -25,6 +25,7 @@ enum plLexicalMarker {
     PL_MARKER_SINK,
     PL_MARKER_LOCAL,
     PL_MARKER_STRUCT,
+    PL_MARKER_TYPE_DECL,
     PL_MARKER_WHILE,
     PL_MARKER_IF,
     PL_MARKER_EIF,
@@ -42,6 +43,7 @@ enum plLexicalMarker {
     PL_MARKER_AS,
     PL_MARKER_IMPORT,
     PL_MARKER_EXPORT,
+    PL_MARKER_EXPORTALL,
     PL_MARKER_MAIN,
     PL_MARKER_SEMICOLON,
     PL_MARKER_COLON,
@@ -116,7 +118,7 @@ typedef struct plLexicalToken {
 typedef struct plLexicalScanner {
     plLexicalToken look_ahead[PL_SCANNER_MAX_LOOK_AHEAD];
     FILE *file;
-    plNameTable *table;
+    plWordTable *table;
     const char *file_name;
     char *line;
     plLexicalLocation location;
@@ -130,7 +132,7 @@ typedef struct plLexicalScanner {
 } plLexicalScanner;
 
 void
-plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plNameTable *table);
+plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plWordTable *table);
 
 void
 plScannerCleanup(plLexicalScanner *scanner);
@@ -167,7 +169,7 @@ void
 plGetLastLocation(const plLexicalScanner *scanner, plLexicalLocation *location);
 
 void
-plTokenCleanup(plLexicalToken *token, plNameTable *table);
+plTokenCleanup(plLexicalToken *token, plWordTable *table);
 
 const char *
 plLexicalMarkerName(int marker);

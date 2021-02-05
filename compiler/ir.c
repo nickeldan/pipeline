@@ -8,9 +8,8 @@
 
 #include "ir.h"
 #include "module.h"
-#include "nameTable.h"
-#include "reference.h"
 #include "scanner.h"
+#include "table.h"
 
 typedef struct plReference {
     void *data;
@@ -42,7 +41,7 @@ struct plIr {
 typedef struct plSemanticContext {
     plIr *ir;
     const char *file_name;
-    plNameTable **stack;
+    plWordTable **stack;
     size_t stack_capacity;
     size_t stack_size;
 } plSemanticContext;
@@ -110,16 +109,16 @@ contextErrorLog(const char *function_name, unsigned int line_no, const char *fil
 
 #endif  // LL_USE == -1
 
-static plNameTable *
+static plWordTable *
 addTable(plSemanticContext *sem)
 {
-    plNameTable *new_table;
+    plWordTable *new_table;
 
-    new_table = plNameTableNew();
+    new_table = plWordTableNew();
     if (new_table) {
         if (sem->size == sem->capacity) {
             size_t new_capacity;
-            plNameTable **success;
+            plWordTable **success;
 
             if (sem->capacity == 0) {
                 new_capacity = STACK_INITIAL_CAPACITY;
@@ -129,7 +128,7 @@ addTable(plSemanticContext *sem)
             }
             success = VASQ_REALLOC(sem->stack, sizeof(*success) * new_capacity);
             if (!success) {
-                plNameTableFree(new_table);
+                plWordTableFree(new_table);
                 return NULL;
             }
 
@@ -156,7 +155,7 @@ newReference(void)
 }
 
 static int
-storeReference(plNameTable *table, const char *symbol, uint32_t flags, void *data,
+storeReference(plWordTable *table, const char *symbol, uint32_t flags, void *data,
                const plLexicalLocation *location)
 {
     plReference *ref;
@@ -170,7 +169,7 @@ storeReference(plNameTable *table, const char *symbol, uint32_t flags, void *dat
     ref->data = data;
     memcpy(&ref->location, location, sizeof(*location));
 
-    if (!plRegisterName(table, symbol, ref)) {
+    if (!plRegisterWord(table, symbol, ref)) {
         free(ref);
         return PL_RET_OUT_OF_MEMORY;
     }
@@ -179,12 +178,15 @@ storeReference(plNameTable *table, const char *symbol, uint32_t flags, void *dat
 }
 
 static plReference *
-findReference(const plSemanticContext *sem, const char *symbol)
+findReference(const plSemanticContext *sem, const char *symbol, size_t *idx)
 {
     plReference *ref;
 
     for (size_t k = sem->size; k > 0; k--) {
         if (plLookupName(sem->stack[k - 1], &ref)) {
+            if (idx) {
+                *idx = k;
+            }
             return ref;
         }
     }
@@ -197,14 +199,9 @@ destroyStack(plSemanticContext *sem)
 {
     size_t size;
 
-    if (!sem) {
-        VASQ_ERROR("sem cannot be NULL.");
-        return;
-    }
-
     size = sem->size;
     for (size_t k = 0; k < size; k++) {
-        plNameTableFree(sem->stack[k]);
+        plWordTableFree(sem->stack[k]);
     }
 
     free(sem->stack);
@@ -236,7 +233,7 @@ generateGlobalIr(plSemanticContext *sem, const plAstNode *tree)
 
     case PL_MARKER_EXPORT:
         name = splitter->nodes[0].token.ctx.name;
-        ref = findReference(sem, name);
+        ref = findReference(sem, name, NULL);
         if (ref) {
             if (ref->flags & PL_REF_FLAG_EXPORT) {
                 CONTEXT_WARNING(tree, "%s was already exported on line %u.", name, ref->location.line_no);
@@ -254,7 +251,7 @@ generateGlobalIr(plSemanticContext *sem, const plAstNode *tree)
 
     case PL_MARKER_IMPORT:
         name = splitter->nodes[0].token.ctx.name;
-        ref = findReference(sem, name);
+        ref = findReference(sem, name, NULL);
         if (ref) {
             if (ref->flags & PL_REF_FLAG_MODULE) {
                 CONTEXT_WARNING(tree, "%s ws already imported on line %u.", name, ref->location.line_no);
@@ -288,7 +285,7 @@ plIrGenerate(const char *file_name, const plAstNode *tree, plIr **ir)
     int ret;
     const char *symbol;
     plSemanticContext sem = {.file_name = file_name};
-    plNameTableIterator iterator;
+    plWordTableIterator iterator;
     plReference ref;
 
     if (!file_name || !tree || !ir) {
@@ -312,8 +309,8 @@ plIrGenerate(const char *file_name, const plAstNode *tree, plIr **ir)
         goto error;
     }
 
-    plNameTableIteratorInit(&iterator, sem->stack[0]);
-    while ((symbol = plNameTableIterate(&iterator, &ref))) {
+    plWordTableIteratorInit(&iterator, sem->stack[0]);
+    while ((symbol = plWordTableIterate(&iterator, &ref))) {
         if (ref.flags == PL_REF_FLAG_EXPORT) {
 #if LL_USE == -1
             contextErrorNoLog(file_name, &ref.location, true, "Exported symbol '%s' not resolved.", symbol);

@@ -2,8 +2,8 @@
 #define PIPELINE_COMPILER_AST_H
 
 #include "definitions.h"
-#include "nameTable.h"
 #include "scanner.h"
+#include "table.h"
 
 //#define AST_HAS_PARENT
 
@@ -47,7 +47,7 @@ plAstNode *
 plAstNew(int node_type);
 
 void
-plAstFree(plAstNode *node, plNameTable *table);
+plAstFree(plAstNode *node, plWordTable *table);
 
 int
 plAstSplitSize(int node_type);

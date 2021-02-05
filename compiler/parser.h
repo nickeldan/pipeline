@@ -5,9 +5,9 @@
 
 #include "ast.h"
 #include "definitions.h"
-#include "nameTable.h"
+#include "table.h"
 
 int
-plFileParse(FILE *in, const char *file_name, plAstNode **tree, plNameTable **table);
+plFileParse(FILE *in, const char *file_name, plAstNode **tree, plWordTable **table);
 
 #endif  // PIPELINE_COMPILER_PARSER_H

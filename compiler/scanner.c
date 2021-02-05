@@ -12,18 +12,44 @@ struct keywordRecord {
 };
 
 static const struct keywordRecord keywords[] = {
-    {"true", 4, PL_MARKER_OBJECT},   {"false", 4, PL_MARKER_OBJECT},  {"null", 4, PL_MARKER_OBJECT},
-    {"blank", 5, PL_MARKER_OBJECT},  {"Any", 3, PL_MARKER_TYPE},      {"Num", 3, PL_MARKER_TYPE},
-    {"Int", 3, PL_MARKER_TYPE},      {"Bool", 4, PL_MARKER_TYPE},     {"Float", 5, PL_MARKER_TYPE},
-    {"Array", 5, PL_MARKER_TYPE},    {"GenArray", 8, PL_MARKER_TYPE}, {"Bytes", 5, PL_MARKER_TYPE},
-    {"source", 6, PL_MARKER_SOURCE}, {"pipe", 4, PL_MARKER_PIPE},     {"sink", 4, PL_MARKER_SINK},
-    {"local", 5, PL_MARKER_LOCAL},   {"struct", 6, PL_MARKER_STRUCT}, {"while", 5, PL_MARKER_WHILE},
-    {"if", 2, PL_MARKER_IF},         {"eif", 3, PL_MARKER_EIF},       {"else", 4, PL_MARKER_ELSE},
-    {"prod", 4, PL_MARKER_PROD},     {"drop", 4, PL_MARKER_DROP},     {"end", 3, PL_MARKER_END},
-    {"not", 3, PL_MARKER_NOT},       {"or", 2, PL_MARKER_LOGICAL},    {"and", 3, PL_MARKER_LOGICAL},
-    {"cont", 4, PL_MARKER_CONT},     {"break", 5, PL_MARKER_BREAK},   {"verify", 6, PL_MARKER_VERIFY},
-    {"abort", 5, PL_MARKER_ABORT},   {"is", 2, PL_MARKER_IS},         {"as", 2, PL_MARKER_AS},
-    {"import", 6, PL_MARKER_IMPORT}, {"export", 6, PL_MARKER_EXPORT}, {"main", 4, PL_MARKER_MAIN},
+    {"true", 4, PL_MARKER_OBJECT},
+    {"false", 4, PL_MARKER_OBJECT},
+    {"null", 4, PL_MARKER_OBJECT},
+    {"blank", 5, PL_MARKER_OBJECT},
+    {"Any", 3, PL_MARKER_TYPE},
+    {"Num", 3, PL_MARKER_TYPE},
+    {"Int", 3, PL_MARKER_TYPE},
+    {"Bool", 4, PL_MARKER_TYPE},
+    {"Float", 5, PL_MARKER_TYPE},
+    {"Array", 5, PL_MARKER_TYPE},
+    {"GenArray", 8, PL_MARKER_TYPE},
+    {"Bytes", 5, PL_MARKER_TYPE},
+    {"source", 6, PL_MARKER_SOURCE},
+    {"pipe", 4, PL_MARKER_PIPE},
+    {"sink", 4, PL_MARKER_SINK},
+    {"local", 5, PL_MARKER_LOCAL},
+    {"struct", 6, PL_MARKER_STRUCT},
+    {"typedecl", 8, PL_MARKER_TYPE_DECL},
+    {"while", 5, PL_MARKER_WHILE},
+    {"if", 2, PL_MARKER_IF},
+    {"eif", 3, PL_MARKER_EIF},
+    {"else", 4, PL_MARKER_ELSE},
+    {"prod", 4, PL_MARKER_PROD},
+    {"drop", 4, PL_MARKER_DROP},
+    {"end", 3, PL_MARKER_END},
+    {"not", 3, PL_MARKER_NOT},
+    {"or", 2, PL_MARKER_LOGICAL},
+    {"and", 3, PL_MARKER_LOGICAL},
+    {"cont", 4, PL_MARKER_CONT},
+    {"break", 5, PL_MARKER_BREAK},
+    {"verify", 6, PL_MARKER_VERIFY},
+    {"abort", 5, PL_MARKER_ABORT},
+    {"is", 2, PL_MARKER_IS},
+    {"as", 2, PL_MARKER_AS},
+    {"import", 6, PL_MARKER_IMPORT},
+    {"export", 6, PL_MARKER_EXPORT},
+    {"exportall", 9, PL_MARKER_EXPORTALL},
+    {"main", 4, PL_MARKER_MAIN},
 };
 
 static const struct keywordRecord contexts[] = {
@@ -341,7 +367,7 @@ lookaheadStoreLogic(plLexicalScanner *scanner, const plLexicalToken *token)
 }
 
 void
-plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plNameTable *table)
+plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plWordTable *table)
 {
     if (!scanner || !file || !table) {
         VASQ_ERROR("scanner, file, and table cannot be NULL.");
@@ -641,7 +667,7 @@ arithmetic_token:
             scanner->last_marker = PL_MARKER_UNDERSCORE;
         }
         else {
-            token->ctx.name = plRegisterName(scanner->table, scanner->line, consumed, NULL);
+            token->ctx.name = plRegisterWord(scanner->table, scanner->line, consumed);
             if (!token->ctx.name) {
                 scanner->last_marker = PL_MARKER_OUT_OF_MEMORY;
                 goto return_marker;
@@ -706,7 +732,7 @@ plGetLastLocation(const plLexicalScanner *scanner, plLexicalLocation *location)
 }
 
 void
-plTokenCleanup(plLexicalToken *token, plNameTable *table)
+plTokenCleanup(plLexicalToken *token, plWordTable *table)
 {
     if (!token) {
         return;
@@ -736,6 +762,7 @@ plLexicalMarkerName(int marker)
     case PL_MARKER_SINK: return "SINK";
     case PL_MARKER_LOCAL: return "LOCAL";
     case PL_MARKER_STRUCT: return "STRUCT";
+    case PL_MARKER_TYPE_DECL: return "TYPE_DECL";
     case PL_MARKER_WHILE: return "WHILE";
     case PL_MARKER_IF: return "IF";
     case PL_MARKER_EIF: return "EIF";
@@ -753,6 +780,7 @@ plLexicalMarkerName(int marker)
     case PL_MARKER_AS: return "AS";
     case PL_MARKER_IMPORT: return "IMPORT";
     case PL_MARKER_EXPORT: return "EXPORT";
+    case PL_MARKER_EXPORTALL: return "EXPORTALL";
     case PL_MARKER_MAIN: return "MAIN";
     case PL_MARKER_SEMICOLON: return "';'";
     case PL_MARKER_COLON: return "':'";

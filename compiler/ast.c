@@ -71,7 +71,7 @@ set_node_type:
 }
 
 void
-plAstFree(plAstNode *node, plNameTable *table)
+plAstFree(plAstNode *node, plWordTable *table)
 {
     int split_size;
     plAstMaxSplitNode *splitter = (plAstMaxSplitNode *)node;
@@ -101,7 +101,8 @@ plAstSplitSize(int node_type)
     case PL_MARKER_CONT:
     case PL_MARKER_TYPE:
     case PL_MARKER_CONTEXT:
-    case PL_MARKER_UNDERSCORE: return 0;
+    case PL_MARKER_UNDERSCORE:
+    case PL_MARKER_EXPORTALL: return 0;
 
     case PL_MARKER_PROD:
     case PL_MARKER_VERIFY:

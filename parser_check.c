@@ -11,7 +11,7 @@ main(int argc, char **argv)
     int ret;
     FILE *f;
     const char *file_name;
-    plNameTable *table;
+    plWordTable *table;
     plAstNode *tree;
 
     ret = VASQ_LOG_INIT(LL_USE, STDOUT_FILENO, false);
@@ -36,7 +36,7 @@ main(int argc, char **argv)
     if (ret == PL_RET_OK) {
         plAstPrint(tree, 0);
         plAstFree(tree, table);
-        plNameTableFree(table);
+        plWordTableFree(table);
     }
 
     if (argc > 1) {
