@@ -5,7 +5,7 @@
 #include "table.h"
 
 typedef struct plModule {
-    plWordTable *export_table;
+    plRefTable *export_table;
 } plModule;
 
 int
