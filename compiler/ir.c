@@ -8,8 +8,8 @@
 
 #include "ir.h"
 #include "module.h"
-#include "scanner.h"
 #include "table.h"
+#include "token.h"
 
 typedef struct plReference {
     void *data;

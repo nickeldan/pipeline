@@ -205,7 +205,7 @@ plRegisterWord(plWordTable *table, const char *word, unsigned int length)
 }
 
 void
-plUnregisterName(plWordTable *table, const char *word)
+plUnregisterWord(plWordTable *table, const char *word)
 {
     unsigned int hash = 0;
     plWordRecord *record, *prev;

@@ -277,6 +277,16 @@ error:
     return ret;
 }
 
+static const char *
+stripLineBeginning(const char *line)
+{
+    const char *ret;
+
+    for (ret = line; isWhitespace(*ret); ret++) {}
+
+    return ret;
+}
+
 int
 plFileParse(FILE *in, const char *file_name, plAstNode **tree, plWordTable **table)
 {
@@ -348,11 +358,11 @@ parserErrorNoLog(const plLexicalScanner *scanner, const char *format, ...)
 
     plGetLastLocation(scanner, &location);
 
-    vasqRawLog(ERROR_STRING "%s:%u:%u: ", scanner->file_name, location.line_no, location.column_no);
+    vasqRawLog("%s%s:%u:%u: ", ERROR_STRING, scanner->file_name, location.line_no, location.column_no);
     va_start(args, format);
     vasqVRawLog(format, args);
     va_end(args);
-    vasqRawLog("\n\t%s\n", plStripLineBeginning(scanner->buffer));
+    vasqRawLog("\n\t%s\n", stripLineBeginning(scanner->buffer));
 }
 
 #else  // LL_USE == -1
@@ -407,10 +417,10 @@ parserErrorLog(const char *file_name, const char *function_name, unsigned int li
     vasqSafeVsnprintf(temp, sizeof(temp), format, args);
     va_end(args);
 
-    vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no, ERROR_STRING "%s:%u:%u: %s",
+    vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no, "%s%s:%u:%u: %s", ERROR_STRING,
                      scanner->file_name, location.line_no, location.column_no, temp);
     vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no, "%s",
-                     plStripLineBeginning(scanner->buffer));
+                     stripLineBeginning(scanner->buffer));
 }
 
 #endif  // LL_USE == -1

@@ -29,7 +29,7 @@ const char *
 plRegisterWord(plWordTable *table, const char *word, unsigned int length);
 
 void
-plUnregisterName(plWordTable *table, const char *word);
+plUnregisterWord(plWordTable *table, const char *word);
 
 bool
 plLookupRef(const plRefTable *table, const char *word, void **ctx);
