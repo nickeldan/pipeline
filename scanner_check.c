@@ -13,12 +13,11 @@ main(int argc, char **argv)
     FILE *f;
     const char *file_name;
     plLexicalScanner scanner;
-    plWordTable *table;
     plLexicalToken token;
 
-    ret = VASQ_LOG_INIT(LL_USE, STDERR_FILENO, false);
-    if (ret != VASQ_RET_OK) {
-        return plTranslateVasqRet(ret);
+    ret = plSetupDebuggingLogger(LL_USE);
+    if ( ret != 0 ) {
+        return ret;
     }
 
     if (argc == 1) {
@@ -28,19 +27,16 @@ main(int argc, char **argv)
     else {
         f = fopen(argv[1], "r");
         if (!f) {
-            VASQ_PERROR("fopen", errno);
+            VASQ_PERROR(debug_logger, "fopen", errno);
             return PL_RET_NO_ACCESS;
         }
         file_name = argv[1];
     }
 
-    table = plWordTableNew();
-    if (!table) {
-        ret = PL_RET_OUT_OF_MEMORY;
+    ret = plScannerInit(&scanner, f, file_name, LL_USE);
+    if ( ret != PL_RET_OK ) {
         goto done;
     }
-
-    plScannerInit(&scanner, f, file_name, table);
 
     while (!TERMINAL_MARKER(TOKEN_READ(&scanner, &token))) {
         if (scanner.location.line_no > line_no) {
@@ -57,7 +53,6 @@ main(int argc, char **argv)
     }
 
     printf("\n");
-    plWordTableFree(table);
 
     if (scanner.last_marker == PL_MARKER_EOF) {
         ret = PL_RET_OK;
@@ -65,6 +60,7 @@ main(int argc, char **argv)
     else {
         ret = plTranslateTerminalMarker(scanner.last_marker);
     }
+    plScannerCleanup(&scanner);
 
 done:
 

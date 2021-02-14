@@ -62,7 +62,7 @@ findRecord(const plAbstractTable *table, const char *word, unsigned int length, 
     plAbstractRecord *p = NULL;
 
     if (length == 0) {
-        VASQ_ERROR("Length cannot be 0");
+        VASQ_ERROR(debug_logger, "Length cannot be 0");
         return NULL;
     }
 
@@ -128,7 +128,7 @@ plWordTableNew(void)
 {
     plWordTable *table;
 
-    table = VASQ_MALLOC(sizeof(*table));
+    table = VASQ_MALLOC(debug_logger, sizeof(*table));
     if (table) {
         *table = (plWordTable){0};
     }
@@ -140,7 +140,7 @@ plRefTableNew(void)
 {
     plRefTable *table;
 
-    table = VASQ_MALLOC(sizeof(*table));
+    table = VASQ_MALLOC(debug_logger, sizeof(*table));
     if (table) {
         *table = (plRefTable){0};
     }
@@ -166,27 +166,29 @@ plRegisterWord(plWordTable *table, const char *word, unsigned int length)
     plWordRecord *record;
 
     if (!table || !word) {
-        VASQ_ERROR("table and word cannot be NULL");
+        VASQ_ERROR(debug_logger, "table and word cannot be NULL");
         return NULL;
     }
 
     record = (plWordRecord *)findRecord((plAbstractTable *)table, word, length, &hash, NULL);
     if (record) {
         if (record->num_references + 1 == 0) {
-            VASQ_ERROR("Integer overflow detected when trying to store '%.*s' in table <0x%p>.", length,
+            VASQ_ERROR(debug_logger,
+                       "Integer overflow detected when trying to store '%.*s' in table <0x%p>.", length,
                        word, table);
             return NULL;
         }
         record->num_references++;
-        VASQ_DEBUG("'%.*s' has %u references in table <0x%p>.", length, word, record->num_references, table);
+        VASQ_DEBUG(debug_logger, "'%.*s' has %u references in table <0x%p>.", length, word,
+                   record->num_references, table);
     }
     else {
-        record = VASQ_MALLOC(sizeof(*record));
+        record = VASQ_MALLOC(debug_logger, sizeof(*record));
         if (!record) {
             return NULL;
         }
 
-        record->string = VASQ_MALLOC(length + 1);
+        record->string = VASQ_MALLOC(debug_logger, length + 1);
         if (!record->string) {
             free(record);
             return NULL;
@@ -198,7 +200,7 @@ plRegisterWord(plWordTable *table, const char *word, unsigned int length)
 
         record->next = table->records[hash];
         table->records[hash] = record;
-        VASQ_DEBUG("'%.*s' has 1 reference in table <0x%p>.", length, word, table);
+        VASQ_DEBUG(debug_logger, "'%.*s' has 1 reference in table <0x%p>.", length, word, table);
     }
 
     return record->string;
@@ -211,7 +213,7 @@ plUnregisterWord(plWordTable *table, const char *word)
     plWordRecord *record, *prev;
 
     if (!table) {
-        VASQ_ERROR("table cannot be NULL");
+        VASQ_ERROR(debug_logger, "table cannot be NULL");
         return;
     }
 
@@ -223,7 +225,7 @@ plUnregisterWord(plWordTable *table, const char *word)
                                         (plAbstractRecord **)&prev);
     if (record) {
         if (--record->num_references == 0) {
-            VASQ_DEBUG("Removing '%s' from table <0x%p>.", word, table);
+            VASQ_DEBUG(debug_logger, "Removing '%s' from table <0x%p>.", word, table);
 
             if (prev) {
                 prev->next = record->next;
@@ -236,12 +238,12 @@ plUnregisterWord(plWordTable *table, const char *word)
             free(record);
         }
         else {
-            VASQ_DEBUG("'%s' has %u reference%s in table <0x%p>.", word, record->num_references,
-                       (record->num_references == 1) ? "" : "s", table);
+            VASQ_DEBUG(debug_logger, "'%s' has %u reference%s in table <0x%p>.", word,
+                       record->num_references, (record->num_references == 1) ? "" : "s", table);
         }
     }
     else {
-        VASQ_WARNING("'%s' not found in table <0x%p>.", word, table);
+        VASQ_WARNING(debug_logger, "'%s' not found in table <0x%p>.", word, table);
     }
 }
 
@@ -251,7 +253,7 @@ plLookupRef(const plRefTable *table, const char *word, void **ctx)
     plRefRecord *record;
 
     if (!table || !word) {
-        VASQ_ERROR("table and word cannot be NULL");
+        VASQ_ERROR(debug_logger, "table and word cannot be NULL");
         return false;
     }
 
@@ -273,13 +275,13 @@ plUpdateRef(plRefTable *table, const char *word, void *new_ctx)
     plRefRecord *record;
 
     if (!table || !word) {
-        VASQ_ERROR("table and word cannot be NULL");
+        VASQ_ERROR(debug_logger, "table and word cannot be NULL");
         return false;
     }
 
     record = (plRefRecord *)findRecord((plAbstractTable *)table, word, strlen(word), &hash, NULL);
     if (!record) {
-        record = VASQ_MALLOC(sizeof(*record));
+        record = VASQ_MALLOC(debug_logger, sizeof(*record));
         if (!record) {
             return false;
         }
@@ -304,7 +306,7 @@ void
 plRefTableIteratorInit(plRefTableIterator *iterator, const plRefTable *table)
 {
     if (!iterator || !table) {
-        VASQ_ERROR("The arguments cannot be NULL.");
+        VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return;
     }
 
@@ -321,11 +323,11 @@ plRefTableIterate(plRefTableIterator *iterator, void **ctx)
     const plRefRecord *record;
 
     if (!iterator) {
-        VASQ_ERROR("iterator cannot be NULL.");
+        VASQ_ERROR(debug_logger, "iterator cannot be NULL.");
         return NULL;
     }
     if (!iterator->table) {
-        VASQ_ERROR("iterator->table cannot be NULL.");
+        VASQ_ERROR(debug_logger, "iterator->table cannot be NULL.");
         return NULL;
     }
 

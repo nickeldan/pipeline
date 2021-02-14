@@ -14,9 +14,9 @@ main(int argc, char **argv)
     plWordTable *table;
     plAstNode *tree;
 
-    ret = VASQ_LOG_INIT(LL_USE, STDOUT_FILENO, false);
-    if (ret != VASQ_RET_OK) {
-        return plTranslateVasqRet(ret);
+    ret = plSetupDebuggingLogger(LL_USE);
+    if ( ret != PL_RET_OK ) {
+        return ret;
     }
 
     if (argc == 1) {
@@ -26,7 +26,7 @@ main(int argc, char **argv)
     else {
         f = fopen(argv[1], "r");
         if (!f) {
-            VASQ_PERROR("fopen", errno);
+            VASQ_PERROR(debug_logger, "fopen", errno);
             return PL_RET_NO_ACCESS;
         }
         file_name = argv[1];

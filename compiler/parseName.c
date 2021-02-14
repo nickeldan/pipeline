@@ -11,7 +11,7 @@ parseExtendedName(plLexicalScanner *scanner, plAstNode **node)
         *node = NULL;
     }
     if (!scanner || !node) {
-        VASQ_ERROR("The arguments cannot be NULL.");
+        VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return PL_RET_USAGE;
     }
 
@@ -103,7 +103,7 @@ parseExtendedType(plLexicalScanner *scanner, plAstNode **node)
         *node = NULL;
     }
     if (!scanner || !node) {
-        VASQ_ERROR("The arguments cannot be NULL.");
+        VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return PL_RET_USAGE;
     }
 

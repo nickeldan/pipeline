@@ -11,7 +11,7 @@ plAstNew(int node_type)
 
     switch (plAstSplitSize(node_type)) {
     case 0:
-        node = VASQ_MALLOC(sizeof(plAstNode));
+        node = VASQ_MALLOC(debug_logger, sizeof(plAstNode));
         if (node) {
             *node = (plAstNode){0};
             goto set_node_type;
@@ -19,7 +19,7 @@ plAstNew(int node_type)
         break;
 
     case 1:
-        node = VASQ_MALLOC(sizeof(plAstOneSplitNode));
+        node = VASQ_MALLOC(debug_logger, sizeof(plAstOneSplitNode));
         if (node) {
             *(plAstOneSplitNode *)node = (plAstOneSplitNode){0};
             goto set_node_type;
@@ -27,7 +27,7 @@ plAstNew(int node_type)
         break;
 
     case 2:
-        node = VASQ_MALLOC(sizeof(plAstTwoSplitNode));
+        node = VASQ_MALLOC(debug_logger, sizeof(plAstTwoSplitNode));
         if (node) {
             *(plAstTwoSplitNode *)node = (plAstTwoSplitNode){0};
             goto set_node_type;
@@ -35,7 +35,7 @@ plAstNew(int node_type)
         break;
 
     case 3:
-        node = VASQ_MALLOC(sizeof(plAstThreeSplitNode));
+        node = VASQ_MALLOC(debug_logger, sizeof(plAstThreeSplitNode));
         if (node) {
             *(plAstThreeSplitNode *)node = (plAstThreeSplitNode){0};
             goto set_node_type;
@@ -43,7 +43,7 @@ plAstNew(int node_type)
         break;
 
     case 4:
-        node = VASQ_MALLOC(sizeof(plAstFourSplitNode));
+        node = VASQ_MALLOC(debug_logger, sizeof(plAstFourSplitNode));
         if (node) {
             *(plAstFourSplitNode *)node = (plAstFourSplitNode){0};
             goto set_node_type;
@@ -53,10 +53,10 @@ plAstNew(int node_type)
     default:
 #if LL_USE != -1
         if (VALID_MARKER(node_type)) {
-            VASQ_ERROR("Invalid node type: %s", plLexicalMarkerName(node_type));
+            VASQ_ERROR(debug_logger, "Invalid node type: %s", plLexicalMarkerName(node_type));
         }
         else {
-            VASQ_ERROR("Invalid node type: %i", node_type);
+            VASQ_ERROR(debug_logger, "Invalid node type: %i", node_type);
         }
 #endif
         break;
@@ -180,12 +180,12 @@ createConnection(int marker, plAstNode **first, plAstNode *second)
     plAstNode *parent;
 
     if (!first || !second) {
-        VASQ_ERROR("The arguments cannot be NULL.");
+        VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return PL_RET_USAGE;
     }
 
     if (!*first) {
-        VASQ_ERROR("*first cannot be NULL.");
+        VASQ_ERROR(debug_logger, "*first cannot be NULL.");
         return PL_RET_USAGE;
     }
 

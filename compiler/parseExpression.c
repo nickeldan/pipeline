@@ -423,7 +423,7 @@ int
 parseExpression(plLexicalScanner *scanner, plAstNode **node, bool compilation_only)
 {
     if (!scanner || !node) {
-        VASQ_ERROR("The arguments cannot be NULL.");
+        VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         if (node) {
             *node = NULL;
         }

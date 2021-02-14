@@ -18,19 +18,20 @@ typedef struct plReference {
 } plReference;
 
 #define PL_REF_FLAG_OBJECT 0x80000000
-#define PL_REF_FLAG_SOURCE 0x40000000
-#define PL_REF_FLAG_PIPE   0x20000000
-#define PL_REF_FLAG_SINK   0x10000000
-#define PL_REF_FLAG_MODULE 0x08000000
-#define PL_REF_FLAG_EXPORT 0x04000000
+#define PL_REF_FLAG_TYPE   0x40000000
+#define PL_REF_FLAG_SOURCE 0x20000000
+#define PL_REF_FLAG_PIPE   0x10000000
+#define PL_REF_FLAG_SINK   0x08000000
+#define PL_REF_FLAG_MODULE 0x04000000
+#define PL_REF_FLAG_EXPORT 0x02000000
 
 #define PL_REF_FLAG_CONST     0x00800000
 #define PL_REF_FLAG_NULLABLE  0x00400000
 #define PL_REF_FLAG_LOCALABLE 0x00200000
 #define PL_REF_FLAG_NULL      0x00100000
 #define PL_REF_FLAG_BLANK     0x00080000
-#define PL_REF_FLAG_NONNEG    0x00040000
-#define PL_REF_FLAG_NONPOS    0x00020000
+#define PL_REF_FLAG_POS       0x00040000
+#define PL_REF_FLAG_NEG       0x00020000
 #define PL_REF_FLAG_ZERO      0x00010000
 #define PL_REF_FLAG_TRUE      0x00008000
 #define PL_REF_FLAG_FALSE     0x00004000
@@ -41,7 +42,7 @@ struct plIr {
 typedef struct plSemanticContext {
     plIr *ir;
     const char *file_name;
-    plWordTable **stack;
+    plRefTable **stack;
     size_t stack_capacity;
     size_t stack_size;
 } plSemanticContext;
@@ -109,16 +110,16 @@ contextErrorLog(const char *function_name, unsigned int line_no, const char *fil
 
 #endif  // LL_USE == -1
 
-static plWordTable *
+static plRefTable *
 addTable(plSemanticContext *sem)
 {
-    plWordTable *new_table;
+    plRefTable *new_table;
 
-    new_table = plWordTableNew();
+    new_table = plRefTableNew();
     if (new_table) {
         if (sem->size == sem->capacity) {
             size_t new_capacity;
-            plWordTable **success;
+            plRefTable **success;
 
             if (sem->capacity == 0) {
                 new_capacity = STACK_INITIAL_CAPACITY;
@@ -128,7 +129,7 @@ addTable(plSemanticContext *sem)
             }
             success = VASQ_REALLOC(sem->stack, sizeof(*success) * new_capacity);
             if (!success) {
-                plWordTableFree(new_table);
+                plRefTableFree(new_table);
                 return NULL;
             }
 
@@ -155,7 +156,7 @@ newReference(void)
 }
 
 static int
-storeReference(plWordTable *table, const char *symbol, uint32_t flags, void *data,
+storeReference(plRefTable *table, const char *symbol, uint32_t flags, void *data,
                const plLexicalLocation *location)
 {
     plReference *ref;
@@ -201,7 +202,7 @@ destroyStack(plSemanticContext *sem)
 
     size = sem->size;
     for (size_t k = 0; k < size; k++) {
-        plWordTableFree(sem->stack[k]);
+        plRefTableFree(sem->stack[k]);
     }
 
     free(sem->stack);
@@ -285,11 +286,11 @@ plIrGenerate(const char *file_name, const plAstNode *tree, plIr **ir)
     int ret;
     const char *symbol;
     plSemanticContext sem = {.file_name = file_name};
-    plWordTableIterator iterator;
+    plRefTableIterator iterator;
     plReference ref;
 
     if (!file_name || !tree || !ir) {
-        VASQ_ERROR("The arguments cannot be NULL.");
+        VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return PL_RET_USAGE;
     }
 
@@ -309,8 +310,8 @@ plIrGenerate(const char *file_name, const plAstNode *tree, plIr **ir)
         goto error;
     }
 
-    plWordTableIteratorInit(&iterator, sem->stack[0]);
-    while ((symbol = plWordTableIterate(&iterator, &ref))) {
+    plRefTableIteratorInit(&iterator, sem->stack[0]);
+    while ((symbol = plRefTableIterate(&iterator, &ref))) {
         if (ref.flags == PL_REF_FLAG_EXPORT) {
 #if LL_USE == -1
             contextErrorNoLog(file_name, &ref.location, true, "Exported symbol '%s' not resolved.", symbol);

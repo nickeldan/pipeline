@@ -15,7 +15,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, bool anonymous)
         *node = NULL;
     }
     if (!scanner || !node) {
-        VASQ_ERROR("scanner and node cannot be NULL.");
+        VASQ_ERROR(debug_logger, "scanner and node cannot be NULL.");
         return PL_RET_USAGE;
     }
 
@@ -23,7 +23,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, bool anonymous)
     plGetLastLocation(scanner, &function_location);
 
     if (function_marker == PL_MARKER_LOCAL && !anonymous) {
-        VASQ_ERROR("LOCAL functions can only be anonymous.");
+        VASQ_ERROR(debug_logger, "LOCAL functions can only be anonymous.");
         return PL_RET_USAGE;
     }
 

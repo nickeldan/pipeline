@@ -72,11 +72,11 @@ plCopyObject(const plObject *object)
     plObject *new;
 
     if (!object) {
-        VASQ_ERROR("object cannot be NULL");
+        VASQ_ERROR(debug_logger, "object cannot be NULL");
         return NULL;
     }
 
-    new = VASQ_CALLOC(1, objectSize(object->flags));
+    new = VASQ_CALLOC(debug_logger, 1, objectSize(object->flags));
     if (!new) {
         return NULL;
     }
@@ -139,7 +139,7 @@ plNewInteger(void)
 {
     plInteger *integer;
 
-    integer = VASQ_CALLOC(1, sizeof(*integer));
+    integer = VASQ_CALLOC(debug_logger, 1, sizeof(*integer));
     if (integer) {
         integer->flags = PL_OBJ_TYPE_INT;
     }
@@ -151,7 +151,7 @@ plNewFloat(void)
 {
     plFloat *decimal;
 
-    decimal = VASQ_CALLOC(1, sizeof(*decimal));
+    decimal = VASQ_CALLOC(debug_logger, 1, sizeof(*decimal));
     if (decimal) {
         decimal->integer_part.flags = PL_OBJ_TYPE_FLOAT;
     }
@@ -163,7 +163,7 @@ plNewArray(void)
 {
     plArray *array;
 
-    array = VASQ_CALLOC(1, sizeof(*array));
+    array = VASQ_CALLOC(debug_logger, 1, sizeof(*array));
     if (array) {
         array->flags = PL_OBJ_TYPE_ARRAY;
         array->objects = NULL;
@@ -176,7 +176,7 @@ plNewByteArray(void)
 {
     plByteArray *array;
 
-    array = VASQ_CALLOC(1, sizeof(*array));
+    array = VASQ_CALLOC(debug_logger, 1, sizeof(*array));
     if (array) {
         array->flags = PL_OBJ_TYPE_BYTE_ARRAY;
         array->bytes = NULL;
@@ -191,7 +191,7 @@ plIntegerFromString(const char *string, unsigned int length, plObject **object)
     plInteger *integer;
 
     if (!object) {  // plPopulateIntegerFromString will check string and length.
-        VASQ_ERROR("object cannot be NULL");
+        VASQ_ERROR(debug_logger, "object cannot be NULL");
         return PL_RET_USAGE;
     }
 
@@ -219,17 +219,17 @@ plPopulateIntegerFromString(const char *string, unsigned int length, plInteger *
     char *temp;
 
     if (!string || !integer) {
-        VASQ_ERROR("string and integer cannot be NULL");
+        VASQ_ERROR(debug_logger, "string and integer cannot be NULL");
         return PL_RET_USAGE;
     }
 
     if (length == 0 || string[0] == '\0') {
-        VASQ_ERROR("length cannot be 0");
+        VASQ_ERROR(debug_logger, "length cannot be 0");
         return PL_RET_BAD_DATA;
     }
 
     if (length > PL_INTEGER_MAX_LENGTH) {
-        VASQ_ERROR("String is too long");
+        VASQ_ERROR(debug_logger, "String is too long");
         return PL_RET_BAD_DATA;
     }
 
@@ -261,12 +261,12 @@ plFloatFromString(const char *string, unsigned int length, plObject **object)
     const char *decimal_place;
 
     if (!string || !object) {
-        VASQ_ERROR("string and object cannot be NULL");
+        VASQ_ERROR(debug_logger, "string and object cannot be NULL");
         return PL_RET_USAGE;
     }
 
     if (length == 0) {
-        VASQ_ERROR("length cannot be 0");
+        VASQ_ERROR(debug_logger, "length cannot be 0");
         return PL_RET_BAD_DATA;
     }
 
@@ -298,7 +298,7 @@ plFloatFromString(const char *string, unsigned int length, plObject **object)
             decimal->decimal_part = 0;
         }
         else if (!isdigit(decimal_place[1])) {
-            VASQ_ERROR("Invalid decimal part");
+            VASQ_ERROR(debug_logger, "Invalid decimal part");
             ret = PL_RET_BAD_DATA;
             goto error;
         }
@@ -314,7 +314,7 @@ plFloatFromString(const char *string, unsigned int length, plObject **object)
             temp = array;
             decimal->decimal_part = strtod(array, &temp);
             if (temp == array) {
-                VASQ_ERROR("Invalid decimal part");
+                VASQ_ERROR(debug_logger, "Invalid decimal part");
                 ret = PL_RET_BAD_DATA;
                 goto error;
             }
@@ -341,22 +341,22 @@ plIntegerFromHexString(const char *string, unsigned int length, plObject **objec
     plByteArray *array;
 
     if (!string || !object) {
-        VASQ_ERROR("string and object cannot be NULL");
+        VASQ_ERROR(debug_logger, "string and object cannot be NULL");
         return PL_RET_USAGE;
     }
 
     if (length == 0) {
-        VASQ_ERROR("Length cannot be 0");
+        VASQ_ERROR(debug_logger, "Length cannot be 0");
         return PL_RET_BAD_DATA;
     }
 
     if (length > PL_INTEGER_BIT_SIZE / 4) {
-        VASQ_ERROR("String is too long");
+        VASQ_ERROR(debug_logger, "String is too long");
         return PL_RET_BAD_DATA;
     }
 
     if (string[0] == '-') {
-        VASQ_ERROR("This function cannot process negative values");
+        VASQ_ERROR(debug_logger, "This function cannot process negative values");
         return PL_RET_BAD_DATA;
     }
 
@@ -370,7 +370,7 @@ plIntegerFromHexString(const char *string, unsigned int length, plObject **objec
         array_length++;
     }
     array->length = array->capacity = array_length;
-    array->bytes = VASQ_CALLOC(array->capacity, 1);
+    array->bytes = VASQ_CALLOC(debug_logger, array->capacity, 1);
     if (!array->bytes) {
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
@@ -415,7 +415,7 @@ plConcatenateByteArrays(plObject *first, const plObject *second)
 
     new_length = array1->length + array2->length;
     if (new_length < array1->length) {
-        VASQ_ERROR("Integer overflow detected.");
+        VASQ_ERROR(debug_logger, "Integer overflow detected.");
         return PL_RET_OVERFLOW;
     }
 
@@ -425,15 +425,15 @@ plConcatenateByteArrays(plObject *first, const plObject *second)
 
         new_capacity = CAPACITY_EXPANSION(new_length);
         if (new_capacity < new_length) {
-            VASQ_ERROR("Integer overflow detected.");
+            VASQ_ERROR(debug_logger, "Integer overflow detected.");
             return PL_RET_OVERFLOW;
         }
 
         if (array1->flags & PL_OBJ_FLAG_STATIC_BYTES) {
-            success = VASQ_MALLOC(new_capacity);
+            success = VASQ_MALLOC(debug_logger, new_capacity);
         }
         else {
-            success = VASQ_REALLOC(array1->bytes, new_capacity);
+            success = VASQ_REALLOC(debug_logger, array1->bytes, new_capacity);
         }
 
         if (!success) {

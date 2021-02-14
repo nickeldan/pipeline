@@ -13,7 +13,6 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
     plAstNode *name_node;
 
     *node = NULL;
-
     marker = scanner->last_marker;
     plGetLastLocation(scanner, &location);
 
@@ -117,7 +116,6 @@ parseTypeDecl(plLexicalScanner *scanner, plAstNode **node)
     plAstNode *name_node, *type_node;
 
     *node = NULL;
-
     plGetLastLocation(scanner, &location);
 
     ret = NEXT_TOKEN(scanner, &token);
@@ -277,16 +275,6 @@ error:
     return ret;
 }
 
-static const char *
-stripLineBeginning(const char *line)
-{
-    const char *ret;
-
-    for (ret = line; isWhitespace(*ret); ret++) {}
-
-    return ret;
-}
-
 int
 plFileParse(FILE *in, const char *file_name, plAstNode **tree, plWordTable **table)
 {
@@ -294,23 +282,20 @@ plFileParse(FILE *in, const char *file_name, plAstNode **tree, plWordTable **tab
     plLexicalScanner scanner;
 
     if (!in || !tree || !table) {
-        VASQ_ERROR("in, tree, and table cannot be NULL.");
+        VASQ_ERROR(debug_logger, "in, tree, and table cannot be NULL.");
         return PL_RET_USAGE;
     }
 
-    *table = plWordTableNew();
-    if (!*table) {
-        return PL_RET_OUT_OF_MEMORY;
-    }
-
-    plScannerInit(&scanner, in, file_name, *table);
-    VASQ_INFO("Parsing %s.", scanner.file_name);
+    ret = plScannerInit(&scanner, in, file_name, LL_USE);
+    VASQ_INFO(debug_logger, "Parsing %s.", scanner.file_name);
 
     ret = parseGlobalSpace(&scanner, tree);
-    if (ret != PL_RET_OK) {
-        plScannerCleanup(&scanner);
-        plWordTableFree(*table);
+    if (ret == PL_RET_OK) {
+        *table = scanner.table;
+        scanner.table = NULL;
     }
+    plScannerCleanup(&scanner);
+
     return ret;
 }
 
@@ -350,21 +335,6 @@ expectMarkerNoLog(plLexicalScanner *scanner, int marker, plLexicalLocation *loca
     return PL_RET_OK;
 }
 
-void
-parserErrorNoLog(const plLexicalScanner *scanner, const char *format, ...)
-{
-    va_list args;
-    plLexicalLocation location;
-
-    plGetLastLocation(scanner, &location);
-
-    vasqRawLog("%s%s:%u:%u: ", ERROR_STRING, scanner->file_name, location.line_no, location.column_no);
-    va_start(args, format);
-    vasqVRawLog(format, args);
-    va_end(args);
-    vasqRawLog("\n\t%s\n", stripLineBeginning(scanner->buffer));
-}
-
 #else  // LL_USE == -1
 
 int
@@ -390,8 +360,8 @@ expectMarkerLog(const char *file_name, const char *function_name, unsigned int l
     }
 
     if (token.marker != marker) {
-        parserErrorLog(file_name, function_name, line_no, scanner, "Unexpected %s.",
-                       plLexicalMarkerName(token.marker));
+        vasqLogStatement(scanner->parser_logger, VASQ_LL_ERROR, file_name, function_name, line_no,
+                         "Unexpected %s.", plLexicalMarkerName(token.marker));
         plTokenCleanup(&token, scanner->table);
         return PL_RET_BAD_DATA;
     }
@@ -401,26 +371,6 @@ expectMarkerLog(const char *file_name, const char *function_name, unsigned int l
     }
 
     return PL_RET_OK;
-}
-
-void
-parserErrorLog(const char *file_name, const char *function_name, unsigned int line_no,
-               const plLexicalScanner *scanner, const char *format, ...)
-{
-    char temp[1024];
-    va_list args;
-    plLexicalLocation location;
-
-    plGetLastLocation(scanner, &location);
-
-    va_start(args, format);
-    vasqSafeVsnprintf(temp, sizeof(temp), format, args);
-    va_end(args);
-
-    vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no, "%s%s:%u:%u: %s", ERROR_STRING,
-                     scanner->file_name, location.line_no, location.column_no, temp);
-    vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no, "%s",
-                     stripLineBeginning(scanner->buffer));
 }
 
 #endif  // LL_USE == -1

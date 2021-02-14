@@ -5,6 +5,8 @@
 
 #include "scanner.h"
 
+#define SCANNER_ERROR(format, ...) VASQ_ERROR(scanner->scanner_logger, format, ##__VA_ARGS__)
+
 struct keywordRecord {
     const char *word;
     unsigned int len;
@@ -58,41 +60,7 @@ static const struct keywordRecord contexts[] = {
     {"CONTEXT", 7, PL_SUBMARKER_CONTEXT},
 };
 
-#if LL_USE == -1
-
-static void
-scannerErrorNoLog(const plLexicalScanner *scanner, const char *format, ...)
-{
-    char line[2048];
-    va_list args;
-
-    va_start(args, format);
-    vasqSafeVsnprintf(line, sizeof(line), format, args);
-    va_end(args);
-
-    VASQ_RAWLOG("%s%s:%u: %s\n", ERROR_STRING, scanner->file_name, scanner->location.line_no, line);
-}
-#define SCANNER_ERROR(format, ...) scannerErrorNoLog(scanner, format, ##__VA_ARGS__)
-
-#else  // LL_USE == -1
-
-static void
-scannerErrorLog(const char *function_name, unsigned line_no, const plLexicalScanner *scanner,
-                const char *format, ...)
-{
-    char line[2048];
-    va_list args;
-
-    va_start(args, format);
-    vasqSafeVsnprintf(line, sizeof(line), format, args);
-    va_end(args);
-
-    vasqLogStatement(VASQ_LL_ERROR, __FILE__, function_name, line_no, "%s%s:%u: %s", ERROR_STRING,
-                     scanner->file_name, scanner->location.line_no, line);
-}
-#define SCANNER_ERROR(format, ...) scannerErrorLog(__func__, __LINE__, scanner, format, ##__VA_ARGS__)
-
-#endif  // LL_USE == -1
+vasqLogger *debug_logger;
 
 static bool
 isWhitespace(char c)
@@ -153,7 +121,7 @@ advanceScanner(plLexicalScanner *scanner, unsigned int length)
     scanner->line_length -= length;
 }
 
-#if LL_USE == -1
+#if LL_USE <= -1
 
 #define ADVANCE_SCANNER(scanner, length) advanceScanner(scanner, length)
 
@@ -165,13 +133,13 @@ advanceScannerLog(const char *function_name, unsigned int line_no, plLexicalScan
 {
     advanceScanner(scanner, length);
     if (length > 0) {
-        vasqLogStatement(VASQ_LL_DEBUG, __FILE__, function_name, line_no, "%u character%s consumed.", length,
-                         (length == 1) ? "" : "s");
+        vasqLogStatement(debug_logger, VASQ_LL_DEBUG, __FILE__, function_name, line_no,
+                         "%u character%s consumed.", length, (length == 1) ? "" : "s");
     }
 }
 #define ADVANCE_SCANNER(scanner, length) advanceScannerLog(__func__, __LINE__, scanner, length)
 
-#endif  // LL_USE == -1
+#endif  // LL_USE <= -1
 
 static bool
 prepLine(plLexicalScanner *scanner)
@@ -240,7 +208,7 @@ prepLine(plLexicalScanner *scanner)
         }
 
         if (scanner->line_length > 0) {
-            VASQ_DEBUG("%s, line %u: %.*s", scanner->file_name, scanner->location.line_no,
+            VASQ_DEBUG(debug_logger, "%s, line %u: %.*s", scanner->file_name, scanner->location.line_no,
                        scanner->line_length, scanner->buffer);
         }
     }
@@ -277,7 +245,7 @@ readByteString(plLexicalScanner *scanner, plObject **object)
 
 good_string:
 
-    array->bytes = VASQ_MALLOC(array->capacity);
+    array->bytes = VASQ_MALLOC(debug_logger, array->capacity);
     if (!array->bytes) {
         plFreeObject((plObject *)array);
         return PL_MARKER_OUT_OF_MEMORY;
@@ -365,21 +333,86 @@ lookaheadStoreLogic(plLexicalScanner *scanner, const plLexicalToken *token)
     scanner->num_look_ahead++;
 }
 
-void
-plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, plWordTable *table)
+static void
+scannerProcessor(void *user_data, char **dst, size_t *remaining)
 {
-    if (!scanner || !file || !table) {
-        VASQ_ERROR("scanner, file, and table cannot be NULL.");
-        return;
+    const plLexicalScanner *scanner = (const plLexicalScanner *)user_data;
+
+    vasqIncSnprintf(dst, remaining, "%u", scanner->location.line_no);
+}
+
+const char *
+stripLineBeginning(const char *line)
+{
+    while (isWhitespace(*line)) {
+        line++;
+    }
+
+    return line;
+}
+
+static void
+parserProcessor(void *user_data, char **dst, size_t *remaining)
+{
+    plLexicalScanner *scanner = (plLexicalScanner *)user_data;
+
+    if (scanner->parser_logger_flag) {
+        plLexicalLocation location;
+
+        plGetLastLocation(scanner, &location);
+        vasqIncSnprintf(dst, remaining, "%s:%u:%u", scanner->file_name, location.line_no,
+                        location.column_no);
+    }
+    else {
+        vasqIncSnprintf(dst, remaining, "%s", stripLineBeginning(scanner->buffer));
+    }
+
+    scanner->parser_logger_flag = !scanner->parser_logger_flag;
+}
+
+int
+plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, vasqLogLevel_t level)
+{
+    int ret;
+
+    if (!scanner || !file) {
+        VASQ_ERROR(debug_logger, "scanner, file, and table cannot be NULL.");
+        return PL_MARKER_USAGE;
     }
 
     *scanner = (plLexicalScanner){0};
 
+    scanner->table = plWordTableNew();
+    if (!scanner->table) {
+        return PL_RET_OUT_OF_MEMORY;
+    }
+
+    ret = vasqLoggerCreate(STDOUT_FILENO, level, PL_LOGGER_PREAMBLE ERROR_STRING "%x: %M\n",
+                           scannerProcessor, scanner, &scanner->scanner_logger);
+    if (ret != VASQ_RET_OK) {
+        goto error;
+    }
+
+    ret = vasqLoggerCreate(STDOUT_FILENO, level, PL_LOGGER_PREAMBLE ERROR_STRING "%x: %M\n\t%x\n",
+                           parserProcessor, scanner, &scanner->parser_logger);
+    if (ret != VASQ_RET_OK) {
+        goto error;
+    }
+
     scanner->file = file;
     scanner->file_name = file_name ? file_name : "<anonymous file>";
-    scanner->table = table;
     scanner->last_marker = PL_MARKER_INIT;
     scanner->line = scanner->buffer;
+
+    return PL_RET_OK;
+
+error:
+
+    plWordTableFree(scanner->table);
+    vasqLoggerFree(scanner->scanner_logger);
+    vasqLoggerFree(scanner->parser_logger);
+
+    return plTranslateVasqRet(ret);
 }
 
 void
@@ -389,7 +422,12 @@ plScannerCleanup(plLexicalScanner *scanner)
         for (unsigned int k = 0; k < scanner->num_look_ahead; k++) {
             plTokenCleanup(scanner->look_ahead + k, scanner->table);
         }
-        scanner->num_look_ahead = 0;
+
+        vasqLoggerFree(scanner->scanner_logger);
+        vasqLoggerFree(scanner->parser_logger);
+        plWordTableFree(scanner->table);
+
+        *scanner = (plLexicalScanner){0};
     }
 }
 
@@ -399,7 +437,7 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
     unsigned int consumed;
 
     if (!scanner || !token) {
-        VASQ_ERROR("The arguments cannot be NULL.");
+        VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return PL_MARKER_USAGE;
     }
 
@@ -713,7 +751,7 @@ plGetLastLocation(const plLexicalScanner *scanner, plLexicalLocation *location)
     const plLexicalLocation *ptr;
 
     if (!scanner || !location) {
-        VASQ_ERROR("The arguments cannot be NULL.");
+        VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return;
     }
 
@@ -745,7 +783,7 @@ plTokenCleanup(plLexicalToken *token, plWordTable *table)
     }
 }
 
-#if LL_USE == -1
+#if LL_USE <= -1
 
 int
 plLookaheadStoreNoLog(plLexicalScanner *scanner, plLexicalToken *token)
@@ -763,7 +801,7 @@ plLookaheadStoreNoLog(plLexicalScanner *scanner, plLexicalToken *token)
     return PL_RET_OK;
 }
 
-#else  // LL_USE == -1
+#else  // LL_USE <= -1
 
 int
 plTokenReadLog(const char *file_name, const char *function_name, unsigned int line_no,
@@ -773,11 +811,12 @@ plTokenReadLog(const char *file_name, const char *function_name, unsigned int li
 
     ret = plTokenRead(scanner, token);
     if (!TERMINAL_MARKER(ret)) {
-        vasqLogStatement(VASQ_LL_INFO, file_name, function_name, line_no, "Read token: %s",
+        vasqLogStatement(debug_logger, VASQ_LL_INFO, file_name, function_name, line_no, "Read token: %s",
                          plLexicalMarkerName(ret));
     }
     else if (ret == PL_MARKER_EOF) {
-        vasqLogStatement(VASQ_LL_INFO, file_name, function_name, line_no, "End of file reached.");
+        vasqLogStatement(debug_logger, VASQ_LL_INFO, file_name, function_name, line_no,
+                         "End of file reached.");
     }
     return ret;
 }
@@ -787,21 +826,22 @@ plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned i
                     plLexicalScanner *scanner, plLexicalToken *token)
 {
     if (!scanner || !token) {
-        VASQ_ERROR("The arguments cannot be NULL.");
-        return PL_RET_USAGE;
+        VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
+        return PL_MARKER_USAGE;
     }
 
     if (scanner->num_look_ahead == PL_SCANNER_MAX_LOOK_AHEAD) {
-        vasqLogStatement(VASQ_LL_ERROR, file_name, function_name, line_no,
+        vasqLogStatement(debug_logger, VASQ_LL_ERROR, file_name, function_name, line_no,
                          "Cannot store any more look ahead tokens.");
         plTokenCleanup(token, scanner->table);
         return PL_RET_USAGE;
     }
 
     lookaheadStoreLogic(scanner, token);
-    vasqLogStatement(VASQ_LL_INFO, file_name, function_name, line_no, "%s stored as look ahead (%u total).",
-                     plLexicalMarkerName(token->marker), scanner->num_look_ahead);
+    vasqLogStatement(debug_logger, VASQ_LL_INFO, file_name, function_name, line_no,
+                     "%s stored as look ahead (%u total).", plLexicalMarkerName(token->marker),
+                     scanner->num_look_ahead);
     return PL_RET_OK;
 }
 
-#endif  // LL_USE == -1
+#endif  // LL_USE <= -1
