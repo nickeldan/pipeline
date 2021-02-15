@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "vasq/safe_snprintf.h"
 
@@ -59,8 +60,6 @@ static const struct keywordRecord contexts[] = {
     {"ATTACH", 6, PL_SUBMARKER_ATTACH},
     {"CONTEXT", 7, PL_SUBMARKER_CONTEXT},
 };
-
-vasqLogger *debug_logger;
 
 static bool
 isWhitespace(char c)

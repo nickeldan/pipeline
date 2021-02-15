@@ -1,7 +1,6 @@
 #ifndef PIPELINE_COMPILER_SCANNER_H
 #define PIPELINE_COMPILER_SCANNER_H
 
-#include <ctype.h>
 #include <stdio.h>
 
 #include "definitions.h"
@@ -30,9 +29,6 @@ typedef struct plLexicalScanner {
 } plLexicalScanner;
 
 #define PARSER_ERROR(format, ...) VASQ_ERROR(scanner->parser_logger, format, ##__VA_ARGS__)
-
-int
-plSetupDebuggingLogger(vasqLogLevel_t level);
 
 int
 plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, vasqLogLevel_t level);
