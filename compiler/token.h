@@ -1,6 +1,8 @@
 #ifndef PIPELINE_COMPILER_TOKEN_H
 #define PIPELINE_COMPILER_TOKEN_H
 
+#include <ctype.h>
+
 #include "plObject.h"
 
 #include "definitions.h"

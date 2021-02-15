@@ -70,6 +70,4 @@ plGetLastLocation(const plLexicalScanner *scanner, plLexicalLocation *location);
 void
 plTokenCleanup(plLexicalToken *token, plWordTable *table);
 
-extern vasqLogger *debug_logger;
-
 #endif  // PIPELINE_COMPILER_SCANNER_H
