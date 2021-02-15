@@ -333,8 +333,9 @@ lookaheadStoreLogic(plLexicalScanner *scanner, const plLexicalToken *token)
 }
 
 static void
-scannerProcessor(void *user_data, char **dst, size_t *remaining)
+scannerProcessor(void *user_data, vasqLogLevel_t level, char **dst, size_t *remaining)
 {
+    (void)level;
     const plLexicalScanner *scanner = (const plLexicalScanner *)user_data;
 
     vasqIncSnprintf(dst, remaining, "%u", scanner->location.line_no);
@@ -351,15 +352,24 @@ stripLineBeginning(const char *line)
 }
 
 static void
-parserProcessor(void *user_data, char **dst, size_t *remaining)
+parserProcessor(void *user_data, vasqLogLevel_t level, char **dst, size_t *remaining)
 {
     plLexicalScanner *scanner = (plLexicalScanner *)user_data;
 
     if (scanner->parser_logger_flag) {
+        const char *error_string;
         plLexicalLocation location;
 
+        switch (level) {
+        case VASQ_LL_ERROR: error_string = ERROR_STRING; break;
+
+        case VASQ_LL_WARNING: error_string = WARNING_STRING; break;
+
+        default: error_string = ""; break;
+        }
+
         plGetLastLocation(scanner, &location);
-        vasqIncSnprintf(dst, remaining, "%s:%u:%u", scanner->file_name, location.line_no,
+        vasqIncSnprintf(dst, remaining, "%s%s:%u:%u", error_string, scanner->file_name, location.line_no,
                         location.column_no);
     }
     else {
