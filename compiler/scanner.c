@@ -380,7 +380,7 @@ parserProcessor(void *user_data, vasqLogLevel_t level, char **dst, size_t *remai
 }
 
 int
-plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, vasqLogLevel_t level)
+plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name)
 {
     int ret;
 
@@ -396,13 +396,13 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, vasq
         return PL_RET_OUT_OF_MEMORY;
     }
 
-    ret = vasqLoggerCreate(STDOUT_FILENO, level, PL_LOGGER_PREAMBLE ERROR_STRING "%x: %M\n",
+    ret = vasqLoggerCreate(STDOUT_FILENO, VASQ_LL_WARNING, PL_LOGGER_PREAMBLE ERROR_STRING "%x: %M\n",
                            scannerProcessor, scanner, &scanner->scanner_logger);
     if (ret != VASQ_RET_OK) {
         goto error;
     }
 
-    ret = vasqLoggerCreate(STDOUT_FILENO, level, PL_LOGGER_PREAMBLE ERROR_STRING "%x: %M\n\t%x\n",
+    ret = vasqLoggerCreate(STDOUT_FILENO, VASQ_LL_WARNING, PL_LOGGER_PREAMBLE ERROR_STRING "%x: %M\n\t%x\n",
                            parserProcessor, scanner, &scanner->parser_logger);
     if (ret != VASQ_RET_OK) {
         goto error;

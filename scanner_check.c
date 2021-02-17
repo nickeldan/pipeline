@@ -33,7 +33,7 @@ main(int argc, char **argv)
         file_name = argv[1];
     }
 
-    ret = plScannerInit(&scanner, f, file_name, LL_USE);
+    ret = plScannerInit(&scanner, f, file_name);
     if ( ret != PL_RET_OK ) {
         goto done;
     }

@@ -1,18 +1,8 @@
 CC ?= gcc
-verbose ?= no
+level ?= -2
 debug ?= no
 
-CFLAGS := -std=gnu11 -fdiagnostics-color -Wall -Wextra
-ifeq ($(verbose),yes)
-	CFLAGS += -DPL_FULL_LOGGING
-	ifeq ($(debug),yes)
-		CFLAGS += -DLL_USE=5
-	else
-		CFLAGS += -DLL_USE=4
-	endif
-else
-	CFLAGS += -DLL_USE=3
-endif
+CFLAGS := -std=gnu11 -fdiagnostics-color -Wall -Wextra -DLL_USE=$(level)
 ifeq ($(debug),yes)
 	CFLAGS += -O0 -g -DDEBUG
 else

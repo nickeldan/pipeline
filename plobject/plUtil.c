@@ -7,7 +7,7 @@
 
 vasqLogger *debug_logger;
 
-#ifdef PL_FULL_LOGGING
+#if LL_USE >= 0
 
 static void
 freeDebuggingLogger(void)
@@ -15,7 +15,7 @@ freeDebuggingLogger(void)
     vasqLoggerFree(debug_logger);
 }
 
-#endif  // PL_FULL_LOGGING
+#endif  // LL_USE >= 0
 
 int
 plTranslateVasqRet(int value)
@@ -31,7 +31,7 @@ plTranslateVasqRet(int value)
 int
 plSetupDebuggingLogger(vasqLogLevel_t level)
 {
-#ifdef PL_FULL_LOGGING
+#if LL_USE >= 0
     int ret;
 
     ret = vasqLoggerCreate(STDOUT_FILENO, level, PL_LOGGER_PREAMBLE "%M\n", NULL, NULL, &debug_logger);

@@ -18,7 +18,7 @@ enum plRetValue {
 int
 plTranslateVasqRet(int value);
 
-#ifdef PL_FULL_LOGGING
+#if LL_USE >= 0
 #define PL_LOGGER_PREAMBLE "[%L]%_ %F:%f:%l: "
 #else
 #define PL_LOGGER_PREAMBLE ""

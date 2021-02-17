@@ -31,7 +31,7 @@ typedef struct plLexicalScanner {
 #define PARSER_ERROR(format, ...) VASQ_ERROR(scanner->parser_logger, format, ##__VA_ARGS__)
 
 int
-plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name, vasqLogLevel_t level);
+plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name);
 
 void
 plScannerCleanup(plLexicalScanner *scanner);
