@@ -120,7 +120,7 @@ advanceScanner(plLexicalScanner *scanner, unsigned int length)
     scanner->line_length -= length;
 }
 
-#if LL_USE <= -1
+#if LL_USE == -1
 
 #define ADVANCE_SCANNER(scanner, length) advanceScanner(scanner, length)
 
@@ -138,7 +138,7 @@ advanceScannerLog(const char *function_name, unsigned int line_no, plLexicalScan
 }
 #define ADVANCE_SCANNER(scanner, length) advanceScannerLog(__func__, __LINE__, scanner, length)
 
-#endif  // LL_USE <= -1
+#endif  // LL_USE == -1
 
 static bool
 prepLine(plLexicalScanner *scanner)
@@ -792,7 +792,7 @@ plTokenCleanup(plLexicalToken *token, plWordTable *table)
     }
 }
 
-#if LL_USE <= -1
+#if LL_USE == -1
 
 int
 plLookaheadStoreNoLog(plLexicalScanner *scanner, plLexicalToken *token)
@@ -810,7 +810,7 @@ plLookaheadStoreNoLog(plLexicalScanner *scanner, plLexicalToken *token)
     return PL_RET_OK;
 }
 
-#else  // LL_USE <= -1
+#else  // LL_USE == -1
 
 int
 plTokenReadLog(const char *file_name, const char *function_name, unsigned int line_no,
@@ -853,4 +853,4 @@ plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned i
     return PL_RET_OK;
 }
 
-#endif  // LL_USE <= -1
+#endif  // LL_USE == -1

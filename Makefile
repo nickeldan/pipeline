@@ -1,5 +1,5 @@
 CC ?= gcc
-level ?= -2
+level ?= -1
 debug ?= no
 
 CFLAGS := -std=gnu11 -fdiagnostics-color -Wall -Wextra -DLL_USE=$(level)

@@ -42,7 +42,7 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token);
 int
 plTranslateTerminalMarker(int marker);
 
-#if LL_USE <= -1
+#if LL_USE == -1
 
 #define TOKEN_READ(scanner, token) plTokenRead(scanner, token)
 
@@ -62,7 +62,7 @@ plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned i
                     plLexicalScanner *scanner, plLexicalToken *token);
 #define LOOKAHEAD_STORE(scanner, token) plLookaheadStoreLog(__FILE__, __func__, __LINE__, scanner, token)
 
-#endif  // LL_USE <= -1
+#endif  // LL_USE == -1
 
 void
 plGetLastLocation(const plLexicalScanner *scanner, plLexicalLocation *location);

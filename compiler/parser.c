@@ -299,7 +299,7 @@ plFileParse(FILE *in, const char *file_name, plAstNode **tree, plWordTable **tab
     return ret;
 }
 
-#if LL_USE <= -1
+#if LL_USE == -1
 
 int
 nextTokenNoLog(plLexicalScanner *scanner, plLexicalToken *token)
@@ -335,7 +335,7 @@ expectMarkerNoLog(plLexicalScanner *scanner, int marker, plLexicalLocation *loca
     return PL_RET_OK;
 }
 
-#else  // LL_USE <= -1
+#else  // LL_USE == -1
 
 int
 nextTokenLog(const char *file_name, const char *function_name, unsigned int line_no,
@@ -373,4 +373,4 @@ expectMarkerLog(const char *file_name, const char *function_name, unsigned int l
     return PL_RET_OK;
 }
 
-#endif  // LL_USE <= -1
+#endif  // LL_USE == -1
