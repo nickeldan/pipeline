@@ -39,4 +39,4 @@ staticlibs: $(STATIC_LIBRARIES)
 	$(CC) $(CFLAGS) -I$(COMPILER_DIR) -I$(PLOBJECT_DIR) -I$(VASQ_INCLUDE_DIR) -c $< -o $@
 
 clean: $(CLEAN_TARGETS)
-	rm -f $(BINARIES)
+	rm -f $(BINARIES) $(DEPS_FILES)
