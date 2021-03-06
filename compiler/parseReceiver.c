@@ -66,7 +66,7 @@ parseReceiver(plLexicalScanner *scanner, plAstNode **node)
                         goto loop_error;
                     }
 
-                    ret = createConnection(PL_MARKER_LEFT_PARENS, &second_node, attached_node);
+                    ret = plAstCreateConnection(PL_MARKER_LEFT_PARENS, &second_node, attached_node);
                     if (ret != PL_RET_OK) {
                         plAstFree(attached_node, scanner->table);
                         goto loop_error;
@@ -117,7 +117,7 @@ parseReceiver(plLexicalScanner *scanner, plAstNode **node)
             }
             memcpy(&store_node->token, &token2, sizeof(token2));
 
-            ret = createConnection(PL_MARKER_COLON, &second_node, store_node);
+            ret = plAstCreateConnection(PL_MARKER_COLON, &second_node, store_node);
             if (ret != PL_RET_OK) {
                 plAstFree(store_node, scanner->table);
                 goto loop_error;
@@ -134,7 +134,7 @@ parseReceiver(plLexicalScanner *scanner, plAstNode **node)
 connect_nodes:
 
         if (*node) {
-            ret = createConnection(PL_MARKER_ARROW, node, second_node);
+            ret = plAstCreateConnection(PL_MARKER_ARROW, node, second_node);
             if (ret != PL_RET_OK) {
                 plAstFree(second_node, scanner->table);
                 goto error;

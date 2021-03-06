@@ -132,7 +132,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, bool anonymous)
             if (token.marker == PL_MARKER_QUESTION) {
                 plAstNode *temp_node;
 
-                temp_node = createFamily(PL_MARKER_QUESTION, type_node);
+                temp_node = plAstCreateFamily(PL_MARKER_QUESTION, type_node);
                 if (!temp_node) {
                     ret = PL_RET_OUT_OF_MEMORY;
                     goto cleanup_name_node;
@@ -148,7 +148,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, bool anonymous)
             }
         }
 
-        arg_node = createFamily(PL_MARKER_COLON, name_node, type_node);
+        arg_node = plAstCreateFamily(PL_MARKER_COLON, name_node, type_node);
         if (!arg_node) {
             ret = PL_RET_OUT_OF_MEMORY;
             goto cleanup_name_node;
@@ -157,7 +157,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, bool anonymous)
         type_node = NULL;
 
         if (arg_list) {
-            ret = createConnection(PL_MARKER_COMMA, &arg_list, arg_node);
+            ret = plAstCreateConnection(PL_MARKER_COMMA, &arg_list, arg_node);
             if (ret != PL_RET_OK) {
                 plAstFree(arg_node, scanner->table);
                 goto error;

@@ -35,7 +35,7 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
     }
     memcpy(&name_node->token, &token, sizeof(token));
 
-    *node = createFamily(marker, name_node);
+    *node = plAstCreateFamily(marker, name_node);
     if (!*node) {
         plAstFree(name_node, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
@@ -85,7 +85,7 @@ parseConstantDeclaration(plLexicalScanner *scanner, plAstNode **node)
     }
     memcpy(&name_node->token, &token, sizeof(token));
 
-    ret = createConnection(PL_MARKER_ARROW, node, name_node);
+    ret = plAstCreateConnection(PL_MARKER_ARROW, node, name_node);
     if (ret != PL_RET_OK) {
         plAstFree(name_node, scanner->table);
         goto error;
@@ -146,7 +146,7 @@ parseTypeDecl(plLexicalScanner *scanner, plAstNode **node)
         goto error;
     }
 
-    *node = createFamily(PL_MARKER_TYPE_DECL, name_node, type_node);
+    *node = plAstCreateFamily(PL_MARKER_TYPE_DECL, name_node, type_node);
     if (!*node) {
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
@@ -183,7 +183,7 @@ parseMain(plLexicalScanner *scanner, plAstNode **node)
         return ret;
     }
 
-    *node = createFamily(PL_MARKER_MAIN, statement_list);
+    *node = plAstCreateFamily(PL_MARKER_MAIN, statement_list);
     if (!*node) {
         plAstFree(statement_list, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
@@ -244,7 +244,7 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
         }
 
         if (*tree) {
-            ret = createConnection(PL_MARKER_SEMICOLON, tree, node);
+            ret = plAstCreateConnection(PL_MARKER_SEMICOLON, tree, node);
             if (ret != PL_RET_OK) {
                 plAstFree(node, scanner->table);
                 goto error;

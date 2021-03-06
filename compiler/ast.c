@@ -143,7 +143,7 @@ plAstSplitSize(int node_type)
 }
 
 plAstNode *
-createFamily(int marker, ...)
+plAstCreateFamily(int marker, ...)
 {
     int split_size;
     va_list args;
@@ -175,7 +175,7 @@ createFamily(int marker, ...)
 }
 
 int
-createConnection(int marker, plAstNode **first, plAstNode *second)
+plAstCreateConnection(int marker, plAstNode **first, plAstNode *second)
 {
     plAstNode *parent;
 
@@ -189,7 +189,7 @@ createConnection(int marker, plAstNode **first, plAstNode *second)
         return PL_RET_USAGE;
     }
 
-    parent = createFamily(marker, *first, second);
+    parent = plAstCreateFamily(marker, *first, second);
     if (!parent) {
         return PL_RET_OUT_OF_MEMORY;
     }

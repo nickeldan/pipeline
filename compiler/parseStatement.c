@@ -62,7 +62,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             goto error;
         }
 
-        *node = createFamily(token.marker, first_node);
+        *node = plAstCreateFamily(token.marker, first_node);
         if (!*node) {
             ret = PL_RET_OUT_OF_MEMORY;
             goto error;
@@ -111,7 +111,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             }
             memcpy(&name_node->token, &token, sizeof(token));
 
-            *node = createFamily(next_token.marker, name_node, type_node);
+            *node = plAstCreateFamily(next_token.marker, name_node, type_node);
             if (*node) {
                 plAstFree(name_node, scanner->table);
                 plAstFree(type_node, scanner->table);
@@ -147,7 +147,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             }
             memcpy(&name_node->token, &next_token, sizeof(next_token));
 
-            *node = createFamily('%', name_node);
+            *node = plAstCreateFamily('%', name_node);
             if (!*node) {
                 plAstFree(name_node, scanner->table);
                 return PL_RET_OUT_OF_MEMORY;
@@ -199,7 +199,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             goto error;
         }
 
-        *node = createFamily(PL_MARKER_REASSIGNMENT, first_node, rvalue_node);
+        *node = plAstCreateFamily(PL_MARKER_REASSIGNMENT, first_node, rvalue_node);
         if (!*node) {
             plAstFree(rvalue_node, scanner->table);
             ret = PL_RET_OUT_OF_MEMORY;
@@ -228,7 +228,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         goto error;
     }
 
-    *node = createFamily(PL_MARKER_ARROW, first_node, receiver_node);
+    *node = plAstCreateFamily(PL_MARKER_ARROW, first_node, receiver_node);
     if (!*node) {
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
@@ -282,7 +282,7 @@ parseStatementList(plLexicalScanner *scanner, plAstNode **node)
         }
 
         if (*node) {
-            ret = createConnection(PL_MARKER_SEMICOLON, node, statement_node);
+            ret = plAstCreateConnection(PL_MARKER_SEMICOLON, node, statement_node);
             if (ret != PL_RET_OK) {
                 plAstFree(statement_node, scanner->table);
                 goto error;

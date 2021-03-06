@@ -139,7 +139,7 @@ parseExtendedType(plLexicalScanner *scanner, plAstNode **node)
         if (token.marker == PL_MARKER_QUESTION) {
             plAstNode *question_node;
 
-            question_node = createFamily(PL_MARKER_QUESTION, *node);
+            question_node = plAstCreateFamily(PL_MARKER_QUESTION, *node);
             if (!question_node) {
                 ret = PL_RET_OUT_OF_MEMORY;
                 goto error;

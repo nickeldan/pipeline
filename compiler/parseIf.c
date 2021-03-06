@@ -56,7 +56,7 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
         goto error;
     }
 
-    *node = createFamily(PL_MARKER_IF, condition_node, statement_list, else_node);
+    *node = plAstCreateFamily(PL_MARKER_IF, condition_node, statement_list, else_node);
     if (!*node) {
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;

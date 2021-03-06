@@ -80,7 +80,7 @@ parseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
         }
         memcpy(&name_node->token, &token, sizeof(token));
 
-        arg_node = createFamily(PL_MARKER_COLON, name_node, type_node);
+        arg_node = plAstCreateFamily(PL_MARKER_COLON, name_node, type_node);
         if (!arg_node) {
             plAstFree(name_node, scanner->table);
             plAstFree(type_node, scanner->table);
@@ -90,7 +90,7 @@ parseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
         memcpy(&arg_node->token.location, &colon_location, sizeof(colon_location));
 
         if (arg_list) {
-            ret = createConnection(PL_MARKER_SEMICOLON, &arg_list, arg_node);
+            ret = plAstCreateConnection(PL_MARKER_SEMICOLON, &arg_list, arg_node);
             if (ret != PL_RET_OK) {
                 plAstFree(arg_node, scanner->table);
                 goto error;
@@ -119,7 +119,7 @@ loop_error:
         goto error;
     }
 
-    *node = createFamily(PL_MARKER_STRUCT, struct_name_node, arg_list);
+    *node = plAstCreateFamily(PL_MARKER_STRUCT, struct_name_node, arg_list);
     if (!*node) {
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;

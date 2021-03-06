@@ -125,7 +125,7 @@ start:
                 goto error;
             }
 
-            ret = createConnection(PL_MARKER_ARROW, node, second_node);
+            ret = plAstCreateConnection(PL_MARKER_ARROW, node, second_node);
             if (ret != PL_RET_OK) {
                 plAstFree(second_node, scanner->table);
                 goto error;
@@ -189,7 +189,7 @@ start:
                 goto error;
             }
 
-            ret = createConnection(PL_MARKER_LEFT_PARENS, node, second_node);
+            ret = plAstCreateConnection(PL_MARKER_LEFT_PARENS, node, second_node);
             if (ret != PL_RET_OK) {
                 plAstFree(second_node, scanner->table);
                 goto error;
@@ -291,7 +291,7 @@ start:
             goto error;
         }
 
-        ret = createConnection(token.marker, node, second_node);
+        ret = plAstCreateConnection(token.marker, node, second_node);
         if (ret != PL_RET_OK) {
             plAstFree(second_node, scanner->table);
             goto error;
@@ -305,7 +305,7 @@ start:
         for (int k = 0; k <= 1 - (int)negation; k++) {  // negation, as an integer, is either 0 or 1.
             plAstNode *connector_node;
 
-            connector_node = createFamily(PL_MARKER_NOT, *node);
+            connector_node = plAstCreateFamily(PL_MARKER_NOT, *node);
             if (!connector_node) {
                 ret = PL_RET_OUT_OF_MEMORY;
                 goto error;
@@ -376,7 +376,7 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
                 goto error;
             }
 
-            ret = createConnection(PL_MARKER_ARROW, current, second_node);
+            ret = plAstCreateConnection(PL_MARKER_ARROW, current, second_node);
             if (ret != PL_RET_OK) {
                 goto error;
             }
@@ -386,7 +386,7 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
         }
 
         if (second_node) {
-            ret = createConnection(token1.marker, current, second_node);
+            ret = plAstCreateConnection(token1.marker, current, second_node);
             if (ret != PL_RET_OK) {
                 goto error;
             }
@@ -404,7 +404,7 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
     }
 
     if (second_node) {
-        ret = createConnection(token1.marker, current, second_node);
+        ret = plAstCreateConnection(token1.marker, current, second_node);
         if (ret != PL_RET_OK) {
             goto error;
         }

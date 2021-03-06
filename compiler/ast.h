@@ -53,10 +53,10 @@ int
 plAstSplitSize(int node_type);
 
 plAstNode *
-createFamily(int marker, ...);
+plAstCreateFamily(int marker, ...);
 
 int
-createConnection(int marker, plAstNode **first, plAstNode *second);
+plAstCreateConnection(int marker, plAstNode **first, plAstNode *second);
 
 void
 plAstPrint(const plAstNode *node, unsigned int margin);

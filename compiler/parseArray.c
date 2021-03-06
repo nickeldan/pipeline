@@ -38,7 +38,7 @@ parseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node, bool compilat
             goto error;
         }
 
-        ret = createConnection(PL_MARKER_COMMA, node, second_node);
+        ret = plAstCreateConnection(PL_MARKER_COMMA, node, second_node);
         if (ret != PL_RET_OK) {
             plAstFree(second_node, scanner->table);
             goto error;
@@ -46,7 +46,7 @@ parseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node, bool compilat
         memcpy(&(*node)->token, &token, sizeof(token));
     }
 
-    array_node = createFamily('A', *node);
+    array_node = plAstCreateFamily('A', *node);
     if (!array_node) {
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
