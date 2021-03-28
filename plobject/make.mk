@@ -18,7 +18,7 @@ $(PLOBJECT_DEPS_FILE): $(PLOBJECT_SOURCE_FILES) $(PLOBJECT_HEADER_FILES) $(VASQ_
 	    echo "$(PLOBJECT_DIR)/`$(CC) $(PLOBJECT_INCLUDE_FLAGS) -MM $$file`" >> $@ && \
 	    echo '\t$$(CC) $$(CFLAGS) -fpic -ffunction-sections $(PLOBJECT_INCLUDE_FLAGS) -c $$< -o $$@' >> $@; \
 	done
-include $(PLOBJECT_DIR)/deps.mk
+include $(PLOBJECT_DEPS_FILE)
 
 $(PLOBJECT_SHARED_LIBRARY): $(PLOBJECT_OBJECT_FILES)
 	$(CC) -shared -o $@ $^

@@ -333,8 +333,9 @@ lookaheadStoreLogic(plLexicalScanner *scanner, const plLexicalToken *token)
 }
 
 static void
-scannerProcessor(void *user_data, vasqLogLevel_t level, char **dst, size_t *remaining)
+scannerProcessor(void *user_data, size_t position, vasqLogLevel_t level, char **dst, size_t *remaining)
 {
+    (void)position;
     (void)level;
     const plLexicalScanner *scanner = (const plLexicalScanner *)user_data;
 
@@ -352,11 +353,11 @@ stripLineBeginning(const char *line)
 }
 
 static void
-parserProcessor(void *user_data, vasqLogLevel_t level, char **dst, size_t *remaining)
+parserProcessor(void *user_data, size_t position, vasqLogLevel_t level, char **dst, size_t *remaining)
 {
     plLexicalScanner *scanner = (plLexicalScanner *)user_data;
 
-    if (scanner->parser_logger_flag) {
+    if (position == 0) {
         const char *error_string;
         plLexicalLocation location;
 
@@ -375,8 +376,6 @@ parserProcessor(void *user_data, vasqLogLevel_t level, char **dst, size_t *remai
     else {
         vasqIncSnprintf(dst, remaining, "%s", stripLineBeginning(scanner->buffer));
     }
-
-    scanner->parser_logger_flag = !scanner->parser_logger_flag;
 }
 
 int

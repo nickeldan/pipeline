@@ -23,7 +23,6 @@ typedef struct plLexicalScanner {
     unsigned int line_length;
     int last_marker;
     bool inside_comment_block;
-    bool parser_logger_flag;
     unsigned char num_look_ahead;
     char buffer[200];
 } plLexicalScanner;

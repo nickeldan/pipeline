@@ -18,7 +18,7 @@ $(COMPILER_DEPS_FILE): $(COMPILER_SOURCE_FILES) $(COMPILER_HEADER_FILES) $(PLOBJ
 	    echo "$(COMPILER_DIR)/`$(CC) $(COMPILER_INCLUDE_FLAGS) -MM $$file`" >> $@ && \
 	    echo '\t$$(CC) $$(CFLAGS) -fpic -ffunction-sections $(COMPILER_INCLUDE_FLAGS) -c $$< -o $$@' >> $@; \
 	done
-include $(COMPILER_DIR)/deps.mk
+include $(COMPILER_DEPS_FILE)
 
 $(COMPILER_SHARED_LIBRARY): $(COMPILER_OBJECT_FILES)
 	$(CC) -shared -o $@ $^
