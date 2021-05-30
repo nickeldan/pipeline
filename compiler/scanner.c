@@ -322,10 +322,7 @@ lookaheadStoreLogic(plLexicalScanner *scanner, const plLexicalToken *token)
     if (scanner->num_look_ahead > 0) {
         unsigned int num_to_move;
 
-        num_to_move = scanner->num_look_ahead;
-        if (num_to_move == PL_SCANNER_MAX_LOOK_AHEAD) {
-            num_to_move--;
-        }
+        num_to_move = MIN(scanner->num_look_ahead, PL_SCANNER_MAX_LOOK_AHEAD - 1);
         memmove(scanner->look_ahead + 1, scanner->look_ahead + 0, sizeof(*token) * num_to_move);
     }
     memcpy(scanner->look_ahead + 0, token, sizeof(*token));
@@ -355,7 +352,7 @@ stripLineBeginning(const char *line)
 static void
 parserProcessor(void *user_data, size_t position, vasqLogLevel_t level, char **dst, size_t *remaining)
 {
-    plLexicalScanner *scanner = (plLexicalScanner *)user_data;
+    const plLexicalScanner *scanner = user_data;
 
     if (position == 0) {
         const char *error_string;
@@ -384,7 +381,7 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name)
     int ret;
 
     if (!scanner || !file) {
-        VASQ_ERROR(debug_logger, "scanner, file, and table cannot be NULL.");
+        VASQ_ERROR(debug_logger, "scanner and file cannot be NULL.");
         return PL_MARKER_USAGE;
     }
 
@@ -395,13 +392,13 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name)
         return PL_RET_OUT_OF_MEMORY;
     }
 
-    ret = vasqLoggerCreate(STDOUT_FILENO, VASQ_LL_WARNING, PL_LOGGER_PREAMBLE ERROR_STRING "%x: %M\n",
-                           scannerProcessor, scanner, &scanner->scanner_logger);
+    ret = vasqLoggerCreate(STDOUT_FILENO, VASQ_LL_WARNING, PL_LOGGER_PREAMBLE "%x: %M\n", scannerProcessor,
+                           scanner, &scanner->scanner_logger);
     if (ret != VASQ_RET_OK) {
         goto error;
     }
 
-    ret = vasqLoggerCreate(STDOUT_FILENO, VASQ_LL_WARNING, PL_LOGGER_PREAMBLE ERROR_STRING "%x: %M\n\t%x\n",
+    ret = vasqLoggerCreate(STDOUT_FILENO, VASQ_LL_WARNING, PL_LOGGER_PREAMBLE "%x: %M\n\t%x\n",
                            parserProcessor, scanner, &scanner->parser_logger);
     if (ret != VASQ_RET_OK) {
         goto error;
@@ -482,7 +479,9 @@ read_token:
     switch (scanner->line[0]) {
     case ' ':
     case '\t':
-        for (; consumed < scanner->line_length && isWhitespace(scanner->line[consumed]); consumed++) {}
+        while (consumed < scanner->line_length && isWhitespace(scanner->line[consumed])) {
+            consumed++;
+        }
         ADVANCE_SCANNER(scanner, consumed);
         goto read_token;
 
