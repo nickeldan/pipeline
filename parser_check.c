@@ -15,7 +15,7 @@ main(int argc, char **argv)
     plAstNode *tree;
 
     ret = plSetupDebuggingLogger(LL_USE);
-    if ( ret != PL_RET_OK ) {
+    if (ret != PL_RET_OK) {
         return ret;
     }
 

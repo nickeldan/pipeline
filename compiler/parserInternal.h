@@ -58,6 +58,6 @@ int
 parseStatementList(plLexicalScanner *scanner, plAstNode **node);
 
 int
-parseFunction(plLexicalScanner *scanner, plAstNode **node, bool anonymous);
+parseFunction(plLexicalScanner *scanner, plAstNode **node, bool global);
 
 #endif  // PIPELINE_COMPILER_PARSER_INTERNAL_H

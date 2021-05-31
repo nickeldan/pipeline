@@ -16,7 +16,7 @@ main(int argc, char **argv)
     plLexicalToken token;
 
     ret = plSetupDebuggingLogger(LL_USE);
-    if ( ret != 0 ) {
+    if (ret != 0) {
         return ret;
     }
 
@@ -34,7 +34,7 @@ main(int argc, char **argv)
     }
 
     ret = plScannerInit(&scanner, f, file_name);
-    if ( ret != PL_RET_OK ) {
+    if (ret != PL_RET_OK) {
         goto done;
     }
 
