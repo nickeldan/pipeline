@@ -40,6 +40,7 @@ struct plIr {
 };
 
 typedef struct plSemanticContext {
+    vasqLogger *logger;
     plIr *ir;
     const char *file_name;
     plRefTable **stack;
@@ -62,6 +63,12 @@ refTypeName(uint32_t flags)
     case PL_REF_FLAG_SINK: return "SINK";
     default: return "MODULE";
     }
+}
+
+static int
+setupContextLogger(plSemanticContext *sem)
+{
+
 }
 
 #if LL_USE == -1

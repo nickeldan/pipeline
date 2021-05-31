@@ -271,6 +271,7 @@ plLookupRef(const plRefTable *table, const char *word, void **ctx)
 bool
 plUpdateRef(plRefTable *table, const char *word, void *new_ctx)
 {
+    size_t len;
     unsigned int hash = 0;
     plRefRecord *record;
 
@@ -279,7 +280,8 @@ plUpdateRef(plRefTable *table, const char *word, void *new_ctx)
         return false;
     }
 
-    record = (plRefRecord *)findRecord((plAbstractTable *)table, word, strlen(word), &hash, NULL);
+    len = strlen(word);
+    record = (plRefRecord *)findRecord((plAbstractTable *)table, word, len, &hash, NULL);
     if (!record) {
         record = VASQ_MALLOC(debug_logger, sizeof(*record));
         if (!record) {
@@ -292,7 +294,7 @@ plUpdateRef(plRefTable *table, const char *word, void *new_ctx)
             free(record);
             return false;
         }
-        record->length = strlen(word);
+        record->length = len;
 
         table->records[hash] = record;
     }

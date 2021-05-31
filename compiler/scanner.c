@@ -427,7 +427,9 @@ void
 plScannerCleanup(plLexicalScanner *scanner)
 {
     if (scanner) {
-        for (unsigned int k = 0; k < scanner->num_look_ahead; k++) {
+        unsigned int num_look_ahead = scanner->num_look_ahead;
+
+        for (unsigned int k = 0; k < num_look_ahead; k++) {
             plTokenCleanup(scanner->look_ahead + k, scanner->table);
         }
 
