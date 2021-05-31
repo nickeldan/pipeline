@@ -6,11 +6,11 @@ static int
 parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_list)
 {
     int ret;
-    plLexicalToken token;
-    plAstNode *name_node;
+    plAstNode *name_node = NULL;
 
     while (true) {
         int previous_marker = scanner->last_marker;
+        plLexicalToken token;
         plLexicalLocation location, comma_location;
         plAstNode *arg_node, *type_node;
 
@@ -24,7 +24,7 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
                 PARSER_ERROR("Unexpected ')' following ',' in argument list.");
                 return PL_RET_BAD_DATA;
             }
-            break;
+            return PL_RET_OK;
         }
 
         if (token.marker == PL_MARKER_COMMA) {
