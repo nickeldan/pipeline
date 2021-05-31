@@ -3,12 +3,13 @@
 #include "parserInternal.h"
 
 int
-parseFunction(plLexicalScanner *scanner, plAstNode **node, bool anonymous)
+parseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
 {
     int ret, function_marker;
+    bool declaration;
     plLexicalLocation function_location, comma_location = {0};
     plLexicalToken token;
-    plAstNode *function_name_node = NULL, *arg_list = NULL, *type_node = NULL, *statement_list;
+    plAstNode *function_name_node = NULL, *arg_list = NULL, *type_node = NULL, *statement_list = NULL;
     plAstMaxSplitNode *splitter;
 
     if (node) {
@@ -22,8 +23,8 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, bool anonymous)
     function_marker = scanner->last_marker;
     plGetLastLocation(scanner, &function_location);
 
-    if (function_marker == PL_MARKER_LOCAL && !anonymous) {
-        VASQ_ERROR(debug_logger, "LOCAL functions can only be anonymous.");
+    if (function_marker == PL_MARKER_LOCAL && global) {
+        VASQ_ERROR(debug_logger, "LOCAL not allowed in global scope.");
         return PL_RET_USAGE;
     }
 
@@ -32,9 +33,9 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, bool anonymous)
         return ret;
     }
 
-    if (!anonymous) {
+    if (global) {
         if (token.marker != PL_MARKER_NAME) {
-            PARSER_ERROR("Anonymous %s not allowed in this context.", plLexicalMarkerName(function_marker));
+            PARSER_ERROR("Anonymous %s not allowed in global scope.", plLexicalMarkerName(function_marker));
             plTokenCleanup(&token, scanner->table);
             return PL_RET_BAD_DATA;
         }
@@ -188,8 +189,23 @@ cleanup_name_node:
         }
     }
 
-    ret = EXPECT_MARKER(scanner, PL_MARKER_LEFT_BRACE, NULL);
+    ret = NEXT_TOKEN(scanner, &token);
     if (ret != PL_RET_OK) {
+        goto error;
+    }
+    if (token.marker == PL_MARKER_SEMICOLON) {
+        if (!global) {
+            PARSER_ERROR("Function declaration without definition only allowed in global scope.");
+            ret = PL_RET_BAD_DATA;
+            goto error;
+        }
+        declaration = true;
+        statement_list = NULL;
+        goto skip_statement_list;
+    }
+    else if (token.marker != PL_MARKER_LEFT_BRACE) {
+        PARSER_ERROR("Unexpected %s after function header.", plLexicalMarkerName(token.marker));
+        ret = PL_RET_BAD_DATA;
         goto error;
     }
 
@@ -198,12 +214,17 @@ cleanup_name_node:
         goto error;
     }
 
+skip_statement_list:
+
     *node = plAstNew(function_marker);
     if (!*node) {
         plAstFree(statement_list, scanner->table);
         goto error;
     }
     memcpy(&(*node)->token.location, &function_location, sizeof(function_location));
+    if (declaration) {
+        (*node)->token.submarker = PL_SUBMARKER_FUNC_DECL;
+    }
 
     splitter = (plAstMaxSplitNode *)(*node);
     if (function_marker == PL_MARKER_LOCAL) {

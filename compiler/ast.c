@@ -179,8 +179,13 @@ plAstCreateConnection(int marker, plAstNode **first, plAstNode *second)
 {
     plAstNode *parent;
 
+    if (plAstSplitSize(marker) != 2) {
+        VASQ_ERROR(debug_logger, "The marker must have a split size of 2.");
+        return PL_RET_USAGE;
+    }
+
     if (!first || !second) {
-        VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
+        VASQ_ERROR(debug_logger, "first and second cannot be NULL.");
         return PL_RET_USAGE;
     }
 
@@ -221,8 +226,6 @@ plAstPrint(const plAstNode *node, unsigned int margin)
 
     split_size = plAstSplitSize(node->token.marker);
     for (int k = 0; k < split_size; k++) {
-        if (splitter->nodes[k]) {
-            plAstPrint(splitter->nodes[k], margin + 1);
-        }
+        plAstPrint(splitter->nodes[k], margin + 1);
     }
 }

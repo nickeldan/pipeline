@@ -110,7 +110,7 @@ start:
                 return PL_RET_BAD_DATA;
             }
 
-            ret = parseFunction(scanner, node, true);
+            ret = parseFunction(scanner, node, false);
             if (ret != PL_RET_OK) {
                 return ret;
             }
