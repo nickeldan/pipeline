@@ -22,8 +22,8 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
     }
 
     if (token.marker != PL_MARKER_NAME) {
-        PARSER_ERROR("Unexpected %s after %s.", plLexicalMarkerName(token.marker),
-                     plLexicalMarkerName(marker));
+        PARSER_ERROR("Expected %s intead of %s.", plLexicalMarkerName(PL_MARKER_NAME),
+                     plLexicalMarkerName(token.marker));
         plTokenCleanup(&token, scanner->table);
         return PL_RET_BAD_DATA;
     }

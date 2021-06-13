@@ -1,8 +1,8 @@
-#ifndef PIPELINE_COMPILER_MODULE_H
-#define PIPELINE_COMPILER_MODULE_H
+#ifndef PIPELINE_MODULE_H
+#define PIPELINE_MODULE_H
 
-#include "definitions.h"
 #include "table.h"
+#include "util.h"
 
 typedef struct plModule {
     plRefTable *export_table;
@@ -14,4 +14,4 @@ plModuleLoad(const char *module_name, plModule **module);
 void
 plModuleFree(plModule *module);
 
-#endif  // PIPELINE_COMPILER_MODULE_H
+#endif  // PIPELINE_MODULE_H

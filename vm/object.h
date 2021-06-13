@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "plUtil.h"
+#include "util.h"
 
 #define PL_OBJECT_HEADER uint32_t flags;
 

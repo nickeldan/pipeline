@@ -2,8 +2,9 @@
 
 #include "vasq/logger.h"
 
+#include "util.h"
+
 #include "parser.h"
-#include "plUtil.h"
 
 int
 main(int argc, char **argv)

@@ -3,7 +3,7 @@
 
 #include "vasq/definitions.h"
 
-#include "plUtil.h"
+#include "util.h"
 
 vasqLogger *debug_logger;
 

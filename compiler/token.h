@@ -3,7 +3,7 @@
 
 #include <ctype.h>
 
-#include "plObject.h"
+#include "object.h"
 
 #include "definitions.h"
 

@@ -4,7 +4,7 @@
 
 #include "vasq/logger.h"
 
-#include "plObject.h"
+#include "object.h"
 
 #define CAPACITY_EXPANSION(capacity) ((capacity)*5 / 4)
 

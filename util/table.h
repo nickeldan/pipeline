@@ -1,7 +1,7 @@
-#ifndef PIPELINE_COMPILER_TABLE_H
-#define PIPELINE_COMPILER_TABLE_H
+#ifndef PIPELINE_TABLE_H
+#define PIPELINE_TABLE_H
 
-#include "definitions.h"
+#include "util.h"
 
 typedef struct plWordTable plWordTable;
 
@@ -43,4 +43,4 @@ plRefTableIteratorInit(plRefTableIterator *iterator, const plRefTable *table);
 const char *
 plRefTableIterate(plRefTableIterator *iterator, void **ctx);
 
-#endif  // PIPELINE_COMPILER_TABLE_H
+#endif  // PIPELINE_TABLE_H

@@ -2,7 +2,8 @@
 
 #include "vasq/logger.h"
 
-#include "plUtil.h"
+#include "util.h"
+
 #include "scanner.h"
 
 int
