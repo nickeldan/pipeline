@@ -8,6 +8,9 @@ typedef struct plModule {
     plRefTable *export_table;
 } plModule;
 
+void
+plModuleInit(plModule *module);
+
 int
 plModuleLoad(const char *module_name, plModule **module);
 

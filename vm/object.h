@@ -32,9 +32,11 @@ typedef struct plObject {
 
 #define OBJ_TYPE(ptr) (((plObject *)ptr)->flags & 0x000000ff)
 
+typedef int64_t plInteger_t;
+
 typedef struct plInteger {
     PL_OBJECT_HEADER
-    int64_t value;
+    plInteger_t value;
 } plInteger;
 
 #define PL_INTEGER_BIT_SIZE   64
@@ -42,9 +44,12 @@ typedef struct plInteger {
 #define PL_MAX_INTEGER        9223372036854775807L
 #define PL_MIN_INTEGER        -9223372036854775808L
 
+typedef double plFloat_t;
+
 typedef struct plFloat {
-    plInteger integer_part;
-    double decimal_part;
+    PL_OBJECT_HEADER
+    plInteger_t ipart;
+    plFloat_t fpart;
 } plFloat;
 
 #define PL_ARRAY_HEADER \

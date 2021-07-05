@@ -7,6 +7,6 @@
 #include "definitions.h"
 
 int
-plCompileModule(plAstNode *tree, plModule **module, uint32_t compiler_flags);
+plGenerateModule(plAstNode *tree, const char *file_name, plModule *module, uint32_t compiler_flags);
 
 #endif  // PIPELINE_COMPILER_GENERATE_H

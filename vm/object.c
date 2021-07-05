@@ -153,7 +153,7 @@ plNewFloat(void)
 
     decimal = VASQ_CALLOC(debug_logger, 1, sizeof(*decimal));
     if (decimal) {
-        decimal->integer_part.flags = PL_OBJ_TYPE_FLOAT;
+        decimal->flags = PL_OBJ_TYPE_FLOAT;
     }
     return (plObject *)decimal;
 }
@@ -284,18 +284,21 @@ plFloatFromString(const char *string, unsigned int length, plObject **object)
     }
 
     if (decimal_place > string) {
-        ret = plPopulateIntegerFromString(string, decimal_place - string, &decimal->integer_part);
+        plInteger integer;
+
+        ret = plPopulateIntegerFromString(string, decimal_place - string, &integer);
         if (ret != PL_RET_OK) {
             goto error;
         }
+        memcpy(&decimal->ipart, &integer.value, sizeof(integer.value));
     }
     else {
-        decimal->integer_part.value = 0;
+        decimal->ipart = 0;
     }
 
     if (decimal_place < string + length) {
         if (decimal_place[1] == '\0') {
-            decimal->decimal_part = 0;
+            decimal->fpart = 0;
         }
         else if (!isdigit(decimal_place[1])) {
             VASQ_ERROR(debug_logger, "Invalid decimal part");
@@ -312,7 +315,7 @@ plFloatFromString(const char *string, unsigned int length, plObject **object)
             array[length2] = '\0';
 
             temp = array;
-            decimal->decimal_part = strtod(array, &temp);
+            decimal->fpart = strtod(array, &temp);
             if (temp == array) {
                 VASQ_ERROR(debug_logger, "Invalid decimal part");
                 ret = PL_RET_BAD_DATA;
@@ -321,7 +324,7 @@ plFloatFromString(const char *string, unsigned int length, plObject **object)
         }
     }
     else {
-        decimal->decimal_part = 0;
+        decimal->fpart = 0;
     }
 
     *object = (plObject *)decimal;
