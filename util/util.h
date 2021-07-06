@@ -1,6 +1,8 @@
 #ifndef PIPELINE_UTIL_H
 #define PIPELINE_UTIL_H
 
+#include <stdint.h>
+
 #include "vasq/logger.h"
 
 #define ARRAY_LENGTH(A) (sizeof(A) / sizeof((A)[0]))
