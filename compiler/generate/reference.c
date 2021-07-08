@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "reference.h"
 
 const char *
@@ -14,4 +16,50 @@ plRefTypeName(uint32_t flags)
     case PL_REF_FLAG_SINK: return "SINK";
     default: return "MODULE";
     }
+}
+
+plReference *
+newReference(void)
+{
+    plReference *ref;
+
+    ref = VASQ_MALLOC(debug_logger, sizeof(*ref));
+    if (ref) {
+        *ref = (plReference){0};
+    }
+    return ref;
+}
+
+int
+storeReference(plRefTable *table, const char *symbol, uint32_t flags, const plRefValue *value,
+               const plLexicalLocation *location)
+{
+    plReference *ref;
+
+    if (!table || !symbol || !location) {
+        VASQ_ERROR(debug_logger, "table, symbol, and location cannot be NULL.");
+        return PL_RET_USAGE;
+    }
+
+    ref = newReference();
+    if (!ref) {
+        return PL_RET_OUT_OF_MEMORY;
+    }
+
+    ref->flags = flags;
+    if (value) {
+        memcpy(&ref->value, value, sizeof(*value));
+    }
+    else {
+        ref->value.data = NULL;
+        ref->value.contains_data = true;
+    }
+    memcpy(&ref->location, location, sizeof(*location));
+
+    if (!plUpdateRef(table, symbol, ref)) {
+        free(ref);
+        return PL_RET_OUT_OF_MEMORY;
+    }
+
+    return PL_RET_OK;
 }

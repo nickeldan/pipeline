@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -10,7 +11,8 @@
 #include "generate.h"
 #include "generateInternal.h"
 
-#define STACK_INITIAL_CAPACITY 10  // This needs to be at least 2.
+#define STACK_INITIAL_CAPACITY 10
+_Static_assert(STACK_INITIAL_CAPACITY >= 2, "STACK_INITIAL_CAPACITY must be at least 2.");
 
 static void
 semanticLogProcessor(void *user_data, size_t idx, vasqLogLevel_t level, char **dst, size_t *remaining)
@@ -67,11 +69,16 @@ error:
 }
 
 static int
-compileTree(plSemanticContext *sem, plAstNode *tree)
+compileGlobalSpace(plSemanticContext *sem, plAstNode *tree)
 {
     switch (tree->token.marker) {
-    case PL_MARKER_IMPORT:
-    case PL_MARKER_EXPORT: return compileImportExport(sem, tree);
+    case PL_MARKER_IMPORT: return compileImport(sem, tree);
+
+    case PL_MARKER_EXPORT: return compileExport(sem, tree);
+
+    case PL_MARKER_EXPORTALL: sem->compiler_flags |= PL_COMPILER_FLAG_EXPORT_ALL; break;
+
+    case PL_MARKER_TYPE_DECL: return compileTypeDecl(sem, tree);
     }
 
     return PL_RET_OK;  // placeholder
@@ -95,7 +102,7 @@ plGenerateModule(plAstNode *tree, const char *file_name, plModule *module, uint3
 
     plModuleInit(module);
 
-    ret = compileTree(&sem, tree);
+    ret = compileGlobalSpace(&sem, tree);
 
     destroyStack(&sem);
     vasqLoggerFree(sem.logger);
@@ -121,6 +128,11 @@ contextError(const char *file_name, const char *function_name, unsigned int line
 plReference *
 findReference(const plSemanticContext *sem, const char *symbol, size_t *idx)
 {
+    if (!sem || !symbol) {
+        VASQ_ERROR(debug_logger, "sem and symbol cannot be NULL.");
+        return NULL;
+    }
+
     for (size_t k = sem->stack_size; k > 0; k--) {
         void *opaque;
 
@@ -135,10 +147,33 @@ findReference(const plSemanticContext *sem, const char *symbol, size_t *idx)
     return NULL;
 }
 
+plReference *
+resolveExtendedName(const plSemanticContext *sem, const plAstNode *node, size_t *idx)
+{
+    const plAstMaxSplitNode *splitter = (const plAstMaxSplitNode *)node;
+    plReference *ref;
+
+    if (!sem || !node) {
+        VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
+        return NULL;
+    }
+
+    if (node->token.marker == PL_MARKER_NAME) {
+        return findReference(sem, node->token.ctx.name, idx);
+    }
+
+    return NULL;  // placeholder
+}
+
 plRefTable *
 addTable(plSemanticContext *sem)
 {
     plRefTable *new_table;
+
+    if (!sem) {
+        VASQ_ERROR(debug_logger, "sem cannot be NULL.");
+        return NULL;
+    }
 
     new_table = plRefTableNew();
     if (new_table) {
@@ -166,39 +201,4 @@ addTable(plSemanticContext *sem)
     }
 
     return new_table;
-}
-
-plReference *
-newReference(void)
-{
-    plReference *ref;
-
-    ref = VASQ_MALLOC(debug_logger, sizeof(*ref));
-    if (ref) {
-        *ref = (plReference){0};
-    }
-    return ref;
-}
-
-int
-storeReference(plRefTable *table, const char *symbol, uint32_t flags, void *data,
-               const plLexicalLocation *location)
-{
-    plReference *ref;
-
-    ref = newReference();
-    if (!ref) {
-        return PL_RET_OUT_OF_MEMORY;
-    }
-
-    ref->flags = flags;
-    ref->data = data;
-    memcpy(&ref->location, location, sizeof(*location));
-
-    if (!plUpdateRef(table, symbol, ref)) {
-        free(ref);
-        return PL_RET_OUT_OF_MEMORY;
-    }
-
-    return PL_RET_OK;
 }

@@ -33,17 +33,19 @@ contextError(const char *file_name, const char *function_name, unsigned int line
 plReference *
 findReference(const plSemanticContext *sem, const char *symbol, size_t *idx);
 
+plReference *
+resolveExtendedName(const plSemanticContext *sem, const plAstNode *node, size_t *idx);
+
 plRefTable *
 addTable(plSemanticContext *sem);
 
-plReference *
-newReference(void);
+int
+compileImport(plSemanticContext *sem, plAstNode *node);
 
 int
-storeReference(plRefTable *table, const char *symbol, uint32_t flags, void *data,
-               const plLexicalLocation *location);
+compileExport(plSemanticContext *sem, plAstNode *node);
 
 int
-compileImportExport(plSemanticContext *sem, plAstNode *node);
+compileTypeDecl(plSemanticContext *sem, plAstNode *node);
 
 #endif  // PIPELINE_COMPILER_GENERATE_INTERNAL_H

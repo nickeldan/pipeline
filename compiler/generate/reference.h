@@ -1,11 +1,24 @@
 #ifndef PIPELINE_COMPILER_REFERENCE_H
 #define PIPELINE_COMPILER_REFERENCE_H
 
+#include "table.h"
+
 #include "definitions.h"
 #include "token.h"
 
+typedef struct plRefValue {
+    union {
+        void *data;
+        struct {
+            int marker;
+            int submarker;
+        };
+    };
+    bool contains_data;
+} plRefValue;
+
 typedef struct plReference {
-    void *data;
+    plRefValue value;
     plLexicalLocation location;
     uint32_t flags;
 } plReference;
@@ -31,5 +44,12 @@ typedef struct plReference {
 
 const char *
 plRefTypeName(uint32_t flags);
+
+plReference *
+newReference(void);
+
+int
+storeReference(plRefTable *table, const char *symbol, uint32_t flags, const plRefValue *value,
+               const plLexicalLocation *location);
 
 #endif  // PIPELINE_COMPILER_REFERENCE_H
