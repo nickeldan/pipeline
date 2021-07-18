@@ -51,7 +51,7 @@ static const struct keywordRecord keywords[] = {
     {"as", 2, PL_MARKER_AS},
     {"import", 6, PL_MARKER_IMPORT},
     {"export", 6, PL_MARKER_EXPORT},
-    {"exportall", 9, PL_MARKER_EXPORTALL},
+    {"exportall", 9, PL_MARKER_EXPORT_ALL},
     {"main", 4, PL_MARKER_MAIN},
 };
 

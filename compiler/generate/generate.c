@@ -76,7 +76,7 @@ compileGlobalSpace(plSemanticContext *sem, plAstNode *tree)
 
     case PL_MARKER_EXPORT: return compileExport(sem, tree);
 
-    case PL_MARKER_EXPORTALL: sem->compiler_flags |= PL_COMPILER_FLAG_EXPORT_ALL; break;
+    case PL_MARKER_EXPORT_ALL: sem->compiler_flags |= PL_COMPILER_FLAG_EXPORT_ALL; break;
 
     case PL_MARKER_TYPE_DECL: return compileTypeDecl(sem, tree);
     }
@@ -126,7 +126,7 @@ contextError(const char *file_name, const char *function_name, unsigned int line
 }
 
 plReference *
-findReference(const plSemanticContext *sem, const char *symbol, size_t *idx)
+plFindReference(const plSemanticContext *sem, const char *symbol, size_t *idx)
 {
     if (!sem || !symbol) {
         VASQ_ERROR(debug_logger, "sem and symbol cannot be NULL.");
@@ -159,7 +159,7 @@ resolveExtendedName(const plSemanticContext *sem, const plAstNode *node, size_t 
     }
 
     if (node->token.marker == PL_MARKER_NAME) {
-        return findReference(sem, node->token.ctx.name, idx);
+        return plFindReference(sem, node->token.ctx.name, idx);
     }
 
     return NULL;  // placeholder

@@ -46,10 +46,10 @@ const char *
 plRefTypeName(uint32_t flags);
 
 plReference *
-newReference(void);
+plNewReference(void);
 
 int
-storeReference(plRefTable *table, const char *symbol, uint32_t flags, const plRefValue *value,
-               const plLexicalLocation *location);
+plStoreReference(plRefTable *table, const char *symbol, uint32_t flags, const plRefValue *value,
+                 const plLexicalLocation *location);
 
 #endif  // PIPELINE_COMPILER_REFERENCE_H

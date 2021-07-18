@@ -208,10 +208,11 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
         case PL_MARKER_IMPORT:
         case PL_MARKER_EXPORT: ret = parseImportExport(scanner, &node); break;
 
-        case PL_MARKER_EXPORTALL:
-            node = plAstNew(PL_MARKER_EXPORTALL);
+        case PL_MARKER_EXPORT_ALL:
+            node = plAstNew(PL_MARKER_EXPORT_ALL);
             if (node) {
                 memcpy(&node->token.location, &token.location, sizeof(token.location));
+                ret = PL_RET_OK;
             }
             else {
                 ret = PL_RET_OUT_OF_MEMORY;

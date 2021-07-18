@@ -27,7 +27,7 @@ compileImport(plSemanticContext *sem, plAstNode *node)
     }
 
     name = splitter->nodes[0]->token.ctx.name;
-    ref = findReference(sem, name, &idx);
+    ref = plFindReference(sem, name, &idx);
     if (ref) {
         if (idx == 0) {
             CONTEXT_ERROR(node, "%s is a built-in.", name);
@@ -35,6 +35,7 @@ compileImport(plSemanticContext *sem, plAstNode *node)
         }
         else if (ref->flags & PL_REF_FLAG_MODULE) {
             CONTEXT_WARNING(node, "%s was already imported on line %u.", name, ref->location.line_no);
+            return PL_RET_OK;
         }
         else if (ref->flags != PL_REF_FLAG_EXPORT) {
             CONTEXT_ERROR(node, "%s was already defined as a %s on line %u.", name,
@@ -56,7 +57,7 @@ compileImport(plSemanticContext *sem, plAstNode *node)
     else {
         plRefValue value = {.data = module, .contains_data = true};
 
-        return storeReference(sem->stack[1], name, PL_REF_FLAG_MODULE, &value, &node->token.location);
+        return plStoreReference(sem->stack[1], name, PL_REF_FLAG_MODULE, &value, &node->token.location);
     }
 }
 
@@ -75,7 +76,7 @@ compileExport(plSemanticContext *sem, plAstNode *node)
     }
 
     name = splitter->nodes[0]->token.ctx.name;
-    ref = findReference(sem, name, &idx);
+    ref = plFindReference(sem, name, &idx);
     if (ref) {
         if (idx == 0) {
             CONTEXT_ERROR(node, "%s is a built-in.", name);
@@ -91,6 +92,6 @@ compileExport(plSemanticContext *sem, plAstNode *node)
         return PL_RET_OK;
     }
     else {
-        return storeReference(sem->stack[1], name, PL_REF_FLAG_EXPORT, NULL, &node->token.location);
+        return plStoreReference(sem->stack[1], name, PL_REF_FLAG_EXPORT, NULL, &node->token.location);
     }
 }

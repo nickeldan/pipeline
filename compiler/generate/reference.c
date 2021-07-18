@@ -19,7 +19,7 @@ plRefTypeName(uint32_t flags)
 }
 
 plReference *
-newReference(void)
+plNewReference(void)
 {
     plReference *ref;
 
@@ -31,8 +31,8 @@ newReference(void)
 }
 
 int
-storeReference(plRefTable *table, const char *symbol, uint32_t flags, const plRefValue *value,
-               const plLexicalLocation *location)
+plStoreReference(plRefTable *table, const char *symbol, uint32_t flags, const plRefValue *value,
+                 const plLexicalLocation *location)
 {
     plReference *ref;
 
@@ -41,7 +41,7 @@ storeReference(plRefTable *table, const char *symbol, uint32_t flags, const plRe
         return PL_RET_USAGE;
     }
 
-    ref = newReference();
+    ref = plNewReference();
     if (!ref) {
         return PL_RET_OUT_OF_MEMORY;
     }

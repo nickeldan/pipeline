@@ -31,7 +31,7 @@ contextError(const char *file_name, const char *function_name, unsigned int line
                  ##__VA_ARGS__)
 
 plReference *
-findReference(const plSemanticContext *sem, const char *symbol, size_t *idx);
+plFindReference(const plSemanticContext *sem, const char *symbol, size_t *idx);
 
 plReference *
 resolveExtendedName(const plSemanticContext *sem, const plAstNode *node, size_t *idx);

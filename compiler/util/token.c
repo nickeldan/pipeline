@@ -31,7 +31,7 @@ plLexicalMarkerName(int marker)
     case PL_MARKER_AS: return "AS";
     case PL_MARKER_IMPORT: return "IMPORT";
     case PL_MARKER_EXPORT: return "EXPORT";
-    case PL_MARKER_EXPORTALL: return "EXPORTALL";
+    case PL_MARKER_EXPORT_ALL: return "EXPORT_ALL";
     case PL_MARKER_MAIN: return "MAIN";
     case PL_MARKER_SEMICOLON: return "';'";
     case PL_MARKER_COLON: return "':'";
