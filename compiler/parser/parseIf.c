@@ -3,7 +3,7 @@
 #include "parserInternal.h"
 
 int
-parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
+plParseIfBlock(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
     plLexicalLocation location;
@@ -20,7 +20,7 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
 
     plGetLastLocation(scanner, &location);
 
-    ret = parseExpression(scanner, &condition_node, false);
+    ret = plParseExpression(scanner, &condition_node, false);
     if (ret != PL_RET_OK) {
         return ret;
     }
@@ -30,7 +30,7 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
         goto error;
     }
 
-    ret = parseStatementList(scanner, &statement_list);
+    ret = plParseStatementList(scanner, &statement_list);
     if (ret != PL_RET_OK) {
         goto error;
     }
@@ -41,14 +41,14 @@ parseIfBlock(plLexicalScanner *scanner, plAstNode **node)
     }
 
     switch (token.marker) {
-    case PL_MARKER_EIF: ret = parseIfBlock(scanner, &else_node); break;
+    case PL_MARKER_EIF: ret = plParseIfBlock(scanner, &else_node); break;
 
     case PL_MARKER_ELSE:
         ret = EXPECT_MARKER(scanner, PL_MARKER_LEFT_BRACE, NULL);
         if (ret != PL_RET_OK) {
             goto error;
         }
-        ret = parseStatementList(scanner, &else_node);
+        ret = plParseStatementList(scanner, &else_node);
         break;
 
     default: ret = LOOKAHEAD_STORE(scanner, &token); break;

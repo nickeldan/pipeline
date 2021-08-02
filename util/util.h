@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "vasq/logger.h"
+#include "vasq/placeholder.h"
 
 #define ARRAY_LENGTH(A) (sizeof(A) / sizeof((A)[0]))
 

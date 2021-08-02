@@ -110,7 +110,7 @@ start:
                 return PL_RET_BAD_DATA;
             }
 
-            ret = parseFunction(scanner, node, false);
+            ret = plParseFunction(scanner, node, false);
             if (ret != PL_RET_OK) {
                 return ret;
             }
@@ -120,7 +120,7 @@ start:
                 goto error;
             }
 
-            ret = parseReceiver(scanner, &second_node);
+            ret = plParseReceiver(scanner, &second_node);
             if (ret != PL_RET_OK) {
                 goto error;
             }
@@ -171,7 +171,7 @@ start:
             return ret;
         }
 
-        ret = parseExtendedName(scanner, node);
+        ret = plParseExtendedName(scanner, node);
         if (ret != PL_RET_OK) {
             return ret;
         }
@@ -219,7 +219,7 @@ start:
         }
         memcpy(&(*node)->token, &token, sizeof(token));
 
-        if (token.marker == PL_MARKER_OBJECT && OBJ_TYPE(token.ctx.object) == PL_OBJ_TYPE_BYTE_ARRAY) {
+        if (token.marker == PL_MARKER_OBJECT && OBJ_TYPE(&token.ctx.handle) == PL_OBJ_TYPE_BYTE_ARRAY) {
             while (true) {
                 plLexicalToken token2;
 
@@ -229,8 +229,9 @@ start:
                 }
 
                 if (token2.marker == PL_MARKER_OBJECT &&
-                    OBJ_TYPE(token2.ctx.object) == PL_OBJ_TYPE_BYTE_ARRAY) {
-                    ret = plConcatenateByteArrays((*node)->token.ctx.object, token2.ctx.object);
+                    OBJ_TYPE(&token2.ctx.handle) == PL_OBJ_TYPE_BYTE_ARRAY) {
+                    ret = plConcatenateByteArrays((*node)->token.ctx.handle.as.bytes,
+                                                  token2.ctx.handle.as.bytes);
                     plTokenCleanup(&token2, scanner->table);
                     if (ret != PL_RET_OK) {
                         goto error;
@@ -249,7 +250,7 @@ start:
         break;
 
     case PL_MARKER_LEFT_BRACKET:
-        ret = parseArrayDeclaration(scanner, node, compilation_only);
+        ret = plParseArrayDeclaration(scanner, node, compilation_only);
         if (ret != PL_RET_OK) {
             return ret;
         }
@@ -277,7 +278,7 @@ start:
             ret = EXPECT_MARKER(scanner, PL_MARKER_RIGHT_BRACKET, NULL);
         }
         else if (token.marker == PL_MARKER_PERIOD) {
-            ret = parseExtendedName(scanner, &second_node);
+            ret = plParseExtendedName(scanner, &second_node);
         }
         else {
             ret = LOOKAHEAD_STORE(scanner, &token);
@@ -371,7 +372,7 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
 
         if (token2.marker == PL_MARKER_ARROW) {
             // second_node must be NULL here.
-            ret = parseReceiver(scanner, &second_node);
+            ret = plParseReceiver(scanner, &second_node);
             if (ret != PL_RET_OK) {
                 goto error;
             }
@@ -420,7 +421,7 @@ error:
 }
 
 int
-parseExpression(plLexicalScanner *scanner, plAstNode **node, bool compilation_only)
+plParseExpression(plLexicalScanner *scanner, plAstNode **node, bool compilation_only)
 {
     if (!scanner || !node) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");

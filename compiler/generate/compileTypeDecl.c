@@ -1,7 +1,7 @@
 #include "generateInternal.h"
 
 int
-compileTypeDecl(plSemanticContext *sem, plAstNode *node)
+plCompileTypeDecl(plSemanticContext *sem, plAstNode *node)
 {
     const char *name;
     plAstMaxSplitNode *splitter = (plAstMaxSplitNode *)node;
@@ -27,5 +27,6 @@ compileTypeDecl(plSemanticContext *sem, plAstNode *node)
         return plStoreReference(sem->stack[1], name, PL_REF_FLAG_TYPE, &value, &node->token.location);
     }
 
-    return PL_RET_USAGE;  // placeholder
+    PLACEHOLDER();
+    return PL_RET_USAGE;
 }

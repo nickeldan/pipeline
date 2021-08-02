@@ -8,11 +8,12 @@ addModuleToSemantics(plSemanticContext *sem, const plLexicalLocation *location, 
     (void)location;
     (void)name;
     (void)module;
-    return PL_RET_USAGE;  // placeholder
+    PLACEHOLDER();
+    return PL_RET_USAGE;
 }
 
 int
-compileImport(plSemanticContext *sem, plAstNode *node)
+plCompileImport(plSemanticContext *sem, plAstNode *node)
 {
     int ret;
     size_t idx;
@@ -62,9 +63,8 @@ compileImport(plSemanticContext *sem, plAstNode *node)
 }
 
 int
-compileExport(plSemanticContext *sem, plAstNode *node)
+plCompileExport(plSemanticContext *sem, plAstNode *node)
 {
-    int ret;
     size_t idx;
     const char *name;
     plAstMaxSplitNode *splitter = (plAstMaxSplitNode *)node;

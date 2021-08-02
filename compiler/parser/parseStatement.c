@@ -52,7 +52,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
     case PL_MARKER_PROD:
     case PL_MARKER_VERIFY:
     case PL_MARKER_ABORT:
-        ret = parseExpression(scanner, &first_node, (token.marker == PL_MARKER_ABORT));
+        ret = plParseExpression(scanner, &first_node, (token.marker == PL_MARKER_ABORT));
         if (ret != PL_RET_OK) {
             return ret;
         }
@@ -71,9 +71,9 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
 
         return PL_RET_OK;
 
-    case PL_MARKER_IF: return parseIfBlock(scanner, node);
+    case PL_MARKER_IF: return plParseIfBlock(scanner, node);
 
-    case PL_MARKER_WHILE: return parseWhileBlock(scanner, node);
+    case PL_MARKER_WHILE: return plParseWhileBlock(scanner, node);
 
     default: break;
     }
@@ -90,7 +90,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         if (next_token.marker == PL_MARKER_AS) {
             plAstNode *name_node, *type_node;
 
-            ret = parseExtendedType(scanner, &type_node);
+            ret = plParseExtendedType(scanner, &type_node);
             if (ret != PL_RET_OK) {
                 plTokenCleanup(&token, scanner->table);
                 return ret;
@@ -169,7 +169,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         return PL_RET_OK;
     }
 
-    ret = parseExpression(scanner, &first_node, false);
+    ret = plParseExpression(scanner, &first_node, false);
     if (ret != PL_RET_OK) {
         return ret;
     }
@@ -188,7 +188,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             goto error;
         }
 
-        ret = parseExpression(scanner, &rvalue_node, false);
+        ret = plParseExpression(scanner, &rvalue_node, false);
         if (ret != PL_RET_OK) {
             goto error;
         }
@@ -217,7 +217,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         goto error;
     }
 
-    ret = parseReceiver(scanner, &receiver_node);
+    ret = plParseReceiver(scanner, &receiver_node);
     if (ret != PL_RET_OK) {
         goto error;
     }
@@ -246,7 +246,7 @@ error:
 }
 
 int
-parseStatementList(plLexicalScanner *scanner, plAstNode **node)
+plParseStatementList(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
 

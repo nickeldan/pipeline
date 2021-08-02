@@ -6,6 +6,6 @@
 #include "definitions.h"
 
 int
-addBuiltinSymbols(plRefTable *table);
+plAddBuiltinSymbols(plRefTable *table);
 
 #endif  // PIPELINE_COMPILER_BUILTINS_H

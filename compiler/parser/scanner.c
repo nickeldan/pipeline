@@ -73,14 +73,14 @@ isVarChar(char c)
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
 }
 
-static plObject *
+static plObjectHandle
 resolveStaticLiteral(char c)
 {
     switch (c) {
-    case 't': return &true_object;
-    case 'f': return &false_object;
-    case 'n': return &null_object;
-    default: return &blank_object;
+    case 't': return plBoolLiteral(true);
+    case 'f': return plBoolLiteral(false);
+    case 'n': return plNullLiteral();
+    default: return plBlankLiteral();
     }
 }
 
@@ -218,14 +218,17 @@ prepLine(plLexicalScanner *scanner)
 }
 
 static int
-readByteString(plLexicalScanner *scanner, plObject **object)
+readByteString(plLexicalScanner *scanner, plObjectHandle *handle)
 {
     plByteArray *array;
 
-    array = (plByteArray *)plNewByteArray();
-    if (!array) {
+    handle->as.bytes = plNewByteArray();
+    if (!handle->as.bytes) {
         return PL_MARKER_OUT_OF_MEMORY;
     }
+    handle->flags =
+        PL_OBJ_TYPE_BYTE_ARRAY | PL_OBJ_FLAG_OWNED | PL_OBJ_FLAG_DYNAMIC | PL_OBJ_FLAG_DYNAMIC_DATA;
+    array = handle->as.bytes;
 
     for (unsigned int k = 0; k < scanner->line_length; k++) {
         char c = scanner->line[k];
@@ -245,8 +248,8 @@ readByteString(plLexicalScanner *scanner, plObject **object)
 good_string:
 
     array->bytes = VASQ_MALLOC(debug_logger, array->capacity);
-    if (!array->bytes) {
-        plFreeObject((plObject *)array);
+    if (!handle->as.bytes->bytes) {
+        plFreeObject(handle);
         return PL_MARKER_OUT_OF_MEMORY;
     }
 
@@ -307,12 +310,11 @@ good_string:
 
     ADVANCE_SCANNER(scanner, array->capacity + 1);  // The +1 is for the ending double quotes.
 
-    *object = (plObject *)array;
     return PL_MARKER_OBJECT;
 
 error:
 
-    plFreeObject((plObject *)array);
+    plFreeObject(handle);
     return PL_MARKER_BAD_DATA;
 }
 
@@ -473,7 +475,7 @@ read_token:
         goto return_marker;
     }
 
-    token->ctx.object = NULL;
+    token->ctx.handle = (plObjectHandle){0};
     token->submarker = PL_SUBMARKER_NONE;
     memcpy(&token->location, &scanner->location, sizeof(scanner->location));
     consumed = 1;
@@ -629,7 +631,7 @@ arithmetic_token:
             scanner->last_marker = keywords[k].marker;
 
             if (scanner->last_marker == PL_MARKER_OBJECT) {
-                token->ctx.object = resolveStaticLiteral(scanner->line[0]);
+                token->ctx.handle = resolveStaticLiteral(scanner->line[0]);
             }
             else if (scanner->last_marker == PL_MARKER_LOGICAL) {
                 token->submarker = (scanner->line[0] == 'o') ? PL_SUBMARKER_OR : PL_SUBMARKER_AND;
@@ -656,11 +658,13 @@ arithmetic_token:
             }
         }
 
-        if (plIntegerFromHexString(scanner->line + 2, consumed, &token->ctx.object) != PL_RET_OK) {
+        if (plPopulateIntegerFromHexString(scanner->line + 2, consumed, &token->ctx.handle.as.integer) !=
+            PL_RET_OK) {
             scanner->last_marker = PL_MARKER_OUT_OF_MEMORY;
             goto return_marker;
         }
         consumed += 2;
+        token->ctx.handle.flags = PL_OBJ_TYPE_INT | PL_OBJ_FLAG_OWNED;
     }
     else if (isdigit(scanner->line[0])) {
         int value;
@@ -684,10 +688,12 @@ arithmetic_token:
                 goto return_marker;
             }
 
-            value = plFloatFromString(scanner->line, consumed, &token->ctx.object);
+            token->ctx.handle.flags = PL_OBJ_TYPE_FLOAT | PL_OBJ_FLAG_OWNED;
+            value = plPopulateFloatFromString(scanner->line, consumed, &token->ctx.handle.as.decimal);
         }
         else {
-            value = plIntegerFromString(scanner->line, consumed, &token->ctx.object);
+            token->ctx.handle.flags = PL_OBJ_TYPE_INT | PL_OBJ_FLAG_OWNED;
+            value = plPopulateIntegerFromString(scanner->line, consumed, &token->ctx.handle.as.integer);
         }
 
         if (value != PL_RET_OK) {
@@ -721,7 +727,7 @@ arithmetic_token:
     }
     else if (scanner->line[0] == '"') {
         ADVANCE_SCANNER(scanner, 1);
-        scanner->last_marker = readByteString(scanner, &token->ctx.object);
+        scanner->last_marker = readByteString(scanner, &token->ctx.handle);
         if (TERMINAL_MARKER(scanner->last_marker)) {
             goto return_marker;
         }
@@ -786,7 +792,7 @@ plTokenCleanup(plLexicalToken *token, plWordTable *table)
         plUnregisterWord(table, token->ctx.name);  // plUnregisterWord will check to see if table is NULL.
         break;
 
-    case PL_MARKER_OBJECT: plFreeObject(token->ctx.object); break;
+    case PL_MARKER_OBJECT: plFreeObject(&token->ctx.handle); break;
 
     default: break;
     }

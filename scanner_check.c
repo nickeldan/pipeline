@@ -49,7 +49,7 @@ main(int argc, char **argv)
         printf("%s ", plLexicalMarkerName(token.marker));
 
         if (token.marker == PL_MARKER_OBJECT) {
-            plFreeObject(token.ctx.object);
+            plFreeObject(&token.ctx.handle);
         }
     }
 

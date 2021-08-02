@@ -3,6 +3,7 @@
 
 #include <ctype.h>
 
+// vm header files
 #include "object.h"
 
 #include "definitions.h"
@@ -106,7 +107,7 @@ typedef struct plLexicalLocation {
 typedef struct plLexicalToken {
     union {
         const char *name;
-        plObject *object;
+        plObjectHandle handle;
     } ctx;
     plLexicalLocation location;
     int marker;

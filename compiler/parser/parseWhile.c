@@ -3,7 +3,7 @@
 #include "parserInternal.h"
 
 int
-parseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
+plParseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
     plLexicalLocation location;
@@ -19,7 +19,7 @@ parseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
 
     plGetLastLocation(scanner, &location);
 
-    ret = parseExpression(scanner, &condition_node, false);
+    ret = plParseExpression(scanner, &condition_node, false);
     if (ret != PL_RET_OK) {
         return ret;
     }
@@ -29,7 +29,7 @@ parseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
         goto error;
     }
 
-    ret = parseStatementList(scanner, &statement_list);
+    ret = plParseStatementList(scanner, &statement_list);
     if (ret != PL_RET_OK) {
         goto error;
     }

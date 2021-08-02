@@ -1,8 +1,10 @@
 #ifndef PIPELINE_COMPILER_PARSER_INTERNAL_H
 #define PIPELINE_COMPILER_PARSER_INTERNAL_H
 
-#include "ast.h"
+// compiler/util header files
 #include "definitions.h"
+
+#include "ast.h"
 #include "scanner.h"
 
 #if LL_USE == -1
@@ -18,46 +20,46 @@ expectMarkerNoLog(plLexicalScanner *scanner, int marker, plLexicalLocation *loca
 #else  // LL_USE == -1
 
 int
-nextTokenLog(const char *file_name, const char *function_name, unsigned int line_no,
-             plLexicalScanner *scanner, plLexicalToken *token);
+plNextTokenLog(const char *file_name, const char *function_name, unsigned int line_no,
+               plLexicalScanner *scanner, plLexicalToken *token);
 #define NEXT_TOKEN(scanner, token) nextTokenLog(__FILE__, __func__, __LINE__, scanner, token)
 
 int
-expectMarkerLog(const char *file_name, const char *function_name, unsigned int line_no,
-                plLexicalScanner *scanner, int marker, plLexicalLocation *location);
+plExpectMarkerLog(const char *file_name, const char *function_name, unsigned int line_no,
+                  plLexicalScanner *scanner, int marker, plLexicalLocation *location);
 #define EXPECT_MARKER(scanner, marker, location) \
-    expectMarkerLog(__FILE__, __func__, __LINE__, scanner, marker, location)
+    plExpectMarkerLog(__FILE__, __func__, __LINE__, scanner, marker, location)
 
 #endif  // LL_USE == -1
 
 int
-parseExtendedName(plLexicalScanner *scanner, plAstNode **node);
+plParseExtendedName(plLexicalScanner *scanner, plAstNode **node);
 
 int
-parseExtendedType(plLexicalScanner *scanner, plAstNode **node);
+plParseExtendedType(plLexicalScanner *scanner, plAstNode **node);
 
 int
-parseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node, bool compilation_only);
+plParseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node, bool compilation_only);
 
 int
-parseStructDefinition(plLexicalScanner *scanner, plAstNode **node);
+plParseStructDefinition(plLexicalScanner *scanner, plAstNode **node);
 
 int
-parseExpression(plLexicalScanner *scanner, plAstNode **node, bool compilation_only);
+plParseExpression(plLexicalScanner *scanner, plAstNode **node, bool compilation_only);
 
 int
-parseReceiver(plLexicalScanner *scanner, plAstNode **node);
+plParseReceiver(plLexicalScanner *scanner, plAstNode **node);
 
 int
-parseIfBlock(plLexicalScanner *scanner, plAstNode **node);
+plParseIfBlock(plLexicalScanner *scanner, plAstNode **node);
 
 int
-parseWhileBlock(plLexicalScanner *scanner, plAstNode **node);
+plParseWhileBlock(plLexicalScanner *scanner, plAstNode **node);
 
 int
-parseStatementList(plLexicalScanner *scanner, plAstNode **node);
+plParseStatementList(plLexicalScanner *scanner, plAstNode **node);
 
 int
-parseFunction(plLexicalScanner *scanner, plAstNode **node, bool global);
+plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global);
 
 #endif  // PIPELINE_COMPILER_PARSER_INTERNAL_H

@@ -1,12 +1,18 @@
 #ifndef PIPELINE_COMPILER_GENERATE_INTERNAL_H
 #define PIPELINE_COMPILER_GENERATE_INTERNAL_H
 
+// util header files
 #include "table.h"
 
+// vm header files
 #include "module.h"
 
-#include "ast.h"
+// compiler/util header files
 #include "definitions.h"
+
+// compiler/parser header files
+#include "ast.h"
+
 #include "reference.h"
 
 typedef struct plSemanticContext {
@@ -20,32 +26,32 @@ typedef struct plSemanticContext {
 } plSemanticContext;
 
 void
-contextError(const char *file_name, const char *function_name, unsigned int line_no,
-             const vasqLogger *logger, const plLexicalLocation *location, bool error, const char *format,
-             ...);
-#define CONTEXT_ERROR(node, format, ...)                                                           \
-    contextError(__FILE__, __func__, __LINE__, sem->logger, &(node)->token.location, true, format, \
-                 ##__VA_ARGS__)
-#define CONTEXT_WARNING(node, format, ...)                                                          \
-    contextError(__FILE__, __func__, __LINE__, sem->logger, &(node)->token.location, false, format, \
-                 ##__VA_ARGS__)
+plContextError(const char *file_name, const char *function_name, unsigned int line_no,
+               const vasqLogger *logger, const plLexicalLocation *location, bool error, const char *format,
+               ...);
+#define CONTEXT_ERROR(node, format, ...)                                                             \
+    plContextError(__FILE__, __func__, __LINE__, sem->logger, &(node)->token.location, true, format, \
+                   ##__VA_ARGS__)
+#define CONTEXT_WARNING(node, format, ...)                                                            \
+    plContextError(__FILE__, __func__, __LINE__, sem->logger, &(node)->token.location, false, format, \
+                   ##__VA_ARGS__)
 
 plReference *
 plFindReference(const plSemanticContext *sem, const char *symbol, size_t *idx);
 
 plReference *
-resolveExtendedName(const plSemanticContext *sem, const plAstNode *node, size_t *idx);
+plResolveExtendedName(const plSemanticContext *sem, const plAstNode *node, size_t *idx);
 
 plRefTable *
-addTable(plSemanticContext *sem);
+plAddTable(plSemanticContext *sem);
 
 int
-compileImport(plSemanticContext *sem, plAstNode *node);
+plCompileImport(plSemanticContext *sem, plAstNode *node);
 
 int
-compileExport(plSemanticContext *sem, plAstNode *node);
+plCompileExport(plSemanticContext *sem, plAstNode *node);
 
 int
-compileTypeDecl(plSemanticContext *sem, plAstNode *node);
+plCompileTypeDecl(plSemanticContext *sem, plAstNode *node);
 
 #endif  // PIPELINE_COMPILER_GENERATE_INTERNAL_H

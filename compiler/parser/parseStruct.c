@@ -3,7 +3,7 @@
 #include "parserInternal.h"
 
 int
-parseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
+plParseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
     plLexicalLocation location;
@@ -67,7 +67,7 @@ parseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
             goto loop_error;
         }
 
-        ret = parseExtendedType(scanner, &type_node);
+        ret = plParseExtendedType(scanner, &type_node);
         if (ret != PL_RET_OK) {
             goto loop_error;
         }

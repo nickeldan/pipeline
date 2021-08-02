@@ -3,10 +3,14 @@
 
 #include <stdio.h>
 
-#include "definitions.h"
+// util header files
 #include "table.h"
+
+// compiler/util header files
+#include "definitions.h"
 #include "token.h"
 
+#define PL_SCANNER_BUFFER_SIZE    200
 #define PL_SCANNER_MAX_LOOK_AHEAD 2
 
 typedef struct plLexicalScanner {
@@ -22,9 +26,9 @@ typedef struct plLexicalScanner {
     unsigned int comment_block_line_no;
     unsigned int line_length;
     int last_marker;
-    bool inside_comment_block;
     unsigned char num_look_ahead;
-    char buffer[200];
+    char buffer[PL_SCANNER_BUFFER_SIZE];
+    unsigned int inside_comment_block : 1;
 } plLexicalScanner;
 
 #define PARSER_ERROR(format, ...) VASQ_ERROR(scanner->parser_logger, format, ##__VA_ARGS__)

@@ -5,7 +5,7 @@
 
 #include "util.h"
 
-#define PL_OBJECT_HEADER uint32_t flags;
+#include "struct.h"
 
 #define PL_OBJ_TYPE_NULL       0x00000000
 #define PL_OBJ_TYPE_INT        0x00000001
@@ -21,106 +21,80 @@
 #define PL_OBJ_TYPE_BYTE_ARRAY (PL_OBJ_PRED_GEN_ARRAY | PL_OBJ_PRED_BYTE_ARRAY)
 #define PL_OBJ_TYPE_BLANK      0x00000080
 
-#define PL_OBJ_FLAG_TRUE         0x00000100
-#define PL_OBJ_FLAG_ORPHAN       0x00000200
-#define PL_OBJ_FLAG_STATIC       0x00000400
-#define PL_OBJ_FLAG_STATIC_BYTES 0x00000800
+#define PL_OBJ_FLAG_OWNED        0x00000100
+#define PL_OBJ_FLAG_SUBH_OWNED   0x00000200
+#define PL_OBJ_FLAG_DYNAMIC      0x00000400
+#define PL_OBJ_FLAG_DYNAMIC_DATA 0x00000800
 
-typedef struct plObject {
-    PL_OBJECT_HEADER
-} plObject;
-
-#define OBJ_TYPE(ptr) (((plObject *)ptr)->flags & 0x000000ff)
+typedef struct plObjectHandle plObjectHandle;
 
 typedef int64_t plInteger_t;
-
-typedef struct plInteger {
-    PL_OBJECT_HEADER
-    plInteger_t value;
-} plInteger;
+typedef double plFloat_t;
+typedef unsigned char plBool_t;
 
 #define PL_INTEGER_BIT_SIZE   64
 #define PL_INTEGER_MAX_LENGTH 20  // The length of -1 * (1 << 63).
 #define PL_MAX_INTEGER        9223372036854775807L
 #define PL_MIN_INTEGER        -9223372036854775808L
 
-typedef double plFloat_t;
-
-typedef struct plFloat {
-    PL_OBJECT_HEADER
-    plInteger_t ipart;
-    plFloat_t fpart;
-} plFloat;
-
-#define PL_ARRAY_HEADER \
-    PL_OBJECT_HEADER    \
-    uint32_t length;    \
-    plObject **objects; \
-    uint32_t capacity;
-
 typedef struct plArray {
-    PL_ARRAY_HEADER
+    plObjectHandle *handles;
+    uint32_t length;
+    uint32_t capacity;
 } plArray;
 
-typedef uintptr_t plModuleId_t;
-typedef uint16_t plStructId_t;
-
-typedef struct plStruct {
-    PL_ARRAY_HEADER
-    plModuleId_t module_id;
-    plStructId_t struct_id;
-} plStruct;
-
 typedef struct plByteArray {
-    PL_OBJECT_HEADER
-    uint32_t length;
     uint8_t *bytes;
+    uint32_t length;
     uint32_t capacity;
 } plByteArray;
 
-typedef struct plGenArray {
-    PL_OBJECT_HEADER
-    uint32_t length;
-    void *opaque;
-    uint32_t capacity;
-} * plGenArrayPtr;
+typedef struct plStructInstance {
+    plObjectHandle *handles;
+    plStruct *type;
+} plStructInstance;
+
+typedef union plObjectValue {
+    plInteger_t integer;
+    plFloat_t decimal;
+    plBool_t boolean;
+    plArray *array;
+    plByteArray *bytes;
+    plStructInstance *instance;
+} plObjectValue;
+
+struct plObjectHandle {
+    plObjectValue as;
+    uint32_t flags;
+};
+
+#define OBJ_TYPE(handle) ((handle)->flags & 0x000000ff)
 
 void
-plFreeObject(plObject *object);
+plFreeObject(plObjectHandle *handle);
 
-plObject *
-plCopyObject(const plObject *object);
+plObjectHandle
+plBoolLiteral(bool value);
 
-plObject *
-plNewInteger(void);
+plObjectHandle
+plNullLiteral(void);
 
-plObject *
-plNewFloat(void);
+plObjectHandle
+plBlankLiteral(void);
 
-plObject *
-plNewArray(void);
-
-plObject *
+plByteArray *
 plNewByteArray(void);
 
 int
-plIntegerFromString(const char *string, unsigned int length, plObject **object);
+plPopulateIntegerFromString(const char *string, unsigned int length, plInteger_t *integer);
 
 int
-plPopulateIntegerFromString(const char *string, unsigned int length, plInteger *integer);
+plPopulateIntegerFromHexString(const char *string, unsigned int length, plInteger_t *integer);
 
 int
-plFloatFromString(const char *string, unsigned int length, plObject **object);
+plPopulateFloatFromString(const char *string, unsigned int length, plFloat_t *decimal);
 
 int
-plIntegerFromHexString(const char *string, unsigned int length, plObject **object);
-
-int
-plConcatenateByteArrays(plObject *first, const plObject *second);
-
-extern plObject true_object;
-extern plObject false_object;
-extern plObject blank_object;
-extern plObject null_object;
+plConcatenateByteArrays(plByteArray *first, const plByteArray *second);
 
 #endif  // PIPELINE_OBJECT_H

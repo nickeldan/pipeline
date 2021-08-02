@@ -3,7 +3,7 @@
 #include "parserInternal.h"
 
 int
-parseExtendedName(plLexicalScanner *scanner, plAstNode **node)
+plParseExtendedName(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret = PL_RET_OK;
 
@@ -94,7 +94,7 @@ error:
 }
 
 int
-parseExtendedType(plLexicalScanner *scanner, plAstNode **node)
+plParseExtendedType(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
     plLexicalToken token;
@@ -126,7 +126,7 @@ parseExtendedType(plLexicalScanner *scanner, plAstNode **node)
             return ret;
         }
 
-        ret = parseExtendedName(scanner, node);
+        ret = plParseExtendedName(scanner, node);
         if (ret != PL_RET_OK) {
             return ret;
         }

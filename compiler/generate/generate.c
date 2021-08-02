@@ -1,10 +1,10 @@
-#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "vasq/safe_snprintf.h"
 
+// util header files
 #include "table.h"
 
 #include "builtins.h"
@@ -12,7 +12,6 @@
 #include "generateInternal.h"
 
 #define STACK_INITIAL_CAPACITY 10
-_Static_assert(STACK_INITIAL_CAPACITY >= 2, "STACK_INITIAL_CAPACITY must be at least 2.");
 
 static void
 semanticLogProcessor(void *user_data, size_t idx, vasqLogLevel_t level, char **dst, size_t *remaining)
@@ -42,11 +41,14 @@ initSemanticContext(plSemanticContext *sem)
 {
     int ret;
 
-    if (!addTable(sem)) {
-        return PL_RET_OUT_OF_MEMORY;
+    for (int k = 0; k < 2; k++) {  // built-in space and global space
+        if (!plAddTable(sem)) {
+            ret = PL_RET_OUT_OF_MEMORY;
+            goto error;
+        }
     }
 
-    ret = addBuiltinSymbols(sem->stack[0]);
+    ret = plAddBuiltinSymbols(sem->stack[0]);
     if (ret != PL_RET_OK) {
         goto error;
     }
@@ -72,16 +74,17 @@ static int
 compileGlobalSpace(plSemanticContext *sem, plAstNode *tree)
 {
     switch (tree->token.marker) {
-    case PL_MARKER_IMPORT: return compileImport(sem, tree);
+    case PL_MARKER_IMPORT: return plCompileImport(sem, tree);
 
-    case PL_MARKER_EXPORT: return compileExport(sem, tree);
+    case PL_MARKER_EXPORT: return plCompileExport(sem, tree);
 
     case PL_MARKER_EXPORT_ALL: sem->compiler_flags |= PL_COMPILER_FLAG_EXPORT_ALL; break;
 
-    case PL_MARKER_TYPE_DECL: return compileTypeDecl(sem, tree);
+    case PL_MARKER_TYPE_DECL: return plCompileTypeDecl(sem, tree);
     }
 
-    return PL_RET_OK;  // placeholder
+    PLACEHOLDER();
+    return PL_RET_OK;
 }
 
 int
@@ -110,9 +113,9 @@ plGenerateModule(plAstNode *tree, const char *file_name, plModule *module, uint3
 }
 
 void
-contextError(const char *file_name, const char *function_name, unsigned int line_no,
-             const vasqLogger *logger, const plLexicalLocation *location, bool error, const char *format,
-             ...)
+plContextError(const char *file_name, const char *function_name, unsigned int line_no,
+               const vasqLogger *logger, const plLexicalLocation *location, bool error, const char *format,
+               ...)
 {
     char line[1024];
     va_list args;
@@ -148,7 +151,7 @@ plFindReference(const plSemanticContext *sem, const char *symbol, size_t *idx)
 }
 
 plReference *
-resolveExtendedName(const plSemanticContext *sem, const plAstNode *node, size_t *idx)
+plResolveExtendedName(const plSemanticContext *sem, const plAstNode *node, size_t *idx)
 {
     const plAstMaxSplitNode *splitter = (const plAstMaxSplitNode *)node;
     plReference *ref;
@@ -162,11 +165,14 @@ resolveExtendedName(const plSemanticContext *sem, const plAstNode *node, size_t 
         return plFindReference(sem, node->token.ctx.name, idx);
     }
 
-    return NULL;  // placeholder
+    PLACEHOLDER();
+    (void)splitter;
+    (void)ref;
+    return NULL;
 }
 
 plRefTable *
-addTable(plSemanticContext *sem)
+plAddTable(plSemanticContext *sem)
 {
     plRefTable *new_table;
 

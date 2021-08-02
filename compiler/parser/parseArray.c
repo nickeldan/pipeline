@@ -1,7 +1,7 @@
 #include "parserInternal.h"
 
 int
-parseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node, bool compilation_only)
+plParseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node, bool compilation_only)
 {
     int ret;
     plLexicalLocation location;
@@ -9,7 +9,7 @@ parseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node, bool compilat
 
     plGetLastLocation(scanner, &location);
 
-    ret = parseExpression(scanner, node, compilation_only);
+    ret = plParseExpression(scanner, node, compilation_only);
     if (ret != PL_RET_OK) {
         return ret;
     }
@@ -33,7 +33,7 @@ parseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node, bool compilat
             goto error;
         }
 
-        ret = parseExpression(scanner, &second_node, compilation_only);
+        ret = plParseExpression(scanner, &second_node, compilation_only);
         if (ret != PL_RET_OK) {
             goto error;
         }

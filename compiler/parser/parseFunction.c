@@ -63,7 +63,7 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
             goto cleanup_name_node;
         }
 
-        ret = parseExtendedType(scanner, &type_node);
+        ret = plParseExtendedType(scanner, &type_node);
         if (ret != PL_RET_OK) {
             goto cleanup_name_node;
         }
@@ -121,7 +121,7 @@ cleanup_name_node:
 }
 
 int
-parseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
+plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
 {
     int ret, function_marker;
     bool declaration;
@@ -189,7 +189,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
             goto error;
         }
 
-        ret = parseExtendedType(scanner, &type_node);
+        ret = plParseExtendedType(scanner, &type_node);
         if (ret != PL_RET_OK) {
             goto error;
         }
@@ -215,7 +215,7 @@ parseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
         goto error;
     }
 
-    ret = parseStatementList(scanner, &statement_list);
+    ret = plParseStatementList(scanner, &statement_list);
     if (ret != PL_RET_OK) {
         goto error;
     }

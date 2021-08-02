@@ -3,7 +3,7 @@
 #include "parserInternal.h"
 
 int
-parseReceiver(plLexicalScanner *scanner, plAstNode **node)
+plParseReceiver(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
     plLexicalLocation arrow_location;
@@ -36,7 +36,7 @@ parseReceiver(plLexicalScanner *scanner, plAstNode **node)
         }
         else if (token.marker == PL_MARKER_PIPE || token.marker == PL_MARKER_SINK ||
                  token.marker == PL_MARKER_LOCAL) {
-            ret = parseFunction(scanner, &second_node, false);
+            ret = plParseFunction(scanner, &second_node, false);
             if (ret != PL_RET_OK) {
                 goto error;
             }
@@ -47,7 +47,7 @@ parseReceiver(plLexicalScanner *scanner, plAstNode **node)
                 goto error;
             }
 
-            ret = parseExtendedType(scanner, &second_node);
+            ret = plParseExtendedType(scanner, &second_node);
             if (ret != PL_RET_OK) {
                 goto error;
             }
@@ -61,7 +61,7 @@ parseReceiver(plLexicalScanner *scanner, plAstNode **node)
                 if (token.marker == PL_MARKER_LEFT_PARENS) {
                     plAstNode *attached_node;
 
-                    ret = parseExpression(scanner, &attached_node, false);
+                    ret = plParseExpression(scanner, &attached_node, false);
                     if (ret != PL_RET_OK) {
                         goto loop_error;
                     }

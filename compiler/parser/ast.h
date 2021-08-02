@@ -1,9 +1,11 @@
 #ifndef PIPELINE_COMPILER_AST_H
 #define PIPELINE_COMPILER_AST_H
 
+// compiler/util header files
 #include "definitions.h"
-#include "scanner.h"
 #include "table.h"
+
+#include "scanner.h"
 
 //#define AST_HAS_PARENT
 

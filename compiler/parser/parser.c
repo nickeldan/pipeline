@@ -57,7 +57,7 @@ parseConstantDeclaration(plLexicalScanner *scanner, plAstNode **node)
     plLexicalToken token;
     plAstNode *name_node;
 
-    ret = parseExpression(scanner, node, true);
+    ret = plParseExpression(scanner, node, true);
     if (ret != PL_RET_OK) {
         return ret;
     }
@@ -136,7 +136,7 @@ parseTypeDecl(plLexicalScanner *scanner, plAstNode **node)
     }
     memcpy(&name_node->token, &token, sizeof(token));
 
-    ret = parseExtendedType(scanner, &type_node);
+    ret = plParseExtendedType(scanner, &type_node);
     if (ret != PL_RET_OK) {
         goto error;
     }
@@ -178,7 +178,7 @@ parseMain(plLexicalScanner *scanner, plAstNode **node)
         return ret;
     }
 
-    ret = parseStatementList(scanner, &statement_list);
+    ret = plParseStatementList(scanner, &statement_list);
     if (ret != PL_RET_OK) {
         return ret;
     }
@@ -221,9 +221,9 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
 
         case PL_MARKER_SOURCE:
         case PL_MARKER_PIPE:
-        case PL_MARKER_SINK: ret = parseFunction(scanner, &node, true); break;
+        case PL_MARKER_SINK: ret = plParseFunction(scanner, &node, true); break;
 
-        case PL_MARKER_STRUCT: ret = parseStructDefinition(scanner, &node); break;
+        case PL_MARKER_STRUCT: ret = plParseStructDefinition(scanner, &node); break;
 
         case PL_MARKER_TYPE_DECL: ret = parseTypeDecl(scanner, &node); break;
 
@@ -339,8 +339,8 @@ expectMarkerNoLog(plLexicalScanner *scanner, int marker, plLexicalLocation *loca
 #else  // LL_USE == -1
 
 int
-nextTokenLog(const char *file_name, const char *function_name, unsigned int line_no,
-             plLexicalScanner *scanner, plLexicalToken *token)
+plNextTokenLog(const char *file_name, const char *function_name, unsigned int line_no,
+               plLexicalScanner *scanner, plLexicalToken *token)
 {
     int marker;
 
@@ -349,13 +349,13 @@ nextTokenLog(const char *file_name, const char *function_name, unsigned int line
 }
 
 int
-expectMarkerLog(const char *file_name, const char *function_name, unsigned int line_no,
-                plLexicalScanner *scanner, int marker, plLexicalLocation *location)
+plExpectMarkerLog(const char *file_name, const char *function_name, unsigned int line_no,
+                  plLexicalScanner *scanner, int marker, plLexicalLocation *location)
 {
     int ret;
     plLexicalToken token;
 
-    ret = nextTokenLog(file_name, function_name, line_no, scanner, &token);
+    ret = plNextTokenLog(file_name, function_name, line_no, scanner, &token);
     if (ret != PL_RET_OK) {
         return ret;
     }
