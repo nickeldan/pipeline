@@ -3,12 +3,10 @@
 
 // util header files
 #include "table.h"
+#include "util.h"
 
 // vm header files
 #include "module.h"
-
-// compiler/util header files
-#include "definitions.h"
 
 // compiler/parser header files
 #include "ast.h"

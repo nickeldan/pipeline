@@ -34,7 +34,7 @@ plSetupDebuggingLogger(vasqLogLevel_t level)
 #if LL_USE >= 0
     int ret;
 
-    ret = vasqLoggerCreate(STDOUT_FILENO, level, PL_LOGGER_PREAMBLE "%M\n", NULL, NULL, &debug_logger);
+    ret = vasqLoggerCreate(STDOUT_FILENO, level, PL_LOGGER_PREAMBLE "%M\n", NULL, &debug_logger);
     if (ret != VASQ_RET_OK) {
         return plTranslateVasqRet(ret);
     }

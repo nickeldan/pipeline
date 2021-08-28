@@ -1,9 +1,9 @@
 #ifndef PIPELINE_COMPILER_AST_H
 #define PIPELINE_COMPILER_AST_H
 
-// compiler/util header files
-#include "definitions.h"
+// util header files
 #include "table.h"
+#include "util.h"
 
 #include "scanner.h"
 

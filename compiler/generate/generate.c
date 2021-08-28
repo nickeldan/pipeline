@@ -40,6 +40,7 @@ static int
 initSemanticContext(plSemanticContext *sem)
 {
     int ret;
+    vasqLoggerOptions options = {.processor = semanticLogProcessor, .user = sem};
 
     for (int k = 0; k < 2; k++) {  // built-in space and global space
         if (!plAddTable(sem)) {
@@ -53,8 +54,7 @@ initSemanticContext(plSemanticContext *sem)
         goto error;
     }
 
-    ret =
-        vasqLoggerCreate(STDERR_FILENO, VASQ_LL_WARNING, "%x%M\n", semanticLogProcessor, sem, &sem->logger);
+    ret = vasqLoggerCreate(STDERR_FILENO, VASQ_LL_WARNING, "%x%M\n", &options, &sem->logger);
     if (ret != VASQ_RET_OK) {
         ret = plTranslateVasqRet(ret);
         goto error;

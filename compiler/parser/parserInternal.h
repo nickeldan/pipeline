@@ -1,8 +1,8 @@
 #ifndef PIPELINE_COMPILER_PARSER_INTERNAL_H
 #define PIPELINE_COMPILER_PARSER_INTERNAL_H
 
-// compiler/util header files
-#include "definitions.h"
+// util header files
+#include "util.h"
 
 #include "ast.h"
 #include "scanner.h"

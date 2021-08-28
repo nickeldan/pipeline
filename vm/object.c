@@ -1,5 +1,4 @@
 #include <alloca.h>
-#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -202,7 +201,7 @@ plConcatenateByteArrays(plByteArray *first, const plByteArray *second)
 
     new_length = first->length + second->length;
     if (new_length < first->length) {
-        VASQ_ERROR(debug_logger, "Integer overflow detected.");
+        VASQ_ERROR(debug_logger, "Integer overflow detected");
         return PL_RET_OVERFLOW;
     }
 
@@ -212,7 +211,7 @@ plConcatenateByteArrays(plByteArray *first, const plByteArray *second)
 
         new_capacity = CAPACITY_EXPANSION(new_length);
         if (new_capacity < new_length) {
-            VASQ_ERROR(debug_logger, "Integer overflow detected.");
+            VASQ_ERROR(debug_logger, "Integer overflow detected");
             return PL_RET_OVERFLOW;
         }
 

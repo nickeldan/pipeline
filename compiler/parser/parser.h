@@ -5,9 +5,7 @@
 
 // util header files
 #include "table.h"
-
-// compiler/util header files
-#include "definitions.h"
+#include "util.h"
 
 #include "ast.h"
 

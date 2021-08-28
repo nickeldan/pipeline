@@ -336,9 +336,9 @@ scannerProcessor(void *user_data, size_t position, vasqLogLevel_t level, char **
 {
     (void)position;
     (void)level;
-    const plLexicalScanner *scanner = (const plLexicalScanner *)user_data;
+    const plLexicalScanner *scanner = user_data;
 
-    vasqIncSnprintf(dst, remaining, "%u", scanner->location.line_no);
+    vasqIncSnprintf(dst, remaining, "%s:%u", scanner->file_name, scanner->location.line_no);
 }
 
 const char *
@@ -381,6 +381,7 @@ int
 plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name)
 {
     int ret;
+    vasqLoggerOptions options;
 
     if (!scanner || !file) {
         VASQ_ERROR(debug_logger, "scanner and file cannot be NULL.");
@@ -394,14 +395,18 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name)
         return PL_RET_OUT_OF_MEMORY;
     }
 
-    ret = vasqLoggerCreate(STDOUT_FILENO, VASQ_LL_WARNING, PL_LOGGER_PREAMBLE "%x: %M\n", scannerProcessor,
-                           scanner, &scanner->scanner_logger);
+    options.flags = 0;
+    options.processor = scannerProcessor;
+    options.user = scanner;
+    ret = vasqLoggerCreate(STDOUT_FILENO, VASQ_LL_WARNING, PL_LOGGER_PREAMBLE "%x: %M\n", &options,
+                           &scanner->scanner_logger);
     if (ret != VASQ_RET_OK) {
         goto error;
     }
 
-    ret = vasqLoggerCreate(STDOUT_FILENO, VASQ_LL_WARNING, PL_LOGGER_PREAMBLE "%x: %M\n\t%x\n",
-                           parserProcessor, scanner, &scanner->parser_logger);
+    options.processor = parserProcessor;
+    ret = vasqLoggerCreate(STDOUT_FILENO, VASQ_LL_WARNING, PL_LOGGER_PREAMBLE "%x: %M\n\t%x\n", &options,
+                           &scanner->parser_logger);
     if (ret != VASQ_RET_OK) {
         goto error;
     }

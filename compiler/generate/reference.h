@@ -1,9 +1,11 @@
 #ifndef PIPELINE_COMPILER_REFERENCE_H
 #define PIPELINE_COMPILER_REFERENCE_H
 
+// util header files
 #include "table.h"
+#include "util.h"
 
-#include "definitions.h"
+// compiler/parser header files
 #include "token.h"
 
 typedef struct plRefValue {

@@ -3,10 +3,11 @@
 
 #include <ctype.h>
 
+// util header files
+#include "util.h"
+
 // vm header files
 #include "object.h"
-
-#include "definitions.h"
 
 enum plLexicalMarker {
     PL_MARKER_USAGE = 256,

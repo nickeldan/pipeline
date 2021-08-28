@@ -1,10 +1,14 @@
 #ifndef PIPELINE_COMPILER_GENERATE_H
 #define PIPELINE_COMPILER_GENERATE_H
 
+// util header files
+#include "util.h"
+
+// vm header files
 #include "module.h"
 
+// compiler/parser header files
 #include "ast.h"
-#include "definitions.h"
 
 int
 plGenerateModule(plAstNode *tree, const char *file_name, plModule *module, uint32_t compiler_flags);

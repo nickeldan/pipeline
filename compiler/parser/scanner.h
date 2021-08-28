@@ -5,9 +5,8 @@
 
 // util header files
 #include "table.h"
+#include "util.h"
 
-// compiler/util header files
-#include "definitions.h"
 #include "token.h"
 
 #define PL_SCANNER_BUFFER_SIZE    200
