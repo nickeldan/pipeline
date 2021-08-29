@@ -312,7 +312,7 @@ plNextTokenNoLog(plLexicalScanner *scanner, plLexicalToken *token)
 }
 
 int
-plNxpectMarkerNoLog(plLexicalScanner *scanner, int marker, plLexicalLocation *location)
+plExpectMarkerNoLog(plLexicalScanner *scanner, int marker, plLexicalLocation *location)
 {
     int ret;
     plLexicalToken token;
