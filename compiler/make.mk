@@ -1,5 +1,5 @@
-COMPILER_SUBDIRS := util parser generate
-COMPILER_SUBDIRS_LINK_ORDER := generate parser util
+COMPILER_SUBDIRS := parser generate
+COMPILER_SUBDIRS_LINK_ORDER := generate parser
 COMPILER_SHARED_LIBRARIES :=
 COMPILER_STATIC_LIBRARIES :=
 

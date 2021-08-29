@@ -303,7 +303,7 @@ plFileParse(FILE *in, const char *file_name, plAstNode **tree, plWordTable **tab
 #if LL_USE == -1
 
 int
-nextTokenNoLog(plLexicalScanner *scanner, plLexicalToken *token)
+plNextTokenNoLog(plLexicalScanner *scanner, plLexicalToken *token)
 {
     int marker;
 
@@ -312,7 +312,7 @@ nextTokenNoLog(plLexicalScanner *scanner, plLexicalToken *token)
 }
 
 int
-expectMarkerNoLog(plLexicalScanner *scanner, int marker, plLexicalLocation *location)
+plNxpectMarkerNoLog(plLexicalScanner *scanner, int marker, plLexicalLocation *location)
 {
     int ret;
     plLexicalToken token;
