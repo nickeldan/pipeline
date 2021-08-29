@@ -1,7 +1,0 @@
-#ifndef PIPELINE_COMPILER_DEFINITIONS_H
-#define PIPELINE_COMPILER_DEFINITIONS_H
-
-// Util header files
-#include "util.h"
-
-#endif  // PIPELINE_COMPILER_DEFINITIONS_H
