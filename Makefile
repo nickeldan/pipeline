@@ -4,7 +4,7 @@ CC ?= gcc
 level ?= -1
 debug ?= no
 
-CFLAGS := -std=gnu11 -fdiagnostics-color -Wall -Wextra -DLL_USE=$(level) -DVASQ_WARN_PLACEHOLDER
+CFLAGS := -std=gnu11 -fdiagnostics-color -Wall -Wextra -DLL_USE=$(level) -DVASQ_ALLOW_PLACEHOLDER
 ifeq ($(debug),yes)
 	CFLAGS += -O0 -g -DDEBUG
 else

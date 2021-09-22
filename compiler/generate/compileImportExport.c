@@ -27,7 +27,7 @@ plCompileImport(plSemanticContext *sem, plAstNode *node)
         return PL_RET_USAGE;
     }
 
-    name = splitter->nodes[0]->token.ctx.name;
+    name = NODE_EXTRACT_NAME(splitter->nodes[0]);
     ref = plFindReference(sem, name, &idx);
     if (ref) {
         if (idx == 0) {
@@ -45,7 +45,7 @@ plCompileImport(plSemanticContext *sem, plAstNode *node)
         }
     }
 
-    ret = addModuleToSemantics(sem, &node->token.location, name, &module);
+    ret = addModuleToSemantics(sem, &node->header.location, name, &module);
     if (ret != PL_RET_OK) {
         return ret;
     }
@@ -58,7 +58,7 @@ plCompileImport(plSemanticContext *sem, plAstNode *node)
     else {
         plRefValue value = {.data = module, .contains_data = true};
 
-        return plStoreReference(sem->stack[1], name, PL_REF_FLAG_MODULE, &value, &node->token.location);
+        return plStoreReference(sem->stack[1], name, PL_REF_FLAG_MODULE, &value, &node->header.location);
     }
 }
 
@@ -75,7 +75,7 @@ plCompileExport(plSemanticContext *sem, plAstNode *node)
         return PL_RET_USAGE;
     }
 
-    name = splitter->nodes[0]->token.ctx.name;
+    name = NODE_EXTRACT_NAME(splitter->nodes[0]);
     ref = plFindReference(sem, name, &idx);
     if (ref) {
         if (idx == 0) {
@@ -92,6 +92,6 @@ plCompileExport(plSemanticContext *sem, plAstNode *node)
         return PL_RET_OK;
     }
     else {
-        return plStoreReference(sem->stack[1], name, PL_REF_FLAG_EXPORT, NULL, &node->token.location);
+        return plStoreReference(sem->stack[1], name, PL_REF_FLAG_EXPORT, NULL, &node->header.location);
     }
 }

@@ -461,8 +461,8 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
 
     if (scanner->num_look_ahead > 0) {
         memcpy(token, scanner->look_ahead + 0, sizeof(*token));
-        scanner->last_marker = token->marker;
-        memcpy(&scanner->last_look_ahead_loc, &token->location, sizeof(token->location));
+        scanner->last_marker = token->header.marker;
+        memcpy(&scanner->last_look_ahead_loc, &token->header.location, sizeof(token->header.location));
         if (scanner->num_look_ahead > 1) {
             memmove(scanner->look_ahead + 0, scanner->look_ahead + 1,
                     sizeof(*token) * (scanner->num_look_ahead - 1));
@@ -480,9 +480,9 @@ read_token:
         goto return_marker;
     }
 
-    token->ctx.handle = (plObjectHandle){0};
-    token->submarker = PL_SUBMARKER_NONE;
-    memcpy(&token->location, &scanner->location, sizeof(scanner->location));
+    token->data.handle = (plObjectHandle){0};
+    token->header.submarker = PL_SUBMARKER_NONE;
+    memcpy(&token->header.location, &scanner->location, sizeof(scanner->location));
     consumed = 1;
 
     switch (scanner->line[0]) {
@@ -553,12 +553,12 @@ read_token:
 arithmetic_token:
         if (scanner->line[1] == '=') {
             scanner->last_marker = PL_MARKER_REASSIGNMENT;
-            token->submarker = resolveArithmetic(scanner->line[0]);
+            token->header.submarker = resolveArithmetic(scanner->line[0]);
             consumed = 2;
         }
         else {
             scanner->last_marker = PL_MARKER_ARITHMETIC;
-            token->submarker = resolveArithmetic(scanner->line[0]);
+            token->header.submarker = resolveArithmetic(scanner->line[0]);
         }
 
         goto done;
@@ -567,7 +567,8 @@ arithmetic_token:
     case '!':
         if (scanner->line[1] == '=') {
             scanner->last_marker = PL_MARKER_COMPARISON;
-            token->submarker = (scanner->line[0] == '=') ? PL_SUBMARKER_EQUAL : PL_SUBMARKER_NOT_EQUAL;
+            token->header.submarker =
+                (scanner->line[0] == '=') ? PL_SUBMARKER_EQUAL : PL_SUBMARKER_NOT_EQUAL;
             consumed = 2;
             goto done;
         }
@@ -589,16 +590,16 @@ arithmetic_token:
                 consumed = 2;
             }
 
-            token->submarker = (scanner->line[0] == '<') ? PL_SUBMARKER_LSHIFT : PL_SUBMARKER_RSHIFT;
+            token->header.submarker = (scanner->line[0] == '<') ? PL_SUBMARKER_LSHIFT : PL_SUBMARKER_RSHIFT;
         }
         else {
             if (scanner->line[1] == '=') {
-                token->submarker =
+                token->header.submarker =
                     (scanner->line[0] == '<') ? PL_SUBMARKER_LESS_THAN_EQ : PL_SUBMARKER_GREATER_THAN_EQ;
                 consumed = 2;
             }
             else {
-                token->submarker =
+                token->header.submarker =
                     (scanner->line[0] == '<') ? PL_SUBMARKER_LESS_THAN : PL_SUBMARKER_GREATER_THAN;
             }
 
@@ -613,7 +614,7 @@ arithmetic_token:
             for (unsigned int k = 0; k < ARRAY_LENGTH(contexts); k++) {
                 if (strncmp(scanner->line + 1, contexts[k].word, contexts[k].len) == 0) {
                     scanner->last_marker = PL_MARKER_CONTEXT;
-                    token->submarker = contexts[k].marker;
+                    token->header.submarker = contexts[k].marker;
                     consumed = 1 + contexts[k].len;
                     goto done;
                 }
@@ -636,13 +637,13 @@ arithmetic_token:
             scanner->last_marker = keywords[k].marker;
 
             if (scanner->last_marker == PL_MARKER_OBJECT) {
-                token->ctx.handle = resolveStaticLiteral(scanner->line[0]);
+                token->data.handle = resolveStaticLiteral(scanner->line[0]);
             }
             else if (scanner->last_marker == PL_MARKER_LOGICAL) {
-                token->submarker = (scanner->line[0] == 'o') ? PL_SUBMARKER_OR : PL_SUBMARKER_AND;
+                token->header.submarker = (scanner->line[0] == 'o') ? PL_SUBMARKER_OR : PL_SUBMARKER_AND;
             }
             else if (scanner->last_marker == PL_MARKER_TYPE) {
-                token->submarker = resolveType(scanner->line);
+                token->header.submarker = resolveType(scanner->line);
             }
 
             consumed = keywords[k].len;
@@ -663,13 +664,13 @@ arithmetic_token:
             }
         }
 
-        if (plPopulateIntegerFromHexString(scanner->line + 2, consumed, &token->ctx.handle.as.integer) !=
+        if (plPopulateIntegerFromHexString(scanner->line + 2, consumed, &token->data.handle.as.integer) !=
             PL_RET_OK) {
             scanner->last_marker = PL_MARKER_OUT_OF_MEMORY;
             goto return_marker;
         }
         consumed += 2;
-        token->ctx.handle.flags = PL_OBJ_TYPE_INT | PL_OBJ_FLAG_OWNED;
+        token->data.handle.flags = PL_OBJ_TYPE_INT | PL_OBJ_FLAG_OWNED;
     }
     else if (isdigit(scanner->line[0])) {
         int value;
@@ -693,12 +694,12 @@ arithmetic_token:
                 goto return_marker;
             }
 
-            token->ctx.handle.flags = PL_OBJ_TYPE_FLOAT | PL_OBJ_FLAG_OWNED;
-            value = plPopulateFloatFromString(scanner->line, consumed, &token->ctx.handle.as.decimal);
+            token->data.handle.flags = PL_OBJ_TYPE_FLOAT | PL_OBJ_FLAG_OWNED;
+            value = plPopulateFloatFromString(scanner->line, consumed, &token->data.handle.as.decimal);
         }
         else {
-            token->ctx.handle.flags = PL_OBJ_TYPE_INT | PL_OBJ_FLAG_OWNED;
-            value = plPopulateIntegerFromString(scanner->line, consumed, &token->ctx.handle.as.integer);
+            token->data.handle.flags = PL_OBJ_TYPE_INT | PL_OBJ_FLAG_OWNED;
+            value = plPopulateIntegerFromString(scanner->line, consumed, &token->data.handle.as.integer);
         }
 
         if (value != PL_RET_OK) {
@@ -721,8 +722,8 @@ arithmetic_token:
             scanner->last_marker = PL_MARKER_UNDERSCORE;
         }
         else {
-            token->ctx.name = plRegisterWord(scanner->table, scanner->line, consumed);
-            if (!token->ctx.name) {
+            token->data.name = plRegisterWord(scanner->table, scanner->line, consumed);
+            if (!token->data.name) {
                 scanner->last_marker = PL_MARKER_OUT_OF_MEMORY;
                 goto return_marker;
             }
@@ -732,7 +733,7 @@ arithmetic_token:
     }
     else if (scanner->line[0] == '"') {
         ADVANCE_SCANNER(scanner, 1);
-        scanner->last_marker = readByteString(scanner, &token->ctx.handle);
+        scanner->last_marker = readByteString(scanner, &token->data.handle);
         if (TERMINAL_MARKER(scanner->last_marker)) {
             goto return_marker;
         }
@@ -746,7 +747,7 @@ arithmetic_token:
 
 done:
 
-    token->marker = scanner->last_marker;
+    token->header.marker = scanner->last_marker;
     ADVANCE_SCANNER(scanner, consumed);
 
 return_marker:
@@ -792,12 +793,12 @@ plTokenCleanup(plLexicalToken *token, plWordTable *table)
         return;
     }
 
-    switch (token->marker) {
+    switch (token->header.marker) {
     case PL_MARKER_NAME:
-        plUnregisterWord(table, token->ctx.name);  // plUnregisterWord will check to see if table is NULL.
+        plUnregisterWord(table, token->data.name);  // plUnregisterWord will check to see if table is NULL.
         break;
 
-    case PL_MARKER_OBJECT: plFreeObject(&token->ctx.handle); break;
+    case PL_MARKER_OBJECT: plFreeObject(&token->data.handle); break;
 
     default: break;
     }
@@ -859,7 +860,7 @@ plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned i
 
     lookaheadStoreLogic(scanner, token);
     vasqLogStatement(debug_logger, VASQ_LL_INFO, file_name, function_name, line_no,
-                     "%s stored as look ahead (%u total).", plLexicalMarkerName(token->marker),
+                     "%s stored as look ahead (%u total).", plLexicalMarkerName(token->header.marker),
                      scanner->num_look_ahead);
     return PL_RET_OK;
 }

@@ -7,7 +7,7 @@ isLvalue(const plAstNode *node)
 {
     const plAstMaxSplitNode *splitter = (const plAstMaxSplitNode *)node;
 
-    switch (node->token.marker) {
+    switch (node->header.marker) {
     case PL_MARKER_NAME: return true;
 
     case PL_MARKER_PERIOD:
@@ -31,7 +31,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         return ret;
     }
 
-    switch (token.marker) {
+    switch (token.header.marker) {
     case PL_MARKER_DROP:
     case PL_MARKER_END:
     case PL_MARKER_BREAK:
@@ -41,18 +41,18 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             return ret;
         }
 
-        *node = plAstNew(token.marker);
+        *node = plAstNew(token.header.marker);
         if (!*node) {
             return PL_RET_OUT_OF_MEMORY;
         }
-        memcpy(&(*node)->token, &token, sizeof(token));
+        plAstCopyTokenInfo(*node, &token);
 
         return PL_RET_OK;
 
     case PL_MARKER_PROD:
     case PL_MARKER_VERIFY:
     case PL_MARKER_ABORT:
-        ret = plParseExpression(scanner, &first_node, (token.marker == PL_MARKER_ABORT));
+        ret = plParseExpression(scanner, &first_node, (token.header.marker == PL_MARKER_ABORT));
         if (ret != PL_RET_OK) {
             return ret;
         }
@@ -62,12 +62,12 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             goto error;
         }
 
-        *node = plAstCreateFamily(token.marker, first_node);
+        *node = plAstCreateFamily(token.header.marker, first_node);
         if (!*node) {
             ret = PL_RET_OUT_OF_MEMORY;
             goto error;
         }
-        memcpy(&(*node)->token, &token, sizeof(token));
+        plAstCopyTokenInfo(*node, &token);
 
         return PL_RET_OK;
 
@@ -78,7 +78,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
     default: break;
     }
 
-    if (token.marker == PL_MARKER_NAME) {
+    if (token.header.marker == PL_MARKER_NAME) {
         plLexicalToken next_token;
 
         ret = NEXT_TOKEN(scanner, &next_token);
@@ -87,7 +87,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             return ret;
         }
 
-        if (next_token.marker == PL_MARKER_AS) {
+        if (next_token.header.marker == PL_MARKER_AS) {
             plAstNode *name_node, *type_node;
 
             ret = plParseExtendedType(scanner, &type_node);
@@ -109,15 +109,15 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
                 plAstFree(type_node, scanner->table);
                 return PL_RET_OUT_OF_MEMORY;
             }
-            memcpy(&name_node->token, &token, sizeof(token));
+            plAstCopyTokenInfo(name_node, &token);
 
-            *node = plAstCreateFamily(next_token.marker, name_node, type_node);
+            *node = plAstCreateFamily(next_token.header.marker, name_node, type_node);
             if (*node) {
                 plAstFree(name_node, scanner->table);
                 plAstFree(type_node, scanner->table);
                 return PL_RET_OUT_OF_MEMORY;
             }
-            memcpy(&(*node)->token, &next_token, sizeof(next_token));
+            plAstCopyTokenInfo(*node, &next_token);
 
             return PL_RET_OK;
         }
@@ -129,7 +129,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             }
         }
     }
-    else if (token.marker == PL_MARKER_ARITHMETIC && token.submarker == PL_SUBMARKER_MODULO) {
+    else if (token.header.marker == PL_MARKER_ARITHMETIC && token.header.submarker == PL_SUBMARKER_MODULO) {
         plLexicalToken next_token;
 
         ret = NEXT_TOKEN(scanner, &next_token);
@@ -137,7 +137,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             return ret;
         }
 
-        if (next_token.marker == PL_MARKER_NAME) {
+        if (next_token.header.marker == PL_MARKER_NAME) {
             plAstNode *name_node;
 
             name_node = plAstNew(PL_MARKER_NAME);
@@ -145,14 +145,14 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
                 plTokenCleanup(&next_token, scanner->table);
                 return PL_RET_OUT_OF_MEMORY;
             }
-            memcpy(&name_node->token, &next_token, sizeof(next_token));
+            plAstCopyTokenInfo(name_node, &next_token);
 
             *node = plAstCreateFamily('%', name_node);
             if (!*node) {
                 plAstFree(name_node, scanner->table);
                 return PL_RET_OUT_OF_MEMORY;
             }
-            memcpy(&(*node)->token.location, &token.location, sizeof(token.location));
+            memcpy(&(*node)->header.location, &token.header.location, sizeof(token.header.location));
 
             return PL_RET_OK;
         }
@@ -179,7 +179,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         goto error;
     }
 
-    if (token.marker == PL_MARKER_REASSIGNMENT) {
+    if (token.header.marker == PL_MARKER_REASSIGNMENT) {
         plAstNode *rvalue_node;
 
         if (!isLvalue(first_node)) {
@@ -205,13 +205,13 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             ret = PL_RET_OUT_OF_MEMORY;
             goto error;
         }
-        memcpy(&(*node)->token, &token, sizeof(token));
+        plAstCopyTokenInfo(*node, &token);
 
         return PL_RET_OK;
     }
 
-    if (token.marker != PL_MARKER_ARROW) {
-        PARSER_ERROR("Unexpected %s following expression", plLexicalMarkerName(token.marker));
+    if (token.header.marker != PL_MARKER_ARROW) {
+        PARSER_ERROR("Unexpected %s following expression", plLexicalMarkerName(token.header.marker));
         plTokenCleanup(&token, scanner->table);
         ret = PL_RET_BAD_DATA;
         goto error;
@@ -233,7 +233,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
     }
-    memcpy(&(*node)->token, &token, sizeof(token));
+    plAstCopyTokenInfo(*node, &token);
 
     return PL_RET_OK;
 
@@ -267,7 +267,7 @@ plParseStatementList(plLexicalScanner *scanner, plAstNode **node)
             goto error;
         }
 
-        if (token.marker == PL_MARKER_RIGHT_BRACE) {
+        if (token.header.marker == PL_MARKER_RIGHT_BRACE) {
             break;
         }
 

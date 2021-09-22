@@ -19,7 +19,7 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
             return ret;
         }
 
-        if (token.marker == PL_MARKER_RIGHT_PARENS) {
+        if (token.header.marker == PL_MARKER_RIGHT_PARENS) {
             if (previous_marker == PL_MARKER_COMMA) {
                 PARSER_ERROR("Unexpected ')' following ',' in argument list.");
                 return PL_RET_BAD_DATA;
@@ -27,7 +27,7 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
             return PL_RET_OK;
         }
 
-        if (token.marker == PL_MARKER_COMMA) {
+        if (token.header.marker == PL_MARKER_COMMA) {
             if (previous_marker == PL_MARKER_LEFT_PARENS || previous_marker == PL_MARKER_COMMA) {
                 PARSER_ERROR("Unexpected ',' following %s in argument list.",
                              plLexicalMarkerName(previous_marker));
@@ -39,14 +39,14 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
                 return PL_RET_BAD_DATA;
             }
 
-            memcpy(&comma_location, &token.location, sizeof(token.location));
+            memcpy(&comma_location, &token.header.location, sizeof(token.header.location));
 
             continue;
         }
 
-        if (token.marker != PL_MARKER_NAME) {
-            PARSER_ERROR("Unexpected %s following %s in argunent list.", plLexicalMarkerName(token.marker),
-                         plLexicalMarkerName(previous_marker));
+        if (token.header.marker != PL_MARKER_NAME) {
+            PARSER_ERROR("Unexpected %s following %s in argunent list.",
+                         plLexicalMarkerName(token.header.marker), plLexicalMarkerName(previous_marker));
             plTokenCleanup(&token, scanner->table);
             return PL_RET_BAD_DATA;
         }
@@ -56,7 +56,7 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
             plTokenCleanup(&token, scanner->table);
             return PL_RET_OUT_OF_MEMORY;
         }
-        memcpy(&name_node->token, &token, sizeof(token));
+        plAstCopyTokenInfo(name_node, &token);
 
         ret = EXPECT_MARKER(scanner, PL_MARKER_COLON, &location);
         if (ret != PL_RET_OK) {
@@ -68,13 +68,13 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
             goto cleanup_name_node;
         }
 
-        if (type_node->token.marker != PL_MARKER_TYPE) {
+        if (type_node->header.marker != PL_MARKER_TYPE) {
             ret = NEXT_TOKEN(scanner, &token);
             if (ret != PL_RET_OK) {
                 goto cleanup_name_node;
             }
 
-            if (token.marker == PL_MARKER_QUESTION) {
+            if (token.header.marker == PL_MARKER_QUESTION) {
                 plAstNode *temp_node;
 
                 temp_node = plAstCreateFamily(PL_MARKER_QUESTION, type_node);
@@ -82,7 +82,7 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
                     ret = PL_RET_OUT_OF_MEMORY;
                     goto cleanup_name_node;
                 }
-                memcpy(&temp_node->token, &token, sizeof(token));
+                plAstCopyTokenInfo(temp_node, &token);
                 type_node = temp_node;
             }
             else {
@@ -99,7 +99,7 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
             plAstFree(type_node, scanner->table);
             goto cleanup_name_node;
         }
-        memcpy(&arg_node->token.location, &location, sizeof(location));
+        memcpy(&arg_node->header.location, &location, sizeof(location));
 
         if (*arg_list) {
             ret = plAstCreateConnection(PL_MARKER_COMMA, arg_list, arg_node);
@@ -107,7 +107,7 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
                 plAstFree(arg_node, scanner->table);
                 return ret;
             }
-            memcpy(&(*arg_list)->token.location, &comma_location, sizeof(comma_location));
+            memcpy(&(*arg_list)->header.location, &comma_location, sizeof(comma_location));
         }
         else {
             *arg_list = arg_node;
@@ -152,7 +152,7 @@ plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
     }
 
     if (global) {
-        if (token.marker != PL_MARKER_NAME) {
+        if (token.header.marker != PL_MARKER_NAME) {
             PARSER_ERROR("Anonymous %s not allowed in global scope.", plLexicalMarkerName(function_marker));
             plTokenCleanup(&token, scanner->table);
             return PL_RET_BAD_DATA;
@@ -163,7 +163,7 @@ plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
             plTokenCleanup(&token, scanner->table);
             return PL_RET_OUT_OF_MEMORY;
         }
-        memcpy(&function_name_node->token, &token, sizeof(token));
+        plAstCopyTokenInfo(function_name_node, &token);
 
         ret = NEXT_TOKEN(scanner, &token);
         if (ret != PL_RET_OK) {
@@ -171,8 +171,8 @@ plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
         }
     }
 
-    if (token.marker != PL_MARKER_LEFT_PARENS) {
-        PARSER_ERROR("Unexpected %s before argument list.", plLexicalMarkerName(token.marker));
+    if (token.header.marker != PL_MARKER_LEFT_PARENS) {
+        PARSER_ERROR("Unexpected %s before argument list.", plLexicalMarkerName(token.header.marker));
         plTokenCleanup(&token, scanner->table);
         ret = PL_RET_BAD_DATA;
         goto error;
@@ -199,7 +199,7 @@ plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
     if (ret != PL_RET_OK) {
         goto error;
     }
-    if (token.marker == PL_MARKER_SEMICOLON) {
+    if (token.header.marker == PL_MARKER_SEMICOLON) {
         if (!global) {
             PARSER_ERROR("Function declaration without definition only allowed in global scope.");
             ret = PL_RET_BAD_DATA;
@@ -209,8 +209,8 @@ plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
         statement_list = NULL;
         goto skip_statement_list;
     }
-    else if (token.marker != PL_MARKER_LEFT_BRACE) {
-        PARSER_ERROR("Unexpected %s after function header.", plLexicalMarkerName(token.marker));
+    else if (token.header.marker != PL_MARKER_LEFT_BRACE) {
+        PARSER_ERROR("Unexpected %s after function header.", plLexicalMarkerName(token.header.marker));
         ret = PL_RET_BAD_DATA;
         goto error;
     }
@@ -227,9 +227,9 @@ skip_statement_list:
         plAstFree(statement_list, scanner->table);
         goto error;
     }
-    memcpy(&(*node)->token.location, &function_location, sizeof(function_location));
+    memcpy(&(*node)->header.location, &function_location, sizeof(function_location));
     if (declaration) {
-        (*node)->token.submarker = PL_SUBMARKER_FUNC_DECL;
+        (*node)->header.submarker = PL_SUBMARKER_FUNC_DECL;
     }
 
     splitter = (plAstMaxSplitNode *)(*node);

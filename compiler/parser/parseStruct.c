@@ -25,8 +25,9 @@ plParseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
         return ret;
     }
 
-    if (token.marker != PL_MARKER_NAME) {
-        PARSER_ERROR("Expected NAME instead of %s following STRUCT.", plLexicalMarkerName(token.marker));
+    if (token.header.marker != PL_MARKER_NAME) {
+        PARSER_ERROR("Expected NAME instead of %s following STRUCT.",
+                     plLexicalMarkerName(token.header.marker));
         plTokenCleanup(&token, scanner->table);
         return PL_RET_BAD_DATA;
     }
@@ -35,7 +36,7 @@ plParseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
         plTokenCleanup(&token, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
     }
-    memcpy(&struct_name_node->token, &token, sizeof(token));
+    plAstCopyTokenInfo(struct_name_node, &token);
 
     ret = EXPECT_MARKER(scanner, PL_MARKER_LEFT_BRACE, NULL);
     if (ret != PL_RET_OK) {
@@ -52,11 +53,11 @@ plParseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
             goto error;
         }
 
-        if (token.marker == PL_MARKER_RIGHT_BRACE) {
+        if (token.header.marker == PL_MARKER_RIGHT_BRACE) {
             break;
         }
 
-        if (token.marker != PL_MARKER_NAME) {
+        if (token.header.marker != PL_MARKER_NAME) {
             PARSER_ERROR("Expected NAME at beginning of struct field definition.");
             ret = PL_RET_BAD_DATA;
             goto loop_error;
@@ -78,7 +79,7 @@ plParseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
             ret = PL_RET_OUT_OF_MEMORY;
             goto loop_error;
         }
-        memcpy(&name_node->token, &token, sizeof(token));
+        plAstCopyTokenInfo(name_node, &token);
 
         arg_node = plAstCreateFamily(PL_MARKER_COLON, name_node, type_node);
         if (!arg_node) {
@@ -87,7 +88,7 @@ plParseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
             ret = PL_RET_OUT_OF_MEMORY;
             goto error;
         }
-        memcpy(&arg_node->token.location, &colon_location, sizeof(colon_location));
+        memcpy(&arg_node->header.location, &colon_location, sizeof(colon_location));
 
         if (arg_list) {
             ret = plAstCreateConnection(PL_MARKER_SEMICOLON, &arg_list, arg_node);
@@ -124,7 +125,7 @@ loop_error:
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
     }
-    memcpy(&(*node)->token.location, &location, sizeof(location));
+    memcpy(&(*node)->header.location, &location, sizeof(location));
 
     return PL_RET_OK;
 

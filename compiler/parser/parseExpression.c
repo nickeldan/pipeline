@@ -26,9 +26,9 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **node, plOperatorOr
 static plOperatorOrder_t
 operatorOrder(const plLexicalToken *token)
 {
-    switch (token->marker) {
+    switch (token->header.marker) {
     case PL_MARKER_ARITHMETIC:
-        switch (token->submarker) {
+        switch (token->header.submarker) {
         case PL_SUBMARKER_AND:
         case PL_SUBMARKER_OR: return PL_ORDER_BIT;
 
@@ -94,14 +94,14 @@ start:
         return ret;
     }
 
-    switch (token.marker) {
+    switch (token.header.marker) {
     case PL_MARKER_LEFT_PARENS:
         ret = NEXT_TOKEN(scanner, &token);
         if (ret != PL_RET_OK) {
             return ret;
         }
 
-        if (token.marker == PL_MARKER_SOURCE) {
+        if (token.header.marker == PL_MARKER_SOURCE) {
             plLexicalLocation arrow_location;
 
             if (compilation_only) {
@@ -130,7 +130,7 @@ start:
                 plAstFree(second_node, scanner->table);
                 goto error;
             }
-            memcpy(&(*node)->token.location, &arrow_location, sizeof(arrow_location));
+            memcpy(&(*node)->header.location, &arrow_location, sizeof(arrow_location));
         }
         else {
             plOperatorOrder_t new_order;
@@ -161,7 +161,7 @@ start:
 
         negation = !negation;
         if (negation) {
-            memcpy(&negation_location, &token.location, sizeof(token.location));
+            memcpy(&negation_location, &token.header.location, sizeof(token.header.location));
         }
         goto start;
 
@@ -181,7 +181,7 @@ start:
             goto error;
         }
 
-        if (token.marker == PL_MARKER_LEFT_PARENS) {
+        if (token.header.marker == PL_MARKER_LEFT_PARENS) {
             plOperatorOrder_t new_order = compilation_only ? PL_ORDER_START : PL_ORDER_COMMA;
 
             ret = parseExpressionStart(scanner, &second_node, new_order, compilation_only);
@@ -194,7 +194,7 @@ start:
                 plAstFree(second_node, scanner->table);
                 goto error;
             }
-            memcpy(&(*node)->token.location, &token.location, sizeof(token.location));
+            memcpy(&(*node)->header.location, &token.header.location, sizeof(token.header.location));
 
             ret = EXPECT_MARKER(scanner, PL_MARKER_RIGHT_PARENS, NULL);
             if (ret != PL_RET_OK) {
@@ -212,14 +212,15 @@ start:
     case PL_MARKER_OBJECT:
     case PL_MARKER_TYPE:
     case PL_MARKER_CONTEXT:
-        *node = plAstNew(token.marker);
+        *node = plAstNew(token.header.marker);
         if (!*node) {
             plTokenCleanup(&token, scanner->table);
             return PL_RET_OUT_OF_MEMORY;
         }
-        memcpy(&(*node)->token, &token, sizeof(token));
+        plAstCopyTokenInfo(*node, &token);
 
-        if (token.marker == PL_MARKER_OBJECT && OBJ_TYPE(&token.ctx.handle) == PL_OBJ_TYPE_BYTE_ARRAY) {
+        if (token.header.marker == PL_MARKER_OBJECT &&
+            OBJ_TYPE(&token.data.handle) == PL_OBJ_TYPE_BYTE_ARRAY) {
             while (true) {
                 plLexicalToken token2;
 
@@ -228,10 +229,10 @@ start:
                     goto error;
                 }
 
-                if (token2.marker == PL_MARKER_OBJECT &&
-                    OBJ_TYPE(&token2.ctx.handle) == PL_OBJ_TYPE_BYTE_ARRAY) {
-                    ret = plConcatenateByteArrays((*node)->token.ctx.handle.as.bytes,
-                                                  token2.ctx.handle.as.bytes);
+                if (token2.header.marker == PL_MARKER_OBJECT &&
+                    OBJ_TYPE(&token2.data.handle) == PL_OBJ_TYPE_BYTE_ARRAY) {
+                    ret = plConcatenateByteArrays(NODE_EXTRACT_HANDLE(*node).as.bytes,
+                                                  token2.data.handle.as.bytes);
                     plTokenCleanup(&token2, scanner->table);
                     if (ret != PL_RET_OK) {
                         goto error;
@@ -257,7 +258,7 @@ start:
         break;
 
     default:
-        PARSER_ERROR("Unexpected %s in place of expression.", plLexicalMarkerName(token.marker));
+        PARSER_ERROR("Unexpected %s in place of expression.", plLexicalMarkerName(token.header.marker));
         // I don't need to call plTokenCleanup since I know that it's neither a NAME nor an OBJECT.
         return PL_RET_BAD_DATA;
     }
@@ -269,7 +270,7 @@ start:
             goto error;
         }
 
-        if (token.marker == PL_MARKER_LEFT_BRACKET) {
+        if (token.header.marker == PL_MARKER_LEFT_BRACKET) {
             ret = parseExpressionStart(scanner, &second_node, PL_ORDER_NUMERIC, compilation_only);
             if (ret != PL_RET_OK) {
                 goto error;
@@ -277,7 +278,7 @@ start:
 
             ret = EXPECT_MARKER(scanner, PL_MARKER_RIGHT_BRACKET, NULL);
         }
-        else if (token.marker == PL_MARKER_PERIOD) {
+        else if (token.header.marker == PL_MARKER_PERIOD) {
             ret = plParseExtendedName(scanner, &second_node);
         }
         else {
@@ -292,12 +293,12 @@ start:
             goto error;
         }
 
-        ret = plAstCreateConnection(token.marker, node, second_node);
+        ret = plAstCreateConnection(token.header.marker, node, second_node);
         if (ret != PL_RET_OK) {
             plAstFree(second_node, scanner->table);
             goto error;
         }
-        memcpy(&(*node)->token, &token, sizeof(token));
+        plAstCopyTokenInfo(*node, &token);
     }
 
     if (negation_location.line_no > 0) {
@@ -311,7 +312,7 @@ start:
                 ret = PL_RET_OUT_OF_MEMORY;
                 goto error;
             }
-            memcpy(&connector_node->token.location, &negation_location, sizeof(negation_location));
+            memcpy(&connector_node->header.location, &negation_location, sizeof(negation_location));
             *node = connector_node;
         }
     }
@@ -343,8 +344,8 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
             goto error;
         }
 
-        if ((*current)->token.marker == PL_MARKER_COMMA && order < PL_ORDER_COMMA &&
-            token2.marker != PL_MARKER_ARROW) {
+        if ((*current)->header.marker == PL_MARKER_COMMA && order < PL_ORDER_COMMA &&
+            token2.header.marker != PL_MARKER_ARROW) {
             PARSER_ERROR("Expected ARROW after comma-delimited source list.");
             ret = PL_RET_BAD_DATA;
             goto error;
@@ -370,7 +371,7 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
             continue;
         }
 
-        if (token2.marker == PL_MARKER_ARROW) {
+        if (token2.header.marker == PL_MARKER_ARROW) {
             // second_node must be NULL here.
             ret = plParseReceiver(scanner, &second_node);
             if (ret != PL_RET_OK) {
@@ -381,17 +382,17 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
             if (ret != PL_RET_OK) {
                 goto error;
             }
-            memcpy(&(*current)->token, &token2, sizeof(token2));
+            plAstCopyTokenInfo(*current, &token2);
 
             return PL_RET_OK;
         }
 
         if (second_node) {
-            ret = plAstCreateConnection(token1.marker, current, second_node);
+            ret = plAstCreateConnection(token1.header.marker, current, second_node);
             if (ret != PL_RET_OK) {
                 goto error;
             }
-            memcpy(&(*current)->token, &token1, sizeof(token1));
+            plAstCopyTokenInfo(*current, &token1);
             second_node = NULL;
         }
         else {
@@ -405,11 +406,11 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
     }
 
     if (second_node) {
-        ret = plAstCreateConnection(token1.marker, current, second_node);
+        ret = plAstCreateConnection(token1.header.marker, current, second_node);
         if (ret != PL_RET_OK) {
             goto error;
         }
-        memcpy(&(*current)->token, &token1, sizeof(token1));
+        plAstCopyTokenInfo(*current, &token1);
     }
 
     return PL_RET_OK;

@@ -46,10 +46,10 @@ main(int argc, char **argv)
             }
             line_no = scanner.location.line_no;
         }
-        printf("%s ", plLexicalMarkerName(token.marker));
+        printf("%s ", plLexicalMarkerName(token.header.marker));
 
-        if (token.marker == PL_MARKER_OBJECT) {
-            plFreeObject(&token.ctx.handle);
+        if (token.header.marker == PL_MARKER_OBJECT) {
+            plFreeObject(&token.data.handle);
         }
     }
 

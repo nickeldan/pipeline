@@ -25,17 +25,17 @@ plParseReceiver(plLexicalScanner *scanner, plAstNode **node)
             goto error;
         }
 
-        if (token.marker == PL_MARKER_UNDERSCORE) {
+        if (token.header.marker == PL_MARKER_UNDERSCORE) {
             second_node = plAstNew(PL_MARKER_UNDERSCORE);
             if (!second_node) {
                 ret = PL_RET_OUT_OF_MEMORY;
                 goto error;
             }
-            memcpy(&second_node->token, &token, sizeof(token));
+            plAstCopyTokenInfo(second_node, &token);
             goto connect_nodes;
         }
-        else if (token.marker == PL_MARKER_PIPE || token.marker == PL_MARKER_SINK ||
-                 token.marker == PL_MARKER_LOCAL) {
+        else if (token.header.marker == PL_MARKER_PIPE || token.header.marker == PL_MARKER_SINK ||
+                 token.header.marker == PL_MARKER_LOCAL) {
             ret = plParseFunction(scanner, &second_node, false);
             if (ret != PL_RET_OK) {
                 goto error;
@@ -52,13 +52,13 @@ plParseReceiver(plLexicalScanner *scanner, plAstNode **node)
                 goto error;
             }
 
-            if (second_node->token.marker != PL_MARKER_TYPE) {
+            if (second_node->header.marker != PL_MARKER_TYPE) {
                 ret = NEXT_TOKEN(scanner, &token);
                 if (ret != PL_RET_OK) {
                     goto loop_error;
                 }
 
-                if (token.marker == PL_MARKER_LEFT_PARENS) {
+                if (token.header.marker == PL_MARKER_LEFT_PARENS) {
                     plAstNode *attached_node;
 
                     ret = plParseExpression(scanner, &attached_node, false);
@@ -71,7 +71,7 @@ plParseReceiver(plLexicalScanner *scanner, plAstNode **node)
                         plAstFree(attached_node, scanner->table);
                         goto loop_error;
                     }
-                    memcpy(&second_node->token, &token, sizeof(token));
+                    plAstCopyTokenInfo(second_node, &token);
                 }
                 else {
                     ret = LOOKAHEAD_STORE(scanner, &token);
@@ -87,11 +87,11 @@ plParseReceiver(plLexicalScanner *scanner, plAstNode **node)
             goto loop_error;
         }
 
-        if (token.marker == PL_MARKER_COLON) {
+        if (token.header.marker == PL_MARKER_COLON) {
             plLexicalToken token2;
             plAstNode *store_node;
 
-            if (second_node->token.marker == PL_MARKER_TYPE) {
+            if (second_node->header.marker == PL_MARKER_TYPE) {
                 PARSER_ERROR("Unexpected ':' following TYPE.");
                 ret = PL_RET_BAD_DATA;
                 goto loop_error;
@@ -102,8 +102,9 @@ plParseReceiver(plLexicalScanner *scanner, plAstNode **node)
                 goto loop_error;
             }
 
-            if (token2.marker != PL_MARKER_NAME) {
-                PARSER_ERROR("Expected NAME following ':', not %s.", plLexicalMarkerName(token2.marker));
+            if (token2.header.marker != PL_MARKER_NAME) {
+                PARSER_ERROR("Expected NAME following ':', not %s.",
+                             plLexicalMarkerName(token2.header.marker));
                 plTokenCleanup(&token2, scanner->table);
                 ret = PL_RET_BAD_DATA;
                 goto loop_error;
@@ -115,14 +116,14 @@ plParseReceiver(plLexicalScanner *scanner, plAstNode **node)
                 ret = PL_RET_OUT_OF_MEMORY;
                 goto loop_error;
             }
-            memcpy(&store_node->token, &token2, sizeof(token2));
+            plAstCopyTokenInfo(store_node, &token2);
 
             ret = plAstCreateConnection(PL_MARKER_COLON, &second_node, store_node);
             if (ret != PL_RET_OK) {
                 plAstFree(store_node, scanner->table);
                 goto loop_error;
             }
-            memcpy(&second_node->token, &token, sizeof(token));
+            plAstCopyTokenInfo(second_node, &token);
         }
         else {
             ret = LOOKAHEAD_STORE(scanner, &token);
@@ -139,13 +140,13 @@ connect_nodes:
                 plAstFree(second_node, scanner->table);
                 goto error;
             }
-            memcpy(&(*node)->token.location, &arrow_location, sizeof(arrow_location));
+            memcpy(&(*node)->header.location, &arrow_location, sizeof(arrow_location));
         }
         else {
             *node = second_node;
         }
 
-        if (second_node->token.marker == PL_MARKER_UNDERSCORE) {
+        if (second_node->header.marker == PL_MARKER_UNDERSCORE) {
             break;
         }
 
@@ -154,7 +155,7 @@ connect_nodes:
             goto error;
         }
 
-        if (token.marker != PL_MARKER_ARROW) {
+        if (token.header.marker != PL_MARKER_ARROW) {
             ret = LOOKAHEAD_STORE(scanner, &token);
             if (ret != PL_RET_OK) {
                 goto error;
@@ -162,7 +163,7 @@ connect_nodes:
             break;
         }
 
-        memcpy(&arrow_location, &token.location, sizeof(token.location));
+        memcpy(&arrow_location, &token.header.location, sizeof(token.header.location));
         continue;
 
 loop_error:

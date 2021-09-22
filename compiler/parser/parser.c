@@ -21,9 +21,9 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
         return ret;
     }
 
-    if (token.marker != PL_MARKER_NAME) {
+    if (token.header.marker != PL_MARKER_NAME) {
         PARSER_ERROR("Expected %s intead of %s.", plLexicalMarkerName(PL_MARKER_NAME),
-                     plLexicalMarkerName(token.marker));
+                     plLexicalMarkerName(token.header.marker));
         plTokenCleanup(&token, scanner->table);
         return PL_RET_BAD_DATA;
     }
@@ -33,14 +33,14 @@ parseImportExport(plLexicalScanner *scanner, plAstNode **node)
         plTokenCleanup(&token, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
     }
-    memcpy(&name_node->token, &token, sizeof(token));
+    plAstCopyTokenInfo(name_node, &token);
 
     *node = plAstCreateFamily(marker, name_node);
     if (!*node) {
         plAstFree(name_node, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
     }
-    memcpy(&(*node)->token.location, &location, sizeof(location));
+    memcpy(&(*node)->header.location, &location, sizeof(location));
 
     ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
     if (ret != PL_RET_OK) {
@@ -71,8 +71,8 @@ parseConstantDeclaration(plLexicalScanner *scanner, plAstNode **node)
     if (ret != PL_RET_OK) {
         goto error;
     }
-    if (token.marker != PL_MARKER_NAME) {
-        PARSER_ERROR("Unexpected %s in place of NAME.", plLexicalMarkerName(token.marker));
+    if (token.header.marker != PL_MARKER_NAME) {
+        PARSER_ERROR("Unexpected %s in place of NAME.", plLexicalMarkerName(token.header.marker));
         plTokenCleanup(&token, scanner->table);
         ret = PL_RET_BAD_DATA;
         goto error;
@@ -83,14 +83,14 @@ parseConstantDeclaration(plLexicalScanner *scanner, plAstNode **node)
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
     }
-    memcpy(&name_node->token, &token, sizeof(token));
+    plAstCopyTokenInfo(name_node, &token);
 
     ret = plAstCreateConnection(PL_MARKER_ARROW, node, name_node);
     if (ret != PL_RET_OK) {
         plAstFree(name_node, scanner->table);
         goto error;
     }
-    memcpy(&(*node)->token.location, &location, sizeof(location));
+    memcpy(&(*node)->header.location, &location, sizeof(location));
 
     ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
     if (ret != PL_RET_OK) {
@@ -123,8 +123,8 @@ parseTypeDecl(plLexicalScanner *scanner, plAstNode **node)
         return ret;
     }
 
-    if (token.marker != PL_MARKER_NAME) {
-        PARSER_ERROR("Unexpected %s in place of NAME.", plLexicalMarkerName(token.marker));
+    if (token.header.marker != PL_MARKER_NAME) {
+        PARSER_ERROR("Unexpected %s in place of NAME.", plLexicalMarkerName(token.header.marker));
         plTokenCleanup(&token, scanner->table);
         return PL_RET_BAD_DATA;
     }
@@ -134,7 +134,7 @@ parseTypeDecl(plLexicalScanner *scanner, plAstNode **node)
         plTokenCleanup(&token, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
     }
-    memcpy(&name_node->token, &token, sizeof(token));
+    plAstCopyTokenInfo(name_node, &token);
 
     ret = plParseExtendedType(scanner, &type_node);
     if (ret != PL_RET_OK) {
@@ -151,7 +151,7 @@ parseTypeDecl(plLexicalScanner *scanner, plAstNode **node)
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
     }
-    memcpy(&(*node)->token.location, &location, sizeof(location));
+    memcpy(&(*node)->header.location, &location, sizeof(location));
 
     return PL_RET_OK;
 
@@ -188,7 +188,7 @@ parseMain(plLexicalScanner *scanner, plAstNode **node)
         plAstFree(statement_list, scanner->table);
         return PL_RET_OUT_OF_MEMORY;
     }
-    memcpy(&(*node)->token.location, &location, sizeof(location));
+    memcpy(&(*node)->header.location, &location, sizeof(location));
 
     return PL_RET_OK;
 }
@@ -211,7 +211,7 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
         case PL_MARKER_EXPORT_ALL:
             node = plAstNew(PL_MARKER_EXPORT_ALL);
             if (node) {
-                memcpy(&node->token.location, &token.location, sizeof(token.location));
+                memcpy(&node->header.location, &token.header.location, sizeof(token.header.location));
                 ret = PL_RET_OK;
             }
             else {
@@ -322,15 +322,15 @@ plExpectMarkerNoLog(plLexicalScanner *scanner, int marker, plLexicalLocation *lo
         return ret;
     }
 
-    if (token.marker != marker) {
+    if (token.header.marker != marker) {
         PARSER_ERROR("Expected %s instead of %s.", plLexicalMarkerName(marker),
-                     plLexicalMarkerName(token.marker));
+                     plLexicalMarkerName(token.header.marker));
         plTokenCleanup(&token, scanner->table);
         return PL_RET_BAD_DATA;
     }
 
     if (location) {
-        memcpy(location, &token.location, sizeof(token.location));
+        memcpy(location, &token.header.location, sizeof(token.header.location));
     }
 
     return PL_RET_OK;
@@ -360,18 +360,32 @@ plExpectMarkerLog(const char *file_name, const char *function_name, unsigned int
         return ret;
     }
 
-    if (token.marker != marker) {
+    if (token.header.marker != marker) {
         vasqLogStatement(scanner->parser_logger, VASQ_LL_ERROR, file_name, function_name, line_no,
-                         "Unexpected %s.", plLexicalMarkerName(token.marker));
+                         "Unexpected %s.", plLexicalMarkerName(token.header.marker));
         plTokenCleanup(&token, scanner->table);
         return PL_RET_BAD_DATA;
     }
 
     if (location) {
-        memcpy(location, &token.location, sizeof(token.location));
+        memcpy(location, &token.header.location, sizeof(token.header.location));
     }
 
     return PL_RET_OK;
 }
 
 #endif  // LL_USE == -1
+
+void
+plAstCopyTokenInfo(plAstNode *node, const plLexicalToken *token)
+{
+    if (!node || !token) {
+        VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
+        return;
+    }
+
+    memcpy(&node->header, &token->header, sizeof(token->header));
+    if (plAstSplitSize(node->header.marker) == -1) {
+        memcpy(&((plAstNodeWithData *)node)->data, &token->data, sizeof(token->data));
+    }
+}

@@ -32,6 +32,9 @@ plExpectMarkerLog(const char *file_name, const char *function_name, unsigned int
 
 #endif  // LL_USE == -1
 
+void
+plAstCopyTokenInfo(plAstNode *node, const plLexicalToken *token);
+
 int
 plParseExtendedName(plLexicalScanner *scanner, plAstNode **node);
 

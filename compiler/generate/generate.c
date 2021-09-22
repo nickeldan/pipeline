@@ -73,7 +73,7 @@ error:
 static int
 compileGlobalSpace(plSemanticContext *sem, plAstNode *tree)
 {
-    switch (tree->token.marker) {
+    switch (tree->header.marker) {
     case PL_MARKER_IMPORT: return plCompileImport(sem, tree);
 
     case PL_MARKER_EXPORT: return plCompileExport(sem, tree);
@@ -161,8 +161,8 @@ plResolveExtendedName(const plSemanticContext *sem, const plAstNode *node, size_
         return NULL;
     }
 
-    if (node->token.marker == PL_MARKER_NAME) {
-        return plFindReference(sem, node->token.ctx.name, idx);
+    if (node->header.marker == PL_MARKER_NAME) {
+        return plFindReference(sem, NODE_EXTRACT_NAME(node), idx);
     }
 
     PLACEHOLDER();

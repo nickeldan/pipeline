@@ -27,11 +27,11 @@ void
 plContextError(const char *file_name, const char *function_name, unsigned int line_no,
                const vasqLogger *logger, const plLexicalLocation *location, bool error, const char *format,
                ...);
-#define CONTEXT_ERROR(node, format, ...)                                                             \
-    plContextError(__FILE__, __func__, __LINE__, sem->logger, &(node)->token.location, true, format, \
+#define CONTEXT_ERROR(node, format, ...)                                                              \
+    plContextError(__FILE__, __func__, __LINE__, sem->logger, &(node)->header.location, true, format, \
                    ##__VA_ARGS__)
-#define CONTEXT_WARNING(node, format, ...)                                                            \
-    plContextError(__FILE__, __func__, __LINE__, sem->logger, &(node)->token.location, false, format, \
+#define CONTEXT_WARNING(node, format, ...)                                                             \
+    plContextError(__FILE__, __func__, __LINE__, sem->logger, &(node)->header.location, false, format, \
                    ##__VA_ARGS__)
 
 plReference *

@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "ast.h"
+#include "scanner.h"
 
 plAstNode *
 plAstNew(int node_type)
@@ -10,6 +11,14 @@ plAstNew(int node_type)
     plAstNode *node;
 
     switch (plAstSplitSize(node_type)) {
+    case -1:
+        node = VASQ_MALLOC(debug_logger, sizeof(plAstNodeWithData));
+        if (node) {
+            *(plAstNodeWithData *)node = (plAstNodeWithData){0};
+            goto set_node_type;
+        }
+        break;
+
     case 0:
         node = VASQ_MALLOC(debug_logger, sizeof(plAstNode));
         if (node) {
@@ -66,7 +75,7 @@ plAstNew(int node_type)
 
 set_node_type:
 
-    node->token.marker = node_type;
+    node->header.marker = node_type;
     return node;
 }
 
@@ -80,12 +89,18 @@ plAstFree(plAstNode *node, plWordTable *table)
         return;
     }
 
-    split_size = plAstSplitSize(node->token.marker);
+    split_size = plAstSplitSize(node->header.marker);
     for (int k = 0; k < split_size; k++) {
         plAstFree(splitter->nodes[k], table);
     }
 
-    plTokenCleanup(&node->token, table);
+    if (split_size == -1) {
+        plLexicalToken token;
+
+        memcpy(&token.header, &node->header, sizeof(node->header));
+        memcpy(&token.data, &((plAstNodeWithData *)node)->data, sizeof(token.data));
+        plTokenCleanup(&token, table);
+    }
     free(node);
 }
 
@@ -94,7 +109,8 @@ plAstSplitSize(int node_type)
 {
     switch (node_type) {
     case PL_MARKER_NAME:
-    case PL_MARKER_OBJECT:
+    case PL_MARKER_OBJECT: return -1;
+
     case PL_MARKER_DROP:
     case PL_MARKER_END:
     case PL_MARKER_BREAK:
@@ -138,7 +154,7 @@ plAstSplitSize(int node_type)
     case PL_MARKER_SOURCE:
     case PL_MARKER_PIPE: return 4;
 
-    default: return -1;
+    default: return -2;
     }
 }
 
@@ -218,13 +234,13 @@ plAstPrint(const plAstNode *node, unsigned int margin)
         return;
     }
 
-    printf("%s", plLexicalMarkerName(node->token.marker));
-    if (node->token.marker == PL_MARKER_NAME) {
-        printf(" (%s)", node->token.ctx.name);
+    printf("%s", plLexicalMarkerName(node->header.marker));
+    if (node->header.marker == PL_MARKER_NAME) {
+        printf(" (%s)", NODE_EXTRACT_NAME(node));
     }
     printf("\n");
 
-    split_size = plAstSplitSize(node->token.marker);
+    split_size = plAstSplitSize(node->header.marker);
     for (int k = 0; k < split_size; k++) {
         plAstPrint(splitter->nodes[k], margin + 1);
     }

@@ -25,7 +25,7 @@ plParseExtendedName(plLexicalScanner *scanner, plAstNode **node)
         }
 
         if (*node) {
-            if (token.marker != PL_MARKER_PERIOD) {
+            if (token.header.marker != PL_MARKER_PERIOD) {
                 ret = LOOKAHEAD_STORE(scanner, &token);
                 if (ret != PL_RET_OK) {
                     goto error;
@@ -38,7 +38,7 @@ plParseExtendedName(plLexicalScanner *scanner, plAstNode **node)
                 ret = PL_RET_OUT_OF_MEMORY;
                 goto error;
             }
-            memcpy(&period_node->token, &token, sizeof(token));
+            plAstCopyTokenInfo(period_node, &token);
 
             ret = NEXT_TOKEN(scanner, &token);
             if (ret != PL_RET_OK) {
@@ -49,8 +49,8 @@ plParseExtendedName(plLexicalScanner *scanner, plAstNode **node)
             period_node = NULL;
         }
 
-        if (token.marker != PL_MARKER_NAME) {
-            PARSER_ERROR("Unexpected %s where NAME was expected.", plLexicalMarkerName(token.marker));
+        if (token.header.marker != PL_MARKER_NAME) {
+            PARSER_ERROR("Unexpected %s where NAME was expected.", plLexicalMarkerName(token.header.marker));
             plTokenCleanup(&token, scanner->table);
             ret = PL_RET_BAD_DATA;
             goto loop_error;
@@ -62,7 +62,7 @@ plParseExtendedName(plLexicalScanner *scanner, plAstNode **node)
             ret = PL_RET_OUT_OF_MEMORY;
             goto loop_error;
         }
-        memcpy(&name_node->token, &token, sizeof(token));
+        plAstCopyTokenInfo(name_node, &token);
 
         if (period_node) {
             plAstMaxSplitNode *splitter = (plAstMaxSplitNode *)period_node;
@@ -112,13 +112,13 @@ plParseExtendedType(plLexicalScanner *scanner, plAstNode **node)
         return ret;
     }
 
-    if (token.marker == PL_MARKER_TYPE) {
+    if (token.header.marker == PL_MARKER_TYPE) {
         *node = plAstNew(PL_MARKER_TYPE);
         if (!*node) {
             plTokenCleanup(&token, scanner->table);
             return PL_RET_OUT_OF_MEMORY;
         }
-        memcpy(&(*node)->token, &token, sizeof(token));
+        plAstCopyTokenInfo(*node, &token);
     }
     else {
         ret = LOOKAHEAD_STORE(scanner, &token);
@@ -136,7 +136,7 @@ plParseExtendedType(plLexicalScanner *scanner, plAstNode **node)
             goto error;
         }
 
-        if (token.marker == PL_MARKER_QUESTION) {
+        if (token.header.marker == PL_MARKER_QUESTION) {
             plAstNode *question_node;
 
             question_node = plAstCreateFamily(PL_MARKER_QUESTION, *node);
@@ -144,7 +144,7 @@ plParseExtendedType(plLexicalScanner *scanner, plAstNode **node)
                 ret = PL_RET_OUT_OF_MEMORY;
                 goto error;
             }
-            memcpy(&question_node->token, &token, sizeof(token));
+            plAstCopyTokenInfo(question_node, &token);
             *node = question_node;
         }
         else {

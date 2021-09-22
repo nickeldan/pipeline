@@ -39,7 +39,7 @@ plParseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
     }
-    memcpy(&(*node)->token.location, &location, sizeof(location));
+    memcpy(&(*node)->header.location, &location, sizeof(location));
 
     return PL_RET_OK;
 

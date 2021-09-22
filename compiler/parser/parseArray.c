@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "parserInternal.h"
 
 int
@@ -23,10 +25,10 @@ plParseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node, bool compil
             goto error;
         }
 
-        if (token.marker == PL_MARKER_RIGHT_BRACKET) {
+        if (token.header.marker == PL_MARKER_RIGHT_BRACKET) {
             break;
         }
-        else if (token.marker != PL_MARKER_COMMA) {
+        else if (token.header.marker != PL_MARKER_COMMA) {
             PARSER_ERROR("Expected ',' or ']' following expression in array declaration.");
             plTokenCleanup(&token, scanner->table);
             ret = PL_RET_BAD_DATA;
@@ -43,7 +45,7 @@ plParseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node, bool compil
             plAstFree(second_node, scanner->table);
             goto error;
         }
-        memcpy(&(*node)->token, &token, sizeof(token));
+        plAstCopyTokenInfo(*node, &token);
     }
 
     array_node = plAstCreateFamily('A', *node);
@@ -51,7 +53,7 @@ plParseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node, bool compil
         ret = PL_RET_OUT_OF_MEMORY;
         goto error;
     }
-    memcpy(&array_node->token.location, &location, sizeof(location));
+    memcpy(&array_node->header.location, &location, sizeof(location));
     *node = array_node;
 
     return PL_RET_OK;

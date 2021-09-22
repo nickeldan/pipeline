@@ -5,7 +5,7 @@
 #include "table.h"
 #include "util.h"
 
-#include "scanner.h"
+#include "token.h"
 
 //#define AST_HAS_PARENT
 
@@ -15,13 +15,23 @@
 #define AST_PARENT_DECL
 #endif
 
-#define AST_HEADER  \
-    AST_PARENT_DECL \
-    plLexicalToken token;
+#define AST_HEADER                   \
+    struct {                         \
+        AST_PARENT_DECL              \
+        plLexicalTokenHeader header; \
+    };
 
 typedef struct plAstNode {
     AST_HEADER
 } plAstNode;
+
+typedef struct plAstNodeWithData {
+    AST_HEADER
+    plLexicalTokenData data;
+} plAstNodeWithData;
+
+#define NODE_EXTRACT_NAME(node)   (((plAstNodeWithData *)(node))->data.name)
+#define NODE_EXTRACT_HANDLE(node) (((plAstNodeWithData *)(node))->data.handle)
 
 typedef struct plAstOneSplitNode {
     AST_HEADER
@@ -52,7 +62,7 @@ void
 plAstFree(plAstNode *node, plWordTable *table);
 
 int
-plAstSplitSize(int node_type);
+plAstSplitSize(int node_type) __attribute__((pure));
 
 plAstNode *
 plAstCreateFamily(int marker, ...);

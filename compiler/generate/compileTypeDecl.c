@@ -12,7 +12,7 @@ plCompileTypeDecl(plSemanticContext *sem, plAstNode *node)
         return PL_RET_USAGE;
     }
 
-    name = splitter->nodes[0]->token.ctx.name;
+    name = NODE_EXTRACT_NAME(splitter->nodes[0]);
     ref = plFindReference(sem, name, NULL);
     if (ref) {
         CONTEXT_ERROR(node, "%s was already defined as a %s on line %u.", name, plRefTypeName(ref->flags));
@@ -20,11 +20,11 @@ plCompileTypeDecl(plSemanticContext *sem, plAstNode *node)
     }
 
     node = splitter->nodes[1];
-    if (node->token.marker == PL_MARKER_TYPE) {
+    if (node->header.marker == PL_MARKER_TYPE) {
         plRefValue value = {
-            .marker = PL_MARKER_TYPE, .submarker = node->token.submarker, .contains_data = false};
+            .marker = PL_MARKER_TYPE, .submarker = node->header.submarker, .contains_data = false};
 
-        return plStoreReference(sem->stack[1], name, PL_REF_FLAG_TYPE, &value, &node->token.location);
+        return plStoreReference(sem->stack[1], name, PL_REF_FLAG_TYPE, &value, &node->header.location);
     }
 
     PLACEHOLDER();

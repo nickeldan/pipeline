@@ -105,14 +105,20 @@ typedef struct plLexicalLocation {
     unsigned int column_no;
 } plLexicalLocation;
 
-typedef struct plLexicalToken {
-    union {
-        const char *name;
-        plObjectHandle handle;
-    } ctx;
+typedef struct plLexicalTokenHeader {
     plLexicalLocation location;
     int marker;
     int submarker;
+} plLexicalTokenHeader;
+
+typedef union plLexicalTokenData {
+    const char *name;
+    plObjectHandle handle;
+} plLexicalTokenData;
+
+typedef struct plLexicalToken {
+    plLexicalTokenHeader header;
+    plLexicalTokenData data;
 } plLexicalToken;
 
 const char *
