@@ -26,10 +26,7 @@ plParseExtendedName(plLexicalScanner *scanner, plAstNode **node)
 
         if (*node) {
             if (token.header.marker != PL_MARKER_PERIOD) {
-                ret = LOOKAHEAD_STORE(scanner, &token);
-                if (ret != PL_RET_OK) {
-                    goto error;
-                }
+                LOOKAHEAD_STORE(scanner, &token);
                 break;
             }
 
@@ -121,10 +118,7 @@ plParseExtendedType(plLexicalScanner *scanner, plAstNode **node)
         plAstCopyTokenInfo(*node, &token);
     }
     else {
-        ret = LOOKAHEAD_STORE(scanner, &token);
-        if (ret != PL_RET_OK) {
-            return ret;
-        }
+        LOOKAHEAD_STORE(scanner, &token);
 
         ret = plParseExtendedName(scanner, node);
         if (ret != PL_RET_OK) {
@@ -148,10 +142,7 @@ plParseExtendedType(plLexicalScanner *scanner, plAstNode **node)
             *node = question_node;
         }
         else {
-            ret = LOOKAHEAD_STORE(scanner, &token);
-            if (ret != PL_RET_OK) {
-                goto error;
-            }
+            LOOKAHEAD_STORE(scanner, &token);
         }
     }
 

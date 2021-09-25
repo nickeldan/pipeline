@@ -42,10 +42,7 @@ plParseReceiver(plLexicalScanner *scanner, plAstNode **node)
             }
         }
         else {
-            ret = LOOKAHEAD_STORE(scanner, &token);
-            if (ret != PL_RET_OK) {
-                goto error;
-            }
+            LOOKAHEAD_STORE(scanner, &token);
 
             ret = plParseExtendedType(scanner, &second_node);
             if (ret != PL_RET_OK) {
@@ -74,10 +71,7 @@ plParseReceiver(plLexicalScanner *scanner, plAstNode **node)
                     plAstCopyTokenInfo(second_node, &token);
                 }
                 else {
-                    ret = LOOKAHEAD_STORE(scanner, &token);
-                    if (ret != PL_RET_OK) {
-                        goto loop_error;
-                    }
+                    LOOKAHEAD_STORE(scanner, &token);
                 }
             }
         }
@@ -126,10 +120,7 @@ plParseReceiver(plLexicalScanner *scanner, plAstNode **node)
             plAstCopyTokenInfo(second_node, &token);
         }
         else {
-            ret = LOOKAHEAD_STORE(scanner, &token);
-            if (ret != PL_RET_OK) {
-                goto loop_error;
-            }
+            LOOKAHEAD_STORE(scanner, &token);
         }
 
 connect_nodes:
@@ -156,10 +147,7 @@ connect_nodes:
         }
 
         if (token.header.marker != PL_MARKER_ARROW) {
-            ret = LOOKAHEAD_STORE(scanner, &token);
-            if (ret != PL_RET_OK) {
-                goto error;
-            }
+            LOOKAHEAD_STORE(scanner, &token);
             break;
         }
 

@@ -86,10 +86,7 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
                 type_node = temp_node;
             }
             else {
-                ret = LOOKAHEAD_STORE(scanner, &token);
-                if (ret != PL_RET_OK) {
-                    goto cleanup_name_node;
-                }
+                LOOKAHEAD_STORE(scanner, &token);
             }
         }
 

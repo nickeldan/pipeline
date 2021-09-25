@@ -135,10 +135,7 @@ start:
         else {
             plOperatorOrder_t new_order;
 
-            ret = LOOKAHEAD_STORE(scanner, &token);
-            if (ret != PL_RET_OK) {
-                return ret;
-            }
+            LOOKAHEAD_STORE(scanner, &token);
 
             new_order = compilation_only ? PL_ORDER_START : PL_ORDER_ARROW;
             ret = parseExpressionStart(scanner, node, new_order, compilation_only);
@@ -166,10 +163,7 @@ start:
         goto start;
 
     case PL_MARKER_NAME:
-        ret = LOOKAHEAD_STORE(scanner, &token);
-        if (ret != PL_RET_OK) {
-            return ret;
-        }
+        LOOKAHEAD_STORE(scanner, &token);
 
         ret = plParseExtendedName(scanner, node);
         if (ret != PL_RET_OK) {
@@ -202,10 +196,7 @@ start:
             }
         }
         else {
-            ret = LOOKAHEAD_STORE(scanner, &token);
-            if (ret != PL_RET_OK) {
-                goto error;
-            }
+            LOOKAHEAD_STORE(scanner, &token);
         }
         break;
 
@@ -239,10 +230,7 @@ start:
                     }
                 }
                 else {
-                    ret = LOOKAHEAD_STORE(scanner, &token2);
-                    if (ret != PL_RET_OK) {
-                        goto error;
-                    }
+                    LOOKAHEAD_STORE(scanner, &token2);
                     break;
                 }
             }
@@ -282,16 +270,15 @@ start:
             ret = plParseExtendedName(scanner, &second_node);
         }
         else {
-            ret = LOOKAHEAD_STORE(scanner, &token);
-            if (ret != PL_RET_OK) {
-                goto error;
-            }
-            break;
+            LOOKAHEAD_STORE(scanner, &token);
+            goto skip_over_check;
         }
 
         if (ret != PL_RET_OK) {
             goto error;
         }
+
+skip_over_check:
 
         ret = plAstCreateConnection(token.header.marker, node, second_node);
         if (ret != PL_RET_OK) {
@@ -353,10 +340,7 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
 
         new_order = operatorOrder(&token2);
         if (new_order != order) {
-            ret = LOOKAHEAD_STORE(scanner, &token2);
-            if (ret != PL_RET_OK) {
-                goto error;
-            }
+            LOOKAHEAD_STORE(scanner, &token2);
 
             if (new_order > order) {
                 break;
