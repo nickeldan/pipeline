@@ -122,11 +122,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             return PL_RET_OK;
         }
         else {
-            ret = LOOKAHEAD_STORE(scanner, &next_token);
-            if (ret != PL_RET_OK) {
-                plTokenCleanup(&token, scanner->table);
-                return ret;
-            }
+            LOOKAHEAD_STORE(scanner, &next_token);
         }
     }
     else if (token.header.marker == PL_MARKER_ARITHMETIC && token.header.submarker == PL_SUBMARKER_MODULO) {
@@ -157,17 +153,11 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             return PL_RET_OK;
         }
         else {
-            ret = LOOKAHEAD_STORE(scanner, &next_token);
-            if (ret != PL_RET_OK) {
-                return ret;
-            }
+            LOOKAHEAD_STORE(scanner, &next_token);
         }
     }
 
-    ret = LOOKAHEAD_STORE(scanner, &token);
-    if (ret != PL_RET_OK) {
-        return PL_RET_OK;
-    }
+    LOOKAHEAD_STORE(scanner, &token);
 
     ret = plParseExpression(scanner, &first_node, false);
     if (ret != PL_RET_OK) {
@@ -271,10 +261,7 @@ plParseStatementList(plLexicalScanner *scanner, plAstNode **node)
             break;
         }
 
-        ret = LOOKAHEAD_STORE(scanner, &token);
-        if (ret != PL_RET_OK) {
-            goto error;
-        }
+        LOOKAHEAD_STORE(scanner, &token);
 
         ret = parseStatement(scanner, &statement_node);
         if (ret != PL_RET_OK) {

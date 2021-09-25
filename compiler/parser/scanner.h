@@ -48,7 +48,7 @@ plTranslateTerminalMarker(int marker);
 
 #define TOKEN_READ(scanner, token) plTokenRead(scanner, token)
 
-int
+void
 plLookaheadStoreNoLog(plLexicalScanner *scanner, plLexicalToken *token);
 #define LOOKAHEAD_STORE(scanner, token) plLookaheadStoreNoLog(scanner, token)
 
@@ -59,7 +59,7 @@ plTokenReadLog(const char *file_name, const char *function_name, unsigned int li
                plLexicalScanner *scanner, plLexicalToken *token);
 #define TOKEN_READ(scanner, token)      plTokenReadLog(__FILE__, __func__, __LINE__, scanner, token)
 
-int
+void
 plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned int line_no,
                     plLexicalScanner *scanner, plLexicalToken *token);
 #define LOOKAHEAD_STORE(scanner, token) plLookaheadStoreLog(__FILE__, __func__, __LINE__, scanner, token)

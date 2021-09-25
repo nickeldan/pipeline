@@ -51,12 +51,14 @@ plParseIfBlock(plLexicalScanner *scanner, plAstNode **node)
         ret = plParseStatementList(scanner, &else_node);
         break;
 
-    default: ret = LOOKAHEAD_STORE(scanner, &token); break;
+    default: LOOKAHEAD_STORE(scanner, &token); goto skip_over_check;
     }
 
     if (ret != PL_RET_OK) {
         goto error;
     }
+
+skip_over_check:
 
     *node = plAstCreateFamily(PL_MARKER_IF, condition_node, statement_list, else_node);
     if (!*node) {

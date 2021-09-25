@@ -232,10 +232,8 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
         case PL_MARKER_SEMICOLON: continue;
 
         default:
-            ret = LOOKAHEAD_STORE(scanner, &token);
-            if (ret != PL_RET_OK) {
-                goto error;
-            }
+            LOOKAHEAD_STORE(scanner, &token);
+
             ret = parseConstantDeclaration(scanner, &node);
             break;
         }

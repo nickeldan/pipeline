@@ -33,7 +33,7 @@ typedef struct plByteArray {
 
 typedef struct plStructInstance {
     plObjectHandle *handles;
-    plStruct *type;
+    const plStruct *type;
 } plStructInstance;
 
 typedef union plObjectValue {

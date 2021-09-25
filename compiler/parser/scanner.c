@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -806,20 +807,18 @@ plTokenCleanup(plLexicalToken *token, plWordTable *table)
 
 #if LL_USE == -1
 
-int
+void
 plLookaheadStoreNoLog(plLexicalScanner *scanner, plLexicalToken *token)
 {
     if (!scanner || !token) {
-        return PL_RET_USAGE;
+        return;
     }
 
     if (scanner->num_look_ahead == PL_SCANNER_MAX_LOOK_AHEAD) {
-        plTokenCleanup(token, scanner->table);
-        return PL_RET_USAGE;
+        abort();
     }
 
     lookaheadStoreLogic(scanner, token);
-    return PL_RET_OK;
 }
 
 #else  // LL_USE == -1
@@ -842,27 +841,25 @@ plTokenReadLog(const char *file_name, const char *function_name, unsigned int li
     return ret;
 }
 
-int
+void
 plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned int line_no,
                     plLexicalScanner *scanner, plLexicalToken *token)
 {
     if (!scanner || !token) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
-        return PL_MARKER_USAGE;
+        return;
     }
 
     if (scanner->num_look_ahead == PL_SCANNER_MAX_LOOK_AHEAD) {
-        vasqLogStatement(debug_logger, VASQ_LL_ERROR, file_name, function_name, line_no,
+        vasqLogStatement(debug_logger, VASQ_LL_CRITICAL, file_name, function_name, line_no,
                          "Cannot store any more look ahead tokens.");
-        plTokenCleanup(token, scanner->table);
-        return PL_RET_USAGE;
+        abort();
     }
 
     lookaheadStoreLogic(scanner, token);
     vasqLogStatement(debug_logger, VASQ_LL_INFO, file_name, function_name, line_no,
                      "%s stored as look ahead (%u total).", plLexicalMarkerName(token->header.marker),
                      scanner->num_look_ahead);
-    return PL_RET_OK;
 }
 
 #endif  // LL_USE == -1
