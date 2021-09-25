@@ -10,7 +10,6 @@ $$(THIS)_EXTERNAL_DIRS := $(4)
 LITTLE_THIS := $$(shell echo $$(THIS) | tr A-Z a-z)
 
 ifneq ($$($$(THIS)_LIBNAME),)
-    $$(THIS)_SHARED_LIBRARY := $$($$(THIS)_DIR)/lib$$($$(THIS)_LIBNAME).so
     $$(THIS)_STATIC_LIBRARY := $$($$(THIS)_DIR)/lib$$($$(THIS)_LIBNAME).a
 endif
 
@@ -37,14 +36,11 @@ include $$($$(THIS)_DEPS_FILE)
 
 $$(LITTLE_THIS)_clean: T := $$(THIS)
 $$(LITTLE_THIS)_clean:
-	rm -f $$($$(T)_OBJECT_FILES) $$($$(T)_SHARED_LIBRARY) $$($$(T)_STATIC_LIBRARY)
+	rm -f $$($$(T)_OBJECT_FILES) $$($$(T)_STATIC_LIBRARY)
 endef
 
-define libraries_template
+define static_library_template
 THIS := $(1)
-
-$$($$(THIS)_SHARED_LIBRARY): $$($$(THIS)_OBJECT_FILES)
-	$$(CC) -shared -o $$@ $$^
 
 $$($$(THIS)_STATIC_LIBRARY): $$($$(THIS)_OBJECT_FILES)
 	$$(AR) rcs $$@ $$^
@@ -54,7 +50,7 @@ define build_dir
 $$(eval $$(call this_template,$(1),$(2),$(3),$(4)))
 endef
 
-define build_dir_with_libs
+define build_dir_with_lib
 $$(eval $$(call this_template,$(1),$(2),$(3),$(4)))
-$$(eval $$(call libraries_template,$$(THIS)))
+$$(eval $$(call static_library_template,$$(THIS)))
 endef

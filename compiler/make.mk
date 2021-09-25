@@ -1,5 +1,5 @@
-COMPILER_SUBDIRS := parser generate
-COMPILER_SUBDIRS_LINK_ORDER := generate parser
+COMPILER_SUBDIRS := parser generator
+COMPILER_SUBDIRS_LINK_ORDER := generator parser
 COMPILER_SHARED_LIBRARIES :=
 COMPILER_STATIC_LIBRARIES :=
 
@@ -10,10 +10,9 @@ ARG1 := COMPILER_$$(shell echo $(1) | tr a-z A-Z)
 ARG2 := $(COMPILER_DIR)/$(1)
 ARG3 := plcompiler$(1)
 
-$$(eval $$(call build_dir_with_libs,$$(ARG1),$$(ARG2),$$(ARG3),$$(COMPILER_EXTERNAL_DIRS)))
+$$(eval $$(call build_dir_with_lib,$$(ARG1),$$(ARG2),$$(ARG3),$$(COMPILER_EXTERNAL_DIRS)))
 
 COMPILER_EXTERNAL_DIRS := $$(ARG2) $$(COMPILER_EXTERNAL_DIRS)
-COMPILER_SHARED_LIBRARIES := $$($$(THIS)_SHARED_LIBRARY) $$(COMPILER_SHARED_LIBRARIES)
 COMPILER_STATIC_LIBRARIES := $$($$(THIS)_STATIC_LIBRARY) $$(COMPILER_STATIC_LIBRARIES)
 endef
 
