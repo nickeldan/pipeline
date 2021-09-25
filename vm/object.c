@@ -52,24 +52,6 @@ plFreeObject(plObjectHandle *handle)
     }
 }
 
-plObjectHandle
-plBoolLiteral(bool value)
-{
-    return (plObjectHandle){.flags = PL_OBJ_TYPE_BOOL | PL_OBJ_FLAG_OWNED, .as.boolean = value};
-}
-
-plObjectHandle
-plNullLiteral(void)
-{
-    return (plObjectHandle){.flags = PL_OBJ_TYPE_NULL | PL_OBJ_FLAG_OWNED};
-}
-
-plObjectHandle
-plBlankLiteral(void)
-{
-    return (plObjectHandle){.flags = PL_OBJ_TYPE_BLANK | PL_OBJ_FLAG_OWNED};
-}
-
 plByteArray *
 plNewByteArray(void)
 {

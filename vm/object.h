@@ -74,14 +74,21 @@ struct plObjectHandle {
 void
 plFreeObject(plObjectHandle *handle);
 
-plObjectHandle
-plBoolLiteral(bool value);
-
-plObjectHandle
-plNullLiteral(void);
-
-plObjectHandle
-plBlankLiteral(void);
+#define PL_BOOL_LITERAL(value)                                             \
+    (plObjectHandle)                                                       \
+    {                                                                      \
+        .flags = PL_OBJ_TYPE_BOOL | PL_OBJ_FLAG_OWNED, .as.boolean = value \
+    }
+#define PL_NULL_LITERAL                               \
+    (plObjectHandle)                                  \
+    {                                                 \
+        .flags = PL_OBJ_TYPE_NULL | PL_OBJ_FLAG_OWNED \
+    }
+#define PL_BLANK_LITERAL                               \
+    (plObjectHandle)                                   \
+    {                                                  \
+        .flags = PL_OBJ_TYPE_BLANK | PL_OBJ_FLAG_OWNED \
+    }
 
 plByteArray *
 plNewByteArray(void);

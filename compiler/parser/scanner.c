@@ -77,10 +77,10 @@ static plObjectHandle
 resolveStaticLiteral(char c)
 {
     switch (c) {
-    case 't': return plBoolLiteral(true);
-    case 'f': return plBoolLiteral(false);
-    case 'n': return plNullLiteral();
-    default: return plBlankLiteral();
+    case 't': return PL_BOOL_LITERAL(true);
+    case 'f': return PL_BOOL_LITERAL(false);
+    case 'n': return PL_NULL_LITERAL;
+    default: return PL_BLANK_LITERAL;
     }
 }
 
