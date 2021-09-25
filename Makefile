@@ -8,7 +8,7 @@ CFLAGS := -std=gnu11 -fdiagnostics-color -Wall -Wextra -DLL_USE=$(level) -DVASQ_
 ifeq ($(debug),yes)
 	CFLAGS += -O0 -g -DDEBUG
 else
-	CFLAGS += -O3 -DNDEBUG
+	CFLAGS += -O2 -DNDEBUG
 endif
 
 all: _all

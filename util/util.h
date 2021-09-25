@@ -6,6 +6,8 @@
 #include "vasq/logger.h"
 #include "vasq/placeholder.h"
 
+#define HIDDEN_SYMBOL __attribute__((visibility("hidden")))
+
 #define ERROR_STRING   "\e[0;31mError: \e[0m"    // red
 #define WARNING_STRING "\e[0;34mWarning: \e[0m"  // blue
 
