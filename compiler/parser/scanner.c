@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
@@ -249,18 +250,13 @@ readByteString(plLexicalScanner *scanner, plObjectHandle *handle)
 good_string:
 
     array->bytes = VASQ_MALLOC(debug_logger, array->capacity);
-    if (!handle->as.bytes->bytes) {
+    if (!array->bytes) {
         plFreeObject(handle);
         return PL_MARKER_OUT_OF_MEMORY;
     }
 
     for (unsigned int k = 0; k < array->capacity; k++) {
         unsigned char c = scanner->line[k];
-
-        if (!isprint(c) && c != '\t') {
-            PARSER_ERROR("Invalid byte in string literal: 0x%02x", c);
-            goto error;
-        }
 
         if (c == '\\') {
             switch (scanner->line[++k]) {  // I've already checked in the above for loop that I haven't
@@ -814,9 +810,7 @@ plLookaheadStoreNoLog(plLexicalScanner *scanner, plLexicalToken *token)
         return;
     }
 
-    if (scanner->num_look_ahead == PL_SCANNER_MAX_LOOK_AHEAD) {
-        abort();
-    }
+    assert(scanner->num_look_ahead < PL_SCANNER_MAX_LOOK_AHEAD);
 
     lookaheadStoreLogic(scanner, token);
 }
@@ -850,11 +844,7 @@ plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned i
         return;
     }
 
-    if (scanner->num_look_ahead == PL_SCANNER_MAX_LOOK_AHEAD) {
-        vasqLogStatement(debug_logger, VASQ_LL_CRITICAL, file_name, function_name, line_no,
-                         "Cannot store any more look ahead tokens.");
-        abort();
-    }
+    VASQ_ASSERT(debug_logger, scanner->num_look_ahead < PL_SCANNER_MAX_LOOK_AHEAD);
 
     lookaheadStoreLogic(scanner, token);
     vasqLogStatement(debug_logger, VASQ_LL_INFO, file_name, function_name, line_no,
