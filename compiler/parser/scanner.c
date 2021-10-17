@@ -16,51 +16,61 @@ struct keywordRecord {
     int marker;
 };
 
+#define KEYWORD(literal, marker)                         \
+    {                                                    \
+        literal, sizeof(literal) - 1, PL_MARKER_##marker \
+    }
+
 static const struct keywordRecord keywords[] = {
-    {"true", 4, PL_MARKER_OBJECT},
-    {"false", 4, PL_MARKER_OBJECT},
-    {"null", 4, PL_MARKER_OBJECT},
-    {"blank", 5, PL_MARKER_OBJECT},
-    {"Any", 3, PL_MARKER_TYPE},
-    {"Num", 3, PL_MARKER_TYPE},
-    {"Int", 3, PL_MARKER_TYPE},
-    {"Bool", 4, PL_MARKER_TYPE},
-    {"Float", 5, PL_MARKER_TYPE},
-    {"Array", 5, PL_MARKER_TYPE},
-    {"GenArray", 8, PL_MARKER_TYPE},
-    {"Bytes", 5, PL_MARKER_TYPE},
-    {"source", 6, PL_MARKER_SOURCE},
-    {"pipe", 4, PL_MARKER_PIPE},
-    {"sink", 4, PL_MARKER_SINK},
-    {"local", 5, PL_MARKER_LOCAL},
-    {"struct", 6, PL_MARKER_STRUCT},
-    {"typedecl", 8, PL_MARKER_TYPE_DECL},
-    {"while", 5, PL_MARKER_WHILE},
-    {"if", 2, PL_MARKER_IF},
-    {"eif", 3, PL_MARKER_EIF},
-    {"else", 4, PL_MARKER_ELSE},
-    {"prod", 4, PL_MARKER_PROD},
-    {"drop", 4, PL_MARKER_DROP},
-    {"end", 3, PL_MARKER_END},
-    {"not", 3, PL_MARKER_NOT},
-    {"or", 2, PL_MARKER_LOGICAL},
-    {"and", 3, PL_MARKER_LOGICAL},
-    {"cont", 4, PL_MARKER_CONT},
-    {"break", 5, PL_MARKER_BREAK},
-    {"verify", 6, PL_MARKER_VERIFY},
-    {"abort", 5, PL_MARKER_ABORT},
-    {"is", 2, PL_MARKER_IS},
-    {"as", 2, PL_MARKER_AS},
-    {"import", 6, PL_MARKER_IMPORT},
-    {"export", 6, PL_MARKER_EXPORT},
-    {"exportall", 9, PL_MARKER_EXPORT_ALL},
-    {"main", 4, PL_MARKER_MAIN},
+    KEYWORD("true", OBJECT),
+    KEYWORD("false", OBJECT),
+    KEYWORD("null", OBJECT),
+    KEYWORD("blank", OBJECT),
+    KEYWORD("Any", TYPE),
+    KEYWORD("Num", TYPE),
+    KEYWORD("Int", TYPE),
+    KEYWORD("Bool", TYPE),
+    KEYWORD("Float", TYPE),
+    KEYWORD("Array", TYPE),
+    KEYWORD("GenArray", TYPE),
+    KEYWORD("Bytes", TYPE),
+    KEYWORD("source", SOURCE),
+    KEYWORD("pipe", PIPE),
+    KEYWORD("sink", SINK),
+    KEYWORD("local", LOCAL),
+    KEYWORD("struct", STRUCT),
+    KEYWORD("typedecl", TYPE_DECL),
+    KEYWORD("while", WHILE),
+    KEYWORD("if", IF),
+    KEYWORD("eif", EIF),
+    KEYWORD("else", ELSE),
+    KEYWORD("prod", PROD),
+    KEYWORD("drop", DROP),
+    KEYWORD("end", END),
+    KEYWORD("not", NOT),
+    KEYWORD("or", LOGICAL),
+    KEYWORD("and", LOGICAL),
+    KEYWORD("cont", CONT),
+    KEYWORD("break", BREAK),
+    KEYWORD("verify", VERIFY),
+    KEYWORD("abort", ABORT),
+    KEYWORD("is", IS),
+    KEYWORD("as", AS),
+    KEYWORD("import", IMPORT),
+    KEYWORD("export", EXPORT),
+    KEYWORD("exportall", EXPORT_ALL),
+    KEYWORD("main", MAIN),
 };
 
+#define CONTEXT(context)                                       \
+    {                                                          \
+#context, sizeof(#context) - 1, PL_SUBMARKER_##context \
+    }
+
 static const struct keywordRecord contexts[] = {
-    {"STORE", 5, PL_SUBMARKER_STORE},
-    {"ATTACH", 6, PL_SUBMARKER_ATTACH},
-    {"CONTEXT", 7, PL_SUBMARKER_CONTEXT},
+    CONTEXT(STORE),
+    CONTEXT(ATTACH),
+    CONTEXT(CONTEXT),
 };
 
 static bool
@@ -70,9 +80,15 @@ isWhitespace(char c)
 }
 
 static bool
+isStartingVarChar(char c)
+{
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+}
+
+static bool
 isVarChar(char c)
 {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
+    return isStartingVarChar(c) || (c >= '0' && c <= '9');
 }
 
 static plObjectHandle
@@ -392,6 +408,19 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name)
         return PL_RET_OUT_OF_MEMORY;
     }
 
+    scanner->keyword_table = plRefTableNew();
+    if (!scanner->keyword_table) {
+        ret = PL_RET_OUT_OF_MEMORY;
+        goto error;
+    }
+
+    for (size_t k = 0; k < ARRAY_LENGTH(keywords); k++) {
+        if (!plUpdateRef(scanner->keyword_table, keywords[k].word, (void *)(intptr_t)keywords[k].marker)) {
+            ret = PL_RET_OUT_OF_MEMORY;
+            goto error;
+        }
+    }
+
     options.flags = 0;
     options.processor = scannerProcessor;
     options.user = scanner;
@@ -417,9 +446,7 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name)
 
 error:
 
-    plWordTableFree(scanner->table);
-    vasqLoggerFree(scanner->scanner_logger);
-    vasqLoggerFree(scanner->parser_logger);
+    plScannerCleanup(scanner);
 
     return plTranslateVasqRet(ret);
 }
@@ -437,6 +464,7 @@ plScannerCleanup(plLexicalScanner *scanner)
         vasqLoggerFree(scanner->scanner_logger);
         vasqLoggerFree(scanner->parser_logger);
         plWordTableFree(scanner->table);
+        plRefTableFree(scanner->keyword_table);
 
         *scanner = (plLexicalScanner){0};
     }
@@ -608,7 +636,7 @@ arithmetic_token:
         if (isVarChar(scanner->line[1])) {
             unsigned int end;
 
-            for (unsigned int k = 0; k < ARRAY_LENGTH(contexts); k++) {
+            for (size_t k = 0; k < ARRAY_LENGTH(contexts); k++) {
                 if (strncmp(scanner->line + 1, contexts[k].word, contexts[k].len) == 0) {
                     scanner->last_marker = PL_MARKER_CONTEXT;
                     token->header.submarker = contexts[k].marker;
@@ -626,29 +654,49 @@ arithmetic_token:
             scanner->last_marker = PL_MARKER_QUESTION;
             goto done;
         }
+
+    default: break;
     }
 
-    for (unsigned int k = 0; k < ARRAY_LENGTH(keywords); k++) {
-        if (strncmp(scanner->line, keywords[k].word, keywords[k].len) == 0 &&
-            !isVarChar(scanner->line[keywords[k].len])) {
-            scanner->last_marker = keywords[k].marker;
+    if (isStartingVarChar(scanner->line[0])) {
+        void *ref;
 
-            if (scanner->last_marker == PL_MARKER_OBJECT) {
-                token->data.handle = resolveStaticLiteral(scanner->line[0]);
-            }
-            else if (scanner->last_marker == PL_MARKER_LOGICAL) {
+        for (consumed = 1; consumed < scanner->line_length && isVarChar(scanner->line[consumed]);
+             consumed++) {}
+
+        if (consumed + 1 < scanner->line_length && scanner->line[consumed] == '?' &&
+            isVarChar(scanner->line[consumed + 1])) {
+            PARSER_ERROR("A '?' cannot connect two variable characters");
+            scanner->last_marker = PL_MARKER_BAD_DATA;
+            goto return_marker;
+        }
+
+        if (plLookupRef(scanner->keyword_table, scanner->line, consumed, &ref)) {
+            scanner->last_marker = (int)(intptr_t)ref;
+
+            switch (scanner->last_marker) {
+            case PL_MARKER_OBJECT: token->data.handle = resolveStaticLiteral(scanner->line[0]); break;
+            case PL_MARKER_LOGICAL:
                 token->header.submarker = (scanner->line[0] == 'o') ? PL_SUBMARKER_OR : PL_SUBMARKER_AND;
+                break;
+            case PL_MARKER_TYPE: token->header.submarker = resolveType(scanner->line); break;
+            default: break;
             }
-            else if (scanner->last_marker == PL_MARKER_TYPE) {
-                token->header.submarker = resolveType(scanner->line);
+        }
+        else if (consumed == 1 && scanner->line[0] == '_') {
+            scanner->last_marker = PL_MARKER_UNDERSCORE;
+        }
+        else {
+            token->data.name = plRegisterWord(scanner->table, scanner->line, consumed);
+            if (!token->data.name) {
+                scanner->last_marker = PL_MARKER_OUT_OF_MEMORY;
+                goto return_marker;
             }
 
-            consumed = keywords[k].len;
-            goto done;
+            scanner->last_marker = PL_MARKER_NAME;
         }
     }
-
-    if (scanner->line[0] == '0' && scanner->line[1] == 'x') {
+    else if (scanner->line[0] == '0' && scanner->line[1] == 'x') {
         for (consumed = 0; consumed < scanner->line_length; consumed++) {
             if (!isxdigit(scanner->line[consumed])) {
                 if (isVarChar(scanner->line[consumed])) {

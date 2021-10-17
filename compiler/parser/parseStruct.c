@@ -44,7 +44,6 @@ plParseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
     }
 
     while (true) {
-        plLexicalToken token;
         plLexicalLocation colon_location;
         plAstNode *name_node, *type_node, *arg_node;
 

@@ -17,6 +17,7 @@ typedef struct plLexicalScanner {
     vasqLogger *parser_logger;
     FILE *file;
     plWordTable *table;
+    plRefTable *keyword_table;
     const char *file_name;
     char *line;
     plLexicalToken look_ahead[PL_SCANNER_MAX_LOOK_AHEAD];

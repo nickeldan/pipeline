@@ -139,7 +139,7 @@ plFindReference(const plSemanticContext *sem, const char *symbol, size_t *idx)
     for (size_t k = sem->stack_size; k > 0; k--) {
         void *opaque;
 
-        if (plLookupRef(sem->stack[k - 1], symbol, &opaque)) {
+        if (plLookupRef(sem->stack[k - 1], symbol, strlen(symbol), &opaque)) {
             if (idx) {
                 *idx = k - 1;
             }

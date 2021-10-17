@@ -32,7 +32,7 @@ void
 plUnregisterWord(plWordTable *table, const char *word);
 
 bool
-plLookupRef(const plRefTable *table, const char *word, void **ctx);
+plLookupRef(const plRefTable *table, const char *word, unsigned int length, void **ctx);
 
 bool
 plUpdateRef(plRefTable *table, const char *word, void *new_ctx);

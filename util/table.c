@@ -72,7 +72,7 @@ findRecord(const plAbstractTable *table, const char *word, unsigned int length, 
     }
 
     for (plAbstractRecord *traverse = table->records[h]; traverse; traverse = traverse->next) {
-        if (traverse->length == length + 1 && memcmp(traverse->string, word, length) == 0) {
+        if (traverse->length == length && memcmp(traverse->string, word, length) == 0) {
             if (prev) {
                 *prev = p;
             }
@@ -248,7 +248,7 @@ plUnregisterWord(plWordTable *table, const char *word)
 }
 
 bool
-plLookupRef(const plRefTable *table, const char *word, void **ctx)
+plLookupRef(const plRefTable *table, const char *word, unsigned int length, void **ctx)
 {
     plRefRecord *record;
 
@@ -257,7 +257,7 @@ plLookupRef(const plRefTable *table, const char *word, void **ctx)
         return false;
     }
 
-    record = (plRefRecord *)findRecord((const plAbstractTable *)table, word, strlen(word), NULL, NULL);
+    record = (plRefRecord *)findRecord((const plAbstractTable *)table, word, length, NULL, NULL);
     if (!record) {
         return false;
     }

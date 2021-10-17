@@ -271,14 +271,12 @@ start:
         }
         else {
             LOOKAHEAD_STORE(scanner, &token);
-            goto skip_over_check;
+            break;
         }
 
         if (ret != PL_RET_OK) {
             goto error;
         }
-
-skip_over_check:
 
         ret = plAstCreateConnection(token.header.marker, node, second_node);
         if (ret != PL_RET_OK) {
