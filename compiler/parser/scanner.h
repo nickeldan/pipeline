@@ -23,7 +23,6 @@ typedef struct plLexicalScanner {
     plLexicalToken look_ahead[PL_SCANNER_MAX_LOOK_AHEAD];
     plLexicalLocation location;
     plLexicalLocation last_look_ahead_loc;
-    unsigned int comment_block_line_no;
     unsigned int line_length;
     int last_marker;
     unsigned char num_look_ahead;

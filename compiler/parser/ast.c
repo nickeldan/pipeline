@@ -175,15 +175,7 @@ plAstCreateFamily(int marker, ...)
     split_size = plAstSplitSize(marker);
     va_start(args, marker);
     for (int k = 0; k < split_size; k++) {
-        plAstNode *node;
-
-        node = va_arg(args, plAstNode *);
-#ifdef AST_HAS_PARENT
-        if (node) {
-            node->parent = parent;
-        }
-#endif
-        splitter->nodes[k] = node;
+        splitter->nodes[k] = va_arg(args, plAstNode *);
     }
     va_end(args);
 

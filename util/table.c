@@ -8,20 +8,16 @@
 typedef struct plAbstractRecord {
     struct plAbstractRecord *next;
     char *string;
-    unsigned int length;  // Includes the '\0'.
+    unsigned int length;
 } plAbstractRecord;
 
 typedef struct plWordRecord {
-    struct plWordRecord *next;
-    char *string;
-    unsigned int length;
+    plAbstractRecord abstract;
     unsigned int num_references;
 } plWordRecord;
 
 typedef struct plRefRecord {
-    struct plRefRecord *next;
-    char *string;
-    unsigned int length;
+    plAbstractRecord abstract;
     void *ctx;
 } plRefRecord;
 
@@ -172,15 +168,7 @@ plRegisterWord(plWordTable *table, const char *word, unsigned int length)
 
     record = (plWordRecord *)findRecord((plAbstractTable *)table, word, length, &hash, NULL);
     if (record) {
-        if (record->num_references + 1 == 0) {
-            VASQ_ERROR(debug_logger,
-                       "Integer overflow detected when trying to store '%.*s' in table <0x%p>.", length,
-                       word, table);
-            return NULL;
-        }
         record->num_references++;
-        VASQ_DEBUG(debug_logger, "'%.*s' has %u references in table <0x%p>.", length, word,
-                   record->num_references, table);
     }
     else {
         record = VASQ_MALLOC(debug_logger, sizeof(*record));
@@ -188,22 +176,21 @@ plRegisterWord(plWordTable *table, const char *word, unsigned int length)
             return NULL;
         }
 
-        record->string = VASQ_MALLOC(debug_logger, length + 1);
-        if (!record->string) {
+        record->abstract.string = VASQ_MALLOC(debug_logger, length + 1);
+        if (!record->abstract.string) {
             free(record);
             return NULL;
         }
-        memcpy(record->string, word, length);
-        record->string[length] = '\0';
-        record->length = length + 1;
+        memcpy(record->abstract.string, word, length);
+        record->abstract.string[length] = '\0';
+        record->abstract.length = length + 1;
         record->num_references = 1;
 
-        record->next = table->records[hash];
+        record->abstract.next = (plAbstractRecord *)table->records[hash];
         table->records[hash] = record;
-        VASQ_DEBUG(debug_logger, "'%.*s' has 1 reference in table <0x%p>.", length, word, table);
     }
 
-    return record->string;
+    return record->abstract.string;
 }
 
 void
@@ -225,25 +212,19 @@ plUnregisterWord(plWordTable *table, const char *word)
                                         (plAbstractRecord **)&prev);
     if (record) {
         if (--record->num_references == 0) {
-            VASQ_DEBUG(debug_logger, "Removing '%s' from table <0x%p>.", word, table);
-
             if (prev) {
-                prev->next = record->next;
+                prev->abstract.next = record->abstract.next;
             }
             else {
-                table->records[hash] = record->next;
+                table->records[hash] = (plWordRecord *)record->abstract.next;
             }
 
-            free(record->string);
+            free(record->abstract.string);
             free(record);
-        }
-        else {
-            VASQ_DEBUG(debug_logger, "'%s' has %u reference%s in table <0x%p>.", word,
-                       record->num_references, (record->num_references == 1) ? "" : "s", table);
         }
     }
     else {
-        VASQ_WARNING(debug_logger, "'%s' not found in table <0x%p>.", word, table);
+        VASQ_WARNING(debug_logger, "\"%s\" not found in table.", word);
     }
 }
 
@@ -289,13 +270,14 @@ plUpdateRef(plRefTable *table, const char *word, void *new_ctx)
         }
         *record = (plRefRecord){0};
 
-        record->string = strdup(word);
-        if (!record->string) {
+        record->abstract.string = strdup(word);
+        if (!record->abstract.string) {
             free(record);
             return false;
         }
-        record->length = len;
+        record->abstract.length = len;
 
+        record->abstract.next = (plAbstractRecord *)table->records[hash];
         table->records[hash] = record;
     }
 
@@ -338,13 +320,13 @@ plRefTableIterate(plRefTableIterator *iterator, void **ctx)
     }
 
     record = (const plRefRecord *)iterator->opaque;
-    ret = record->string;
+    ret = record->abstract.string;
     if (ctx) {
         *ctx = record->ctx;
     }
 
-    if (record->next) {
-        iterator->opaque = record->next;
+    if (record->abstract.next) {
+        iterator->opaque = record->abstract.next;
     }
     else {
         iterator->idx++;

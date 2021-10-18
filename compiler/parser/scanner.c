@@ -62,6 +62,8 @@ static const struct keywordRecord keywords[] = {
     KEYWORD("main", MAIN),
 };
 
+#undef KEYWORD
+
 #define CONTEXT(context)                                       \
     {                                                          \
 #context, sizeof(#context) - 1, PL_SUBMARKER_##context \
@@ -72,6 +74,8 @@ static const struct keywordRecord contexts[] = {
     CONTEXT(ATTACH),
     CONTEXT(CONTEXT),
 };
+
+#undef CONTEXT
 
 static bool
 isWhitespace(char c)
@@ -168,11 +172,6 @@ prepLine(plLexicalScanner *scanner)
             if (ferror(scanner->file)) {
                 SCANNER_ERROR("Failed to read from %s.", scanner->file_name);
                 scanner->last_marker = PL_MARKER_READ_FAILURE;
-            }
-            else if (scanner->inside_comment_block) {
-                SCANNER_ERROR("EOF encountered while inside comment block starting on line %u.",
-                              scanner->comment_block_line_no);
-                scanner->last_marker = PL_MARKER_BAD_DATA;
             }
             else {
                 scanner->last_marker = PL_MARKER_EOF;
@@ -368,25 +367,31 @@ static void
 parserProcessor(void *user_data, size_t position, vasqLogLevel_t level, char **dst, size_t *remaining)
 {
     const plLexicalScanner *scanner = user_data;
+    plLexicalLocation location;
 
-    if (position == 0) {
+    plGetLastLocation(scanner, &location);
+
+    switch ( position ) {
         const char *error_string;
-        plLexicalLocation location;
 
-        switch (level) {
-        case VASQ_LL_ERROR: error_string = ERROR_STRING; break;
-
-        case VASQ_LL_WARNING: error_string = WARNING_STRING; break;
-
-        default: error_string = ""; break;
-        }
-
-        plGetLastLocation(scanner, &location);
+    case 0:
+        error_string = (level == VASQ_LL_WARNING)? WARNING_STRING : ERROR_STRING;
         vasqIncSnprintf(dst, remaining, "%s%s:%u:%u", error_string, scanner->file_name, location.line_no,
                         location.column_no);
-    }
-    else {
+        break;
+
+    case 1:
         vasqIncSnprintf(dst, remaining, "%s", stripLineBeginning(scanner->buffer));
+        break;
+    
+    case 2:
+        for (unsigned int k=1; k<location.column_no; k++) {
+            vasqIncSnprintf(dst, remaining, " ");
+        }
+        vasqIncSnprintf(dst, remaining, "^");
+        break;
+
+    default: break;
     }
 }
 
@@ -431,7 +436,7 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name)
     }
 
     options.processor = parserProcessor;
-    ret = vasqLoggerCreate(STDOUT_FILENO, VASQ_LL_WARNING, PL_LOGGER_PREAMBLE "%x: %M\n\t%x\n", &options,
+    ret = vasqLoggerCreate(STDOUT_FILENO, VASQ_LL_WARNING, PL_LOGGER_PREAMBLE "%x: %M\n\t%x\n\t%x\n", &options,
                            &scanner->parser_logger);
     if (ret != VASQ_RET_OK) {
         goto error;
@@ -546,7 +551,6 @@ read_token:
         }
         else if (scanner->line[1] == '*') {
             scanner->inside_comment_block = true;
-            scanner->comment_block_line_no = scanner->location.line_no;
 
             for (consumed = 2; consumed < scanner->line_length; consumed++) {
                 if (scanner->line[consumed] == '*' && scanner->line[consumed + 1] == '/') {

@@ -7,19 +7,7 @@
 
 #include "token.h"
 
-//#define AST_HAS_PARENT
-
-#ifdef AST_HAS_PARENT
-#define AST_PARENT_DECL struct plAstNode *parent;
-#else
-#define AST_PARENT_DECL
-#endif
-
-#define AST_HEADER                   \
-    struct {                         \
-        AST_PARENT_DECL              \
-        plLexicalTokenHeader header; \
-    };
+#define AST_HEADER plLexicalTokenHeader header;
 
 typedef struct plAstNode {
     AST_HEADER
