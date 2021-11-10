@@ -41,6 +41,7 @@ plSetupDebuggingLogger(vasqLogLevel_t level)
     atexit(freeDebuggingLogger);
 #else
     (void)level;
+    debug_logger = NULL;
 #endif
 
     return PL_RET_OK;

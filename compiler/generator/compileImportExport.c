@@ -17,8 +17,9 @@ plCompileImport(plSemanticContext *sem, plAstNode *node)
 {
     int ret;
     size_t idx;
+    uint32_t flags = PL_REF_FLAG_MODULE;
     const char *name;
-    plAstMaxSplitNode *splitter = (plAstMaxSplitNode *)node;
+    plAstOneSplitNode *splitter = (plAstOneSplitNode *)node;
     plModule *module;
     plReference *ref;
 
@@ -32,33 +33,40 @@ plCompileImport(plSemanticContext *sem, plAstNode *node)
     if (ref) {
         if (idx == 0) {
             CONTEXT_ERROR(node, "%s is a built-in.", name);
-            return PL_RET_BAD_DATA;
         }
         else if (ref->flags & PL_REF_FLAG_MODULE) {
             CONTEXT_WARNING(node, "%s was already imported on line %u.", name, ref->location.line_no);
-            return PL_RET_OK;
         }
         else if (ref->flags != PL_REF_FLAG_EXPORT) {
             CONTEXT_ERROR(node, "%s was already defined as a %s on line %u.", name,
                           plRefTypeName(ref->flags), ref->location.line_no);
-            return PL_RET_BAD_DATA;
         }
+        else if (!(ref->flags & PL_REF_FLAG_ERROR)) {
+            goto add_module;
+        }
+
+        return PL_RET_OK;
     }
 
+add_module:
+
     ret = addModuleToSemantics(sem, &node->header.location, name, &module);
-    if (ret != PL_RET_OK) {
+    if (ret == PL_RET_OUT_OF_MEMORY) {
         return ret;
+    }
+    else if (ret != PL_RET_OK) {
+        flags |= PL_REF_FLAG_ERROR;
     }
 
     if (ref) {
         ref->value.data = module;
-        ref->flags |= PL_REF_FLAG_MODULE;
+        ref->flags = flags;
         return PL_RET_OK;
     }
     else {
         plRefValue value = {.data = module, .contains_data = true};
 
-        return plStoreReference(sem->stack[1], name, PL_REF_FLAG_MODULE, &value, &node->header.location);
+        return plStoreReference(sem->stack[1], name, flags, &value, &node->header.location);
     }
 }
 
@@ -67,7 +75,7 @@ plCompileExport(plSemanticContext *sem, plAstNode *node)
 {
     size_t idx;
     const char *name;
-    plAstMaxSplitNode *splitter = (plAstMaxSplitNode *)node;
+    plAstOneSplitNode *splitter = (plAstOneSplitNode *)node;
     plReference *ref;
 
     if (!sem || !node) {
@@ -80,7 +88,7 @@ plCompileExport(plSemanticContext *sem, plAstNode *node)
     if (ref) {
         if (idx == 0) {
             CONTEXT_ERROR(node, "%s is a built-in.", name);
-            return PL_RET_BAD_DATA;
+            ref->flags |= PL_REF_FLAG_ERROR;
         }
         else if (ref->flags & PL_REF_FLAG_EXPORT) {
             CONTEXT_WARNING(node, "%s was already exported on line %u.", name, ref->location.line_no);

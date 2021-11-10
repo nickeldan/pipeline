@@ -114,18 +114,22 @@ plGenerateModule(plAstNode *tree, const char *file_name, plModule *module, uint3
 
 void
 plContextError(const char *file_name, const char *function_name, unsigned int line_no,
-               const vasqLogger *logger, const plLexicalLocation *location, bool error, const char *format,
-               ...)
+               plSemanticContext *sem, const plLexicalLocation *location, vasqLogLevel_t level,
+               const char *format, ...)
 {
     char line[1024];
     va_list args;
+
+    if (level <= VASQ_LL_ERROR) {
+        sem->num_errors++;
+    }
 
     va_start(args, format);
     vasqSafeVsnprintf(line, sizeof(line), format, args);
     va_end(args);
 
-    vasqLogStatement(logger, error ? VASQ_LL_ERROR : VASQ_LL_WARNING, file_name, function_name, line_no,
-                     "%u:%u: %s", location->line_no, location->column_no, line);
+    vasqLogStatement(sem->logger, level, file_name, function_name, line_no, "%u:%u: %s", location->line_no,
+                     location->column_no, line);
 }
 
 plReference *

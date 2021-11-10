@@ -16,7 +16,7 @@ typedef struct plRefValue {
             int submarker;
         };
     };
-    bool contains_data;
+    unsigned int contains_data : 1;
 } plRefValue;
 
 typedef struct plReference {
@@ -32,6 +32,7 @@ typedef struct plReference {
 #define PL_REF_FLAG_SINK   0x08000000
 #define PL_REF_FLAG_MODULE 0x04000000
 #define PL_REF_FLAG_EXPORT 0x02000000
+#define PL_REF_FLAG_ERROR  0x01000000
 
 #define PL_REF_FLAG_CONST     0x00800000
 #define PL_REF_FLAG_NULLABLE  0x00400000

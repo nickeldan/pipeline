@@ -7,14 +7,12 @@
 
 #include "token.h"
 
-#define AST_HEADER plLexicalTokenHeader header;
-
 typedef struct plAstNode {
-    AST_HEADER
+    plLexicalTokenHeader header;
 } plAstNode;
 
 typedef struct plAstNodeWithData {
-    AST_HEADER
+    plLexicalTokenHeader header;
     plLexicalTokenData data;
 } plAstNodeWithData;
 
@@ -22,22 +20,22 @@ typedef struct plAstNodeWithData {
 #define NODE_EXTRACT_HANDLE(node) (((plAstNodeWithData *)(node))->data.handle)
 
 typedef struct plAstOneSplitNode {
-    AST_HEADER
+    plLexicalTokenHeader header;
     plAstNode *nodes[1];
 } plAstOneSplitNode;
 
 typedef struct plAstTwoSplitNode {
-    AST_HEADER
+    plLexicalTokenHeader header;
     plAstNode *nodes[2];
 } plAstTwoSplitNode;
 
 typedef struct plAstThreeSplitNode {
-    AST_HEADER
+    plLexicalTokenHeader header;
     plAstNode *nodes[3];
 } plAstThreeSplitNode;
 
 typedef struct plAstFourSplitNode {
-    AST_HEADER
+    plLexicalTokenHeader header;
     plAstNode *nodes[4];
 } plAstFourSplitNode;
 

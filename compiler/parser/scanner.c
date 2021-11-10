@@ -39,6 +39,7 @@ static const struct keywordRecord keywords[] = {
     KEYWORD("sink", SINK),
     KEYWORD("local", LOCAL),
     KEYWORD("struct", STRUCT),
+    KEYWORD("opaque", OPAQUE),
     KEYWORD("typedecl", TYPE_DECL),
     KEYWORD("while", WHILE),
     KEYWORD("if", IF),
@@ -371,21 +372,19 @@ parserProcessor(void *user_data, size_t position, vasqLogLevel_t level, char **d
 
     plGetLastLocation(scanner, &location);
 
-    switch ( position ) {
+    switch (position) {
         const char *error_string;
 
     case 0:
-        error_string = (level == VASQ_LL_WARNING)? WARNING_STRING : ERROR_STRING;
+        error_string = (level == VASQ_LL_WARNING) ? WARNING_STRING : ERROR_STRING;
         vasqIncSnprintf(dst, remaining, "%s%s:%u:%u", error_string, scanner->file_name, location.line_no,
                         location.column_no);
         break;
 
-    case 1:
-        vasqIncSnprintf(dst, remaining, "%s", stripLineBeginning(scanner->buffer));
-        break;
-    
+    case 1: vasqIncSnprintf(dst, remaining, "%s", stripLineBeginning(scanner->buffer)); break;
+
     case 2:
-        for (unsigned int k=1; k<location.column_no; k++) {
+        for (unsigned int k = 1; k < location.column_no; k++) {
             vasqIncSnprintf(dst, remaining, " ");
         }
         vasqIncSnprintf(dst, remaining, "^");
@@ -436,8 +435,8 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name)
     }
 
     options.processor = parserProcessor;
-    ret = vasqLoggerCreate(STDOUT_FILENO, VASQ_LL_WARNING, PL_LOGGER_PREAMBLE "%x: %M\n\t%x\n\t%x\n", &options,
-                           &scanner->parser_logger);
+    ret = vasqLoggerCreate(STDOUT_FILENO, VASQ_LL_WARNING, PL_LOGGER_PREAMBLE "%x: %M\n\t%x\n\t%x\n",
+                           &options, &scanner->parser_logger);
     if (ret != VASQ_RET_OK) {
         goto error;
     }
@@ -580,14 +579,13 @@ read_token:
     case '|':
     case '&':
 arithmetic_token:
+        token->header.submarker = resolveArithmetic(scanner->line[0]);
         if (scanner->line[1] == '=') {
             scanner->last_marker = PL_MARKER_REASSIGNMENT;
-            token->header.submarker = resolveArithmetic(scanner->line[0]);
             consumed = 2;
         }
         else {
             scanner->last_marker = PL_MARKER_ARITHMETIC;
-            token->header.submarker = resolveArithmetic(scanner->line[0]);
         }
 
         goto done;

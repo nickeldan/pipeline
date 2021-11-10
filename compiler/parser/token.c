@@ -13,6 +13,7 @@ plLexicalMarkerName(int marker)
     case PL_MARKER_SINK: return "SINK";
     case PL_MARKER_LOCAL: return "LOCAL";
     case PL_MARKER_STRUCT: return "STRUCT";
+    case PL_MARKER_OPAQUE: return "OPAQUE";
     case PL_MARKER_TYPE_DECL: return "TYPE_DECL";
     case PL_MARKER_WHILE: return "WHILE";
     case PL_MARKER_IF: return "IF";

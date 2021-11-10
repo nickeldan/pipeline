@@ -5,7 +5,7 @@
 #include "parserInternal.h"
 
 static int
-parseImportExport(plLexicalScanner *scanner, plAstNode **node)
+parseImportExportOpaque(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret, marker;
     plLexicalLocation location;
@@ -206,7 +206,8 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
 
         switch (scanner->last_marker) {
         case PL_MARKER_IMPORT:
-        case PL_MARKER_EXPORT: ret = parseImportExport(scanner, &node); break;
+        case PL_MARKER_EXPORT:
+        case PL_MARKER_OPAQUE: ret = parseImportExportOpaque(scanner, &node); break;
 
         case PL_MARKER_EXPORT_ALL:
             node = plAstNew(PL_MARKER_EXPORT_ALL);

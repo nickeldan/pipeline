@@ -127,6 +127,7 @@ plAstSplitSize(int node_type)
     case PL_MARKER_QUESTION:
     case PL_MARKER_IMPORT:
     case PL_MARKER_EXPORT:
+    case PL_MARKER_OPAQUE:
     case PL_MARKER_MAIN:
     case 'A':            // For array declarations.
     case '%': return 1;  // For library references.
