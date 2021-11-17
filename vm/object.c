@@ -45,6 +45,14 @@ plFreeObject(plObjectHandle *handle)
         free(handle->as.bytes->bytes);
         handle->as.bytes->bytes = NULL;
     }
+    else if (flags & PL_OBJ_TYPE_OPAQUE) {
+        plOpaqueHeader *header = handle->as.opaque;
+
+        if (handle->as.opaque) {
+            header->cleanup_func(handle->as.opaque);
+            handle->as.opaque = NULL;
+        }
+    }
 
     if (flags & PL_OBJ_FLAG_DYNAMIC) {
         free(handle->as.array);

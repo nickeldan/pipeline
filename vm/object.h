@@ -37,6 +37,7 @@ typedef struct plStructInstance {
 } plStructInstance;
 
 typedef union plObjectValue {
+    void *opaque;
     plInteger_t integer;
     plFloat_t decimal;
     plBool_t boolean;
@@ -63,13 +64,18 @@ struct plObjectHandle {
 #define PL_OBJ_PRED_BYTE_ARRAY 0x00000040
 #define PL_OBJ_TYPE_BYTE_ARRAY (PL_OBJ_PRED_GEN_ARRAY | PL_OBJ_PRED_BYTE_ARRAY)
 #define PL_OBJ_TYPE_BLANK      0x00000080
+#define PL_OBJ_TYPE_OPAQUE     0x00000100
 
-#define PL_OBJ_FLAG_OWNED        0x00000100
-#define PL_OBJ_FLAG_SUBH_OWNED   0x00000200
-#define PL_OBJ_FLAG_DYNAMIC      0x00000400
-#define PL_OBJ_FLAG_DYNAMIC_DATA 0x00000800
+#define PL_OBJ_FLAG_OWNED        0x00010000
+#define PL_OBJ_FLAG_SUBH_OWNED   0x00020000
+#define PL_OBJ_FLAG_DYNAMIC      0x00040000
+#define PL_OBJ_FLAG_DYNAMIC_DATA 0x00080000
 
-#define OBJ_TYPE(handle) ((handle)->flags & 0x000000ff)
+#define OBJ_TYPE(handle) ((handle)->flags & 0x0000ffff)
+
+typedef struct plOpaqueHeader {
+    void (*cleanup_func)(void *);
+} plOpaqueHeader;
 
 void
 plFreeObject(plObjectHandle *handle);

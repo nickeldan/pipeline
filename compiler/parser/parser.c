@@ -316,6 +316,11 @@ plExpectMarkerNoLog(plLexicalScanner *scanner, int marker, plLexicalLocation *lo
     int ret;
     plLexicalToken token;
 
+    if (!location) {
+        VASQ_ERROR(debug_logger, "location cannot be NULL.");
+        return PL_RET_USAGE;
+    }
+
     ret = NEXT_TOKEN(scanner, &token);
     if (ret != PL_RET_OK) {
         return ret;
@@ -354,6 +359,11 @@ plExpectMarkerLog(const char *file_name, const char *function_name, unsigned int
     int ret;
     plLexicalToken token;
 
+    if (!location) {
+        VASQ_ERROR(debug_logger, "location cannot be NULL.");
+        return PL_RET_USAGE;
+    }
+
     ret = plNextTokenLog(file_name, function_name, line_no, scanner, &token);
     if (ret != PL_RET_OK) {
         return ret;
@@ -361,7 +371,8 @@ plExpectMarkerLog(const char *file_name, const char *function_name, unsigned int
 
     if (token.header.marker != marker) {
         vasqLogStatement(scanner->parser_logger, VASQ_LL_ERROR, file_name, function_name, line_no,
-                         "Unexpected %s.", plLexicalMarkerName(token.header.marker));
+                         "Expected %s instead of %s.", plLexicalMarkerName(marker),
+                         plLexicalMarkerName(token.header.marker));
         plTokenCleanup(&token, scanner->table);
         return PL_RET_BAD_DATA;
     }

@@ -1,6 +1,5 @@
 include scripts/this.mk
 
-CC ?= gcc
 level ?= -1
 debug ?= no
 
