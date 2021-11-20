@@ -36,7 +36,7 @@ include $$($$(THIS)_DEPS_FILE)
 
 $$(LITTLE_THIS)_clean: T := $$(THIS)
 $$(LITTLE_THIS)_clean:
-	rm -f $$($$(T)_OBJECT_FILES) $$($$(T)_STATIC_LIBRARY)
+	@rm -f $$($$(T)_OBJECT_FILES) $$($$(T)_STATIC_LIBRARY)
 endef
 
 define static_library_template

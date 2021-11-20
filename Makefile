@@ -40,4 +40,4 @@ staticlibs: $(STATIC_LIBRARIES)
 	$(CC) -o $@ $^
 
 clean: $(CLEAN_TARGETS)
-	rm -f $(BINARIES) $(DEPS_FILES)
+	@rm -f $(BINARIES) $(DEPS_FILES)
