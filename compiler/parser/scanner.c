@@ -78,6 +78,14 @@ static const struct keywordRecord contexts[] = {
 
 #undef CONTEXT
 
+static void
+advanceScanner(plLexicalScanner *scanner, unsigned int length)
+{
+    scanner->line += length;
+    scanner->location.column_no += length;
+    scanner->line_length -= length;
+}
+
 static bool
 isWhitespace(char c)
 {
@@ -136,39 +144,54 @@ resolveArithmetic(char c)
 }
 
 static void
-advanceScanner(plLexicalScanner *scanner, unsigned int length)
+consumeWhitespace(plLexicalScanner *scanner)
 {
-    scanner->line += length;
-    scanner->location.column_no += length;
-    scanner->line_length -= length;
+    bool stop_loop = false;
+
+    do {
+        unsigned int consumed = 0;
+
+        if (scanner->inside_comment_block) {
+            for (; consumed < scanner->line_length; consumed++) {
+                if (scanner->line[consumed] == '*' && scanner->line[consumed + 1] == '/') {
+                    scanner->inside_comment_block = false;
+                    consumed += 2;
+                    break;
+                }
+            }
+
+            if (consumed == scanner->line_length) {
+                stop_loop = true;
+            }
+        }
+        else {
+            for (; isWhitespace(scanner->line[consumed]); consumed++) {}
+
+            if (scanner->line[consumed] == '/') {
+                switch (scanner->line[consumed + 1]) {
+                case '/': scanner->line_length = 0; return;
+
+                case '*':
+                    scanner->inside_comment_block = true;
+                    consumed += 2;
+                    break;
+
+                default: stop_loop = true; break;
+                }
+            }
+            else {
+                stop_loop = true;
+            }
+        }
+
+        advanceScanner(scanner, consumed);
+    } while (!stop_loop);
 }
-
-#if LL_USE == -1
-
-#define ADVANCE_SCANNER(scanner, length) advanceScanner(scanner, length)
-
-#else
-
-static void
-advanceScannerLog(const char *function_name, unsigned int line_no, plLexicalScanner *scanner,
-                  unsigned int length)
-{
-    advanceScanner(scanner, length);
-    if (length > 0) {
-        vasqLogStatement(debug_logger, VASQ_LL_DEBUG, __FILE__, function_name, line_no,
-                         "%u character%s consumed.", length, (length == 1) ? "" : "s");
-    }
-}
-#define ADVANCE_SCANNER(scanner, length) advanceScannerLog(__func__, __LINE__, scanner, length)
-
-#endif  // LL_USE == -1
 
 static bool
 prepLine(plLexicalScanner *scanner)
 {
     while (scanner->line_length == 0) {
-        unsigned int idx;
-
         if (!fgets(scanner->buffer, sizeof(scanner->buffer), scanner->file)) {
             if (ferror(scanner->file)) {
                 SCANNER_ERROR("Failed to read from %s.", scanner->file_name);
@@ -212,25 +235,17 @@ prepLine(plLexicalScanner *scanner)
 
         scanner->line = scanner->buffer;
 
-        if (scanner->inside_comment_block) {
-            for (idx = 0; idx < scanner->line_length; idx++) {
-                if (scanner->line[idx] == '*' && scanner->line[idx + 1] == '/') {
-                    scanner->inside_comment_block = false;
-                    idx += 2;
-                    break;
-                }
-            }
-
-            ADVANCE_SCANNER(scanner, idx);
-        }
-
         if (scanner->line_length > 0) {
             VASQ_DEBUG(debug_logger, "%s, line %u: %.*s", scanner->file_name, scanner->location.line_no,
                        scanner->line_length, scanner->buffer);
+
+            scanner->line[scanner->line_length] = '\0';
         }
+
+        consumeWhitespace(scanner);
     }
 
-    scanner->line[scanner->line_length] = '\0';
+    consumeWhitespace(scanner);
 
     return true;
 }
@@ -321,7 +336,7 @@ good_string:
         array->bytes[array->length++] = c;
     }
 
-    ADVANCE_SCANNER(scanner, array->capacity + 1);  // The +1 is for the ending double quotes.
+    advanceScanner(scanner, array->capacity + 1);  // The +1 is for the ending double quotes.
 
     return PL_MARKER_OBJECT;
 
@@ -503,8 +518,6 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
         scanner->last_look_ahead_loc.line_no = 0;
     }
 
-read_token:
-
     if (!prepLine(scanner)) {
         goto return_marker;
     }
@@ -515,14 +528,6 @@ read_token:
     consumed = 1;
 
     switch (scanner->line[0]) {
-    case ' ':
-    case '\t':
-        while (consumed < scanner->line_length && isWhitespace(scanner->line[consumed])) {
-            consumed++;
-        }
-        ADVANCE_SCANNER(scanner, consumed);
-        goto read_token;
-
     case ';': scanner->last_marker = PL_MARKER_SEMICOLON; goto done;
 
     case ':': scanner->last_marker = PL_MARKER_COLON; goto done;
@@ -543,29 +548,6 @@ read_token:
 
     case ']': scanner->last_marker = PL_MARKER_RIGHT_BRACKET; goto done;
 
-    case '/':
-        if (scanner->line[1] == '/') {
-            scanner->line_length = 0;
-            consumed = 0;
-        }
-        else if (scanner->line[1] == '*') {
-            scanner->inside_comment_block = true;
-
-            for (consumed = 2; consumed < scanner->line_length; consumed++) {
-                if (scanner->line[consumed] == '*' && scanner->line[consumed + 1] == '/') {
-                    scanner->inside_comment_block = false;
-                    consumed += 2;
-                    break;
-                }
-            }
-        }
-        else {
-            goto arithmetic_token;
-        }
-
-        ADVANCE_SCANNER(scanner, consumed);
-        goto read_token;
-
     case '-':
         if (scanner->line[1] == '>') {
             scanner->last_marker = PL_MARKER_ARROW;
@@ -575,10 +557,10 @@ read_token:
         /* FALLTHROUGH */
     case '+':
     case '*':
+    case '/':
     case '%':
     case '|':
     case '&':
-arithmetic_token:
         token->header.submarker = resolveArithmetic(scanner->line[0]);
         if (scanner->line[1] == '=') {
             scanner->last_marker = PL_MARKER_REASSIGNMENT;
@@ -779,7 +761,7 @@ arithmetic_token:
         }
     }
     else if (scanner->line[0] == '"') {
-        ADVANCE_SCANNER(scanner, 1);
+        advanceScanner(scanner, 1);
         scanner->last_marker = readByteString(scanner, &token->data.handle);
         if (TERMINAL_MARKER(scanner->last_marker)) {
             goto return_marker;
@@ -795,7 +777,7 @@ arithmetic_token:
 done:
 
     token->header.marker = scanner->last_marker;
-    ADVANCE_SCANNER(scanner, consumed);
+    advanceScanner(scanner, consumed);
 
 return_marker:
 
