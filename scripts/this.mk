@@ -25,14 +25,18 @@ CLEAN_TARGETS += $$(LITTLE_THIS)_clean
 $$(THIS)_EXTERNAL_HEADER_FILES := $$(foreach dir,$$($$(THIS)_EXTERNAL_DIRS),$$(shell find $$(dir) -name '*.h'))
 $$(THIS)_INCLUDE_FLAGS := $$(patsubst %,-I%,$$($$(THIS)_EXTERNAL_DIRS))
 
+ifneq ($(MAKECMDGOALS),clean)
+
 $$($$(THIS)_DEPS_FILE): T := $$(THIS)
 $$($$(THIS)_DEPS_FILE): $$($$(THIS)_SOURCE_FILES) $$($$(THIS)_HEADER_FILES) $$($$(THIS)_EXTERNAL_HEADER_FILES)
 	rm -f $$@
 	for file in $$($$(T)_SOURCE_FILES); do \
-	    echo "$$($$(T)_DIR)/`$$(CC) $$($$(T)_INCLUDE_FLAGS) -MM $$$$file`" >> $$@ && \
-	    echo '\t$$$$(CC) $$$$(CFLAGS) -fpic -ffunction-sections $$($$(T)_INCLUDE_FLAGS) -c $$$$< -o $$$$@' >> $$@; \
+        echo "$$($$(T)_DIR)/`$$(CC) $$($$(T)_INCLUDE_FLAGS) -MM $$$$file`" >> $$@ && \
+		echo '\t$$$$(CC) $$$$(CFLAGS) -fpic -ffunction-sections $$($$(T)_INCLUDE_FLAGS) -c $$$$< -o $$$$@' >> $$@; \
 	done
 include $$($$(THIS)_DEPS_FILE)
+
+endif
 
 $$(LITTLE_THIS)_clean: T := $$(THIS)
 $$(LITTLE_THIS)_clean:

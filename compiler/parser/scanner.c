@@ -191,7 +191,7 @@ consumeWhitespace(plLexicalScanner *scanner)
 static bool
 prepLine(plLexicalScanner *scanner)
 {
-    while (scanner->line_length == 0) {
+    for (consumeWhitespace(scanner); scanner->line_length == 0; consumeWhitespace(scanner)) {
         if (!fgets(scanner->buffer, sizeof(scanner->buffer), scanner->file)) {
             if (ferror(scanner->file)) {
                 SCANNER_ERROR("Failed to read from %s.", scanner->file_name);
@@ -234,18 +234,13 @@ prepLine(plLexicalScanner *scanner)
         }
 
         scanner->line = scanner->buffer;
+        scanner->line[scanner->line_length] = '\0';
 
         if (scanner->line_length > 0) {
             VASQ_DEBUG(debug_logger, "%s, line %u: %.*s", scanner->file_name, scanner->location.line_no,
                        scanner->line_length, scanner->buffer);
-
-            scanner->line[scanner->line_length] = '\0';
         }
-
-        consumeWhitespace(scanner);
     }
-
-    consumeWhitespace(scanner);
 
     return true;
 }
