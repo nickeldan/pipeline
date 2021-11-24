@@ -71,7 +71,9 @@ struct plObjectHandle {
 #define PL_OBJ_FLAG_DYNAMIC      0x00040000
 #define PL_OBJ_FLAG_DYNAMIC_DATA 0x00080000
 
-#define OBJ_TYPE(handle) ((handle)->flags & 0x0000ffff)
+#define PL_OBJ_MASK 0x0000ffff
+
+#define OBJ_TYPE(handle) ((handle)->flags & PL_OBJ_MASK)
 
 typedef struct plOpaqueHeader {
     void (*cleanup_func)(void *);
@@ -79,6 +81,9 @@ typedef struct plOpaqueHeader {
 
 void
 plFreeObject(plObjectHandle *handle);
+
+const char *
+plObjectTypeName(uint32_t flags);
 
 #define PL_BOOL_LITERAL(value)                                             \
     (plObjectHandle)                                                       \

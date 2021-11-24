@@ -78,6 +78,8 @@ compileGlobalSpace(plSemanticContext *sem, plAstNode *tree)
 
     case PL_MARKER_EXPORT: return plCompileExport(sem, tree);
 
+    case PL_MARKER_OPAQUE: return plCompileOpaque(sem, tree);
+
     case PL_MARKER_EXPORT_ALL: sem->compiler_flags |= PL_COMPILER_FLAG_EXPORT_ALL; break;
 
     case PL_MARKER_TYPE_DECL: return plCompileTypeDecl(sem, tree);

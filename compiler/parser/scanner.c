@@ -364,7 +364,7 @@ scannerProcessor(void *user_data, size_t position, vasqLogLevel_t level, char **
     vasqIncSnprintf(dst, remaining, "%s:%u", scanner->file_name, scanner->location.line_no);
 }
 
-const char *
+static const char *
 stripLineBeginning(const char *line)
 {
     while (isWhitespace(*line)) {

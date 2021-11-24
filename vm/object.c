@@ -8,6 +8,23 @@
 
 #define CAPACITY_EXPANSION(capacity) ((capacity)*5 / 4)
 
+const char *
+plObjectTypeName(uint32_t flags)
+{
+    switch (flags & PL_OBJ_MASK) {
+    case PL_OBJ_TYPE_NULL: return "Null";
+    case PL_OBJ_TYPE_INT: return "Int";
+    case PL_OBJ_TYPE_FLOAT: return "Float";
+    case PL_OBJ_TYPE_BOOL: return "Bool";
+    case PL_OBJ_TYPE_ARRAY: return "Array";
+    case PL_OBJ_TYPE_STRUCT: return "Struct";
+    case PL_OBJ_TYPE_BYTE_ARRAY: return "Bytes";
+    case PL_OBJ_TYPE_BLANK: return "Blank";
+    case PL_OBJ_TYPE_OPAQUE: return "Opaque";
+    default: __builtin_unreachable();
+    }
+}
+
 void
 plFreeObject(plObjectHandle *handle)
 {
