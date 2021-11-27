@@ -108,62 +108,6 @@ error:
 }
 
 static int
-parseTypeDecl(plLexicalScanner *scanner, plAstNode **node)
-{
-    int ret;
-    plLexicalLocation location;
-    plLexicalToken token;
-    plAstNode *name_node, *type_node;
-
-    *node = NULL;
-    plGetLastLocation(scanner, &location);
-
-    ret = NEXT_TOKEN(scanner, &token);
-    if (ret != PL_RET_OK) {
-        return ret;
-    }
-
-    if (token.header.marker != PL_MARKER_NAME) {
-        PARSER_ERROR("Unexpected %s in place of NAME.", plLexicalMarkerName(token.header.marker));
-        plTokenCleanup(&token, scanner->table);
-        return PL_RET_BAD_DATA;
-    }
-
-    name_node = plAstNew(PL_MARKER_NAME);
-    if (!name_node) {
-        plTokenCleanup(&token, scanner->table);
-        return PL_RET_OUT_OF_MEMORY;
-    }
-    plAstCopyTokenInfo(name_node, &token);
-
-    ret = plParseExtendedType(scanner, &type_node);
-    if (ret != PL_RET_OK) {
-        goto error;
-    }
-
-    ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
-    if (ret != PL_RET_OK) {
-        goto error;
-    }
-
-    *node = plAstCreateFamily(PL_MARKER_TYPE_DECL, name_node, type_node);
-    if (!*node) {
-        ret = PL_RET_OUT_OF_MEMORY;
-        goto error;
-    }
-    memcpy(&(*node)->header.location, &location, sizeof(location));
-
-    return PL_RET_OK;
-
-error:
-
-    plAstFree(name_node, scanner->table);
-    plAstFree(type_node, scanner->table);
-
-    return ret;
-}
-
-static int
 parseMain(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
@@ -225,8 +169,6 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
         case PL_MARKER_SINK: ret = plParseFunction(scanner, &node, true); break;
 
         case PL_MARKER_STRUCT: ret = plParseStructDefinition(scanner, &node); break;
-
-        case PL_MARKER_TYPE_DECL: ret = parseTypeDecl(scanner, &node); break;
 
         case PL_MARKER_MAIN: ret = parseMain(scanner, &node); break;
 

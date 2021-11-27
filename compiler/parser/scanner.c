@@ -40,7 +40,6 @@ static const struct keywordRecord keywords[] = {
     KEYWORD("local", LOCAL),
     KEYWORD("struct", STRUCT),
     KEYWORD("opaque", OPAQUE),
-    KEYWORD("typedecl", TYPE_DECL),
     KEYWORD("while", WHILE),
     KEYWORD("if", IF),
     KEYWORD("eif", EIF),

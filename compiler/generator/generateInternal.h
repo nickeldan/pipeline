@@ -53,7 +53,4 @@ plCompileExport(plSemanticContext *sem, plAstNode *node);
 int HIDDEN_SYMBOL
 plCompileOpaque(plSemanticContext *sem, plAstNode *node);
 
-int HIDDEN_SYMBOL
-plCompileTypeDecl(plSemanticContext *sem, plAstNode *node);
-
 #endif  // PIPELINE_COMPILER_GENERATE_INTERNAL_H
