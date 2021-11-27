@@ -11,35 +11,20 @@ typedef struct plAstNode {
     plLexicalTokenHeader header;
 } plAstNode;
 
-typedef struct plAstNodeWithData {
-    plLexicalTokenHeader header;
-    plLexicalTokenData data;
-} plAstNodeWithData;
+plAstNode *
+plAstGetChild(const plAstNode *parent, unsigned int which);
 
-#define NODE_EXTRACT_NAME(node)   (((plAstNodeWithData *)(node))->data.name)
-#define NODE_EXTRACT_HANDLE(node) (((plAstNodeWithData *)(node))->data.handle)
+bool
+plAstSetChild(plAstNode *parent, unsigned int which, plAstNode *child);
 
-typedef struct plAstOneSplitNode {
-    plLexicalTokenHeader header;
-    plAstNode *nodes[1];
-} plAstOneSplitNode;
+plLexicalTokenData *
+plAstGetData(plAstNode *node);
 
-typedef struct plAstTwoSplitNode {
-    plLexicalTokenHeader header;
-    plAstNode *nodes[2];
-} plAstTwoSplitNode;
+bool
+plAstSetName(plAstNode *node, const char *name);
 
-typedef struct plAstThreeSplitNode {
-    plLexicalTokenHeader header;
-    plAstNode *nodes[3];
-} plAstThreeSplitNode;
-
-typedef struct plAstFourSplitNode {
-    plLexicalTokenHeader header;
-    plAstNode *nodes[4];
-} plAstFourSplitNode;
-
-typedef plAstFourSplitNode plAstMaxSplitNode;
+bool
+plAstSetHandle(plAstNode *node, const plObjectHandle *handle);
 
 plAstNode *
 plAstNew(int node_type);

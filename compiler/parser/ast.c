@@ -5,6 +5,110 @@
 #include "ast.h"
 #include "scanner.h"
 
+typedef struct plAstNodeWithData {
+    plLexicalTokenHeader header;
+    plLexicalTokenData data;
+} plAstNodeWithData;
+
+typedef struct plAstOneSplitNode {
+    plLexicalTokenHeader header;
+    plAstNode *nodes[1];
+} plAstOneSplitNode;
+
+typedef struct plAstTwoSplitNode {
+    plLexicalTokenHeader header;
+    plAstNode *nodes[2];
+} plAstTwoSplitNode;
+
+typedef struct plAstThreeSplitNode {
+    plLexicalTokenHeader header;
+    plAstNode *nodes[3];
+} plAstThreeSplitNode;
+
+typedef struct plAstFourSplitNode {
+    plLexicalTokenHeader header;
+    plAstNode *nodes[4];
+} plAstFourSplitNode;
+
+typedef plAstFourSplitNode plAstSplitter;
+
+plAstNode *
+plAstGetChild(const plAstNode *parent, unsigned int which)
+{
+    int node_type, split_size;
+    const plAstSplitter *splitter = (const plAstSplitter *)parent;
+
+    if (!parent) {
+        VASQ_ERROR(debug_logger, "parent cannot be NULL.");
+        return NULL;
+    }
+
+    node_type = parent->header.marker;
+    split_size = plAstSplitSize(node_type);
+    if (split_size <= 0) {
+        VASQ_ERROR(debug_logger, "This node type (%s) does not have any children.",
+                   plLexicalMarkerName(node_type));
+        return NULL;
+    }
+
+    if (which >= (unsigned int)split_size) {
+        VASQ_ERROR(debug_logger, "%u is too high an index for this node type (%s).", which,
+                   plLexicalMarkerName(node_type));
+        return NULL;
+    }
+
+    return splitter->nodes[which];
+}
+
+bool
+plAstSetChild(plAstNode *parent, unsigned int which, plAstNode *child)
+{
+    int node_type, split_size;
+    plAstSplitter *splitter = (plAstSplitter *)parent;
+
+    if (!parent) {
+        VASQ_ERROR(debug_logger, "parent cannot be NULL.");
+        return false;
+    }
+
+    node_type = parent->header.marker;
+    split_size = plAstSplitSize(node_type);
+    if (split_size <= 0) {
+        VASQ_ERROR(debug_logger, "This node type (%s) does not have any children.",
+                   plLexicalMarkerName(node_type));
+        return false;
+    }
+
+    if (which >= (unsigned int)split_size) {
+        VASQ_ERROR(debug_logger, "%u is too high an index for this node type (%s).", which,
+                   plLexicalMarkerName(node_type));
+        return false;
+    }
+
+    splitter->nodes[which] = child;
+    return true;
+}
+
+plLexicalTokenData *
+plAstGetData(plAstNode *node)
+{
+    int node_type;
+    plAstNodeWithData *node_with_data = (plAstNodeWithData *)node;
+
+    if (!node) {
+        VASQ_ERROR(debug_logger, "node cannot be NULL.");
+        return NULL;
+    }
+
+    node_type = node->header.marker;
+    if (plAstSplitSize(node_type) != -1) {
+        VASQ_ERROR(debug_logger, "This node type (%s) does not have data.", plLexicalMarkerName(node_type));
+        return NULL;
+    }
+
+    return &node_with_data->data;
+}
+
 plAstNode *
 plAstNew(int node_type)
 {
@@ -83,7 +187,7 @@ void
 plAstFree(plAstNode *node, plWordTable *table)
 {
     int split_size;
-    plAstMaxSplitNode *splitter = (plAstMaxSplitNode *)node;
+    plAstSplitter *splitter = (plAstSplitter *)node;
 
     if (!node) {
         return;
@@ -165,13 +269,13 @@ plAstCreateFamily(int marker, ...)
     int split_size;
     va_list args;
     plAstNode *parent;
-    plAstMaxSplitNode *splitter;
+    plAstSplitter *splitter;
 
     parent = plAstNew(marker);
     if (!parent) {
         return NULL;
     }
-    splitter = (plAstMaxSplitNode *)parent;
+    splitter = (plAstSplitter *)parent;
 
     split_size = plAstSplitSize(marker);
     va_start(args, marker);
@@ -216,7 +320,7 @@ void
 plAstPrint(const plAstNode *node, unsigned int margin)
 {
     int split_size;
-    const plAstMaxSplitNode *splitter = (const plAstMaxSplitNode *)node;
+    const plAstSplitter *splitter = (const plAstSplitter *)node;
 
     for (unsigned int k = 0; k < margin; k++) {
         printf("\t");
@@ -229,7 +333,8 @@ plAstPrint(const plAstNode *node, unsigned int margin)
 
     printf("%s", plLexicalMarkerName(node->header.marker));
     if (node->header.marker == PL_MARKER_NAME) {
-        printf(" (%s)", NODE_EXTRACT_NAME(node));
+        const plAstNodeWithData *node_with_data = (const plAstNodeWithData *)node;
+        printf(" (%s)", node_with_data->data.name);
     }
     printf("\n");
 

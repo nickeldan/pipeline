@@ -81,6 +81,8 @@ compileGlobalSpace(plSemanticContext *sem, plAstNode *tree)
     case PL_MARKER_OPAQUE: return plCompileOpaque(sem, tree);
 
     case PL_MARKER_EXPORT_ALL: sem->compiler_flags |= PL_COMPILER_FLAG_EXPORT_ALL; break;
+
+    case PL_MARKER_STRUCT: return plCompileStructDefinition(sem, tree);
     }
 
     PLACEHOLDER();
@@ -157,7 +159,6 @@ plFindReference(const plSemanticContext *sem, const char *symbol, size_t *idx)
 plReference *
 plResolveExtendedName(const plSemanticContext *sem, const plAstNode *node, size_t *idx)
 {
-    const plAstMaxSplitNode *splitter = (const plAstMaxSplitNode *)node;
     plReference *ref;
 
     if (!sem || !node) {
@@ -166,11 +167,10 @@ plResolveExtendedName(const plSemanticContext *sem, const plAstNode *node, size_
     }
 
     if (node->header.marker == PL_MARKER_NAME) {
-        return plFindReference(sem, NODE_EXTRACT_NAME(node), idx);
+        return plFindReference(sem, plAstGetData((plAstNode *)node)->name, idx);
     }
 
     PLACEHOLDER();
-    (void)splitter;
     (void)ref;
     return NULL;
 }

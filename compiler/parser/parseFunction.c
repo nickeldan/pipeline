@@ -125,7 +125,6 @@ plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
     plLexicalLocation function_location;
     plLexicalToken token;
     plAstNode *function_name_node = NULL, *arg_list = NULL, *type_node = NULL, *statement_list = NULL;
-    plAstMaxSplitNode *splitter;
 
     if (node) {
         *node = NULL;
@@ -229,20 +228,29 @@ skip_statement_list:
         (*node)->header.submarker = PL_SUBMARKER_FUNC_DECL;
     }
 
-    splitter = (plAstMaxSplitNode *)(*node);
     if (function_marker == PL_MARKER_LOCAL) {
-        splitter->nodes[0] = arg_list;
-        splitter->nodes[1] = statement_list;
+        if (!plAstSetChild(*node, 0, arg_list) || !plAstSetChild(*node, 1, statement_list)) {
+            ret = PL_RET_USAGE;
+            goto error;
+        }
     }
     else {
-        splitter->nodes[0] = function_name_node;
-        splitter->nodes[1] = arg_list;
+        if (!plAstSetChild(*node, 0, function_name_node) || !plAstSetChild(*node, 1, arg_list)) {
+            ret = PL_RET_USAGE;
+            goto error;
+        }
+
         if (function_marker == PL_MARKER_SINK) {
-            splitter->nodes[2] = statement_list;
+            if (!plAstSetChild(*node, 2, statement_list)) {
+                ret = PL_RET_USAGE;
+                goto error;
+            }
         }
         else {
-            splitter->nodes[2] = type_node;
-            splitter->nodes[3] = statement_list;
+            if (!plAstSetChild(*node, 2, type_node) || !plAstSetChild(*node, 3, statement_list)) {
+                ret = PL_RET_USAGE;
+                goto error;
+            }
         }
     }
 

@@ -222,7 +222,7 @@ start:
 
                 if (token2.header.marker == PL_MARKER_OBJECT &&
                     OBJ_TYPE(&token2.data.handle) == PL_OBJ_TYPE_BYTE_ARRAY) {
-                    ret = plConcatenateByteArrays(NODE_EXTRACT_HANDLE(*node).as.bytes,
+                    ret = plConcatenateByteArrays(plAstGetData(*node)->handle.as.bytes,
                                                   token2.data.handle.as.bytes);
                     plTokenCleanup(&token2, scanner->table);
                     if (ret != PL_RET_OK) {

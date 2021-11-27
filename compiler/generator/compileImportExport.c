@@ -19,7 +19,6 @@ plCompileImport(plSemanticContext *sem, plAstNode *node)
     size_t idx;
     uint32_t flags = PL_REF_FLAG_MODULE;
     const char *name;
-    plAstOneSplitNode *splitter = (plAstOneSplitNode *)node;
     plModule *module;
     plReference *ref;
 
@@ -28,7 +27,7 @@ plCompileImport(plSemanticContext *sem, plAstNode *node)
         return PL_RET_USAGE;
     }
 
-    name = NODE_EXTRACT_NAME(splitter->nodes[0]);
+    name = plAstGetData(node)->name;
     ref = plFindReference(sem, name, &idx);
     if (ref) {
         if (idx == 0) {
@@ -75,7 +74,6 @@ plCompileExport(plSemanticContext *sem, plAstNode *node)
 {
     size_t idx;
     const char *name;
-    plAstOneSplitNode *splitter = (plAstOneSplitNode *)node;
     plReference *ref;
 
     if (!sem || !node) {
@@ -83,7 +81,7 @@ plCompileExport(plSemanticContext *sem, plAstNode *node)
         return PL_RET_USAGE;
     }
 
-    name = NODE_EXTRACT_NAME(splitter->nodes[0]);
+    name = plAstGetData(node)->name;
     ref = plFindReference(sem, name, &idx);
     if (ref) {
         if (idx == 0) {

@@ -24,6 +24,12 @@ typedef struct plSemanticContext {
     uint32_t compiler_flags;
 } plSemanticContext;
 
+typedef struct plStructRef {
+    plRefValue *fields;
+    size_t capacity;
+    size_t size;
+} plStructRef;
+
 void HIDDEN_SYMBOL
 plContextError(const char *file_name, const char *function_name, unsigned int line_no,
                plSemanticContext *sem, const plLexicalLocation *location, vasqLogLevel_t level,
@@ -52,5 +58,8 @@ plCompileExport(plSemanticContext *sem, plAstNode *node);
 
 int HIDDEN_SYMBOL
 plCompileOpaque(plSemanticContext *sem, plAstNode *node);
+
+int HIDDEN_SYMBOL
+plCompileStructDefinition(plSemanticContext *sem, plAstNode *node);
 
 #endif  // PIPELINE_COMPILER_GENERATE_INTERNAL_H

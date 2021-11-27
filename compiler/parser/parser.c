@@ -338,6 +338,6 @@ plAstCopyTokenInfo(plAstNode *node, const plLexicalToken *token)
 
     memcpy(&node->header, &token->header, sizeof(token->header));
     if (plAstSplitSize(node->header.marker) == -1) {
-        memcpy(&((plAstNodeWithData *)node)->data, &token->data, sizeof(token->data));
+        memcpy(plAstGetData(node), &token->data, sizeof(token->data));
     }
 }

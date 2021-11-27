@@ -5,13 +5,11 @@
 static bool
 isLvalue(const plAstNode *node)
 {
-    const plAstMaxSplitNode *splitter = (const plAstMaxSplitNode *)node;
-
     switch (node->header.marker) {
     case PL_MARKER_NAME: return true;
 
     case PL_MARKER_PERIOD:
-    case PL_MARKER_LEFT_BRACKET: return isLvalue(splitter->nodes[0]);
+    case PL_MARKER_LEFT_BRACKET: return isLvalue(plAstGetChild(node, 0));
 
     default: return false;
     }

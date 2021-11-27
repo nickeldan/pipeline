@@ -5,7 +5,7 @@
 #include "table.h"
 #include "util.h"
 
-int
+int HIDDEN_SYMBOL
 plAddBuiltinSymbols(plRefTable *table);
 
 #endif  // PIPELINE_COMPILER_BUILTINS_H

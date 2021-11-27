@@ -7,7 +7,6 @@ plCompileOpaque(plSemanticContext *sem, plAstNode *node)
 {
     size_t idx;
     const char *name;
-    plAstMaxSplitNode *splitter = (plAstMaxSplitNode *)node;
     plReference *ref;
 
     if (!sem || !node) {
@@ -15,7 +14,7 @@ plCompileOpaque(plSemanticContext *sem, plAstNode *node)
         return PL_RET_USAGE;
     }
 
-    name = NODE_EXTRACT_NAME(splitter->nodes[0]);
+    name = plAstGetData(node)->name;
     ref = plFindReference(sem, name, &idx);
     if (ref) {
         if (ref->flags & PL_REF_FLAG_ERROR) {}
