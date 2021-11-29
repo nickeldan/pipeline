@@ -164,14 +164,12 @@ plAstNew(int node_type)
         break;
 
     default:
-#if LL_USE != -1
         if (VALID_MARKER(node_type)) {
             VASQ_ERROR(debug_logger, "Invalid node type: %s", plLexicalMarkerName(node_type));
         }
         else {
             VASQ_ERROR(debug_logger, "Invalid node type: %i", node_type);
         }
-#endif
         break;
     }
 
@@ -281,6 +279,11 @@ plAstCreateFamily(int marker, ...)
     va_start(args, marker);
     for (int k = 0; k < split_size; k++) {
         splitter->nodes[k] = va_arg(args, plAstNode *);
+        if (!splitter->nodes[k]) {
+            VASQ_ERROR(debug_logger, "Argument %i cannot be NULL.", k + 1);
+            free(parent);
+            return NULL;
+        }
     }
     va_end(args);
 
@@ -292,11 +295,6 @@ plAstCreateConnection(int marker, plAstNode **first, plAstNode *second)
 {
     plAstNode *parent;
 
-    if (plAstSplitSize(marker) != 2) {
-        VASQ_ERROR(debug_logger, "The marker must have a split size of 2.");
-        return PL_RET_USAGE;
-    }
-
     if (!first || !second) {
         VASQ_ERROR(debug_logger, "first and second cannot be NULL.");
         return PL_RET_USAGE;
@@ -304,6 +302,11 @@ plAstCreateConnection(int marker, plAstNode **first, plAstNode *second)
 
     if (!*first) {
         VASQ_ERROR(debug_logger, "*first cannot be NULL.");
+        return PL_RET_USAGE;
+    }
+
+    if (plAstSplitSize(marker) != 2) {
+        VASQ_ERROR(debug_logger, "The marker must have a split size of 2.");
         return PL_RET_USAGE;
     }
 

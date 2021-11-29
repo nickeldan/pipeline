@@ -73,20 +73,37 @@ error:
 static int
 compileGlobalSpace(plSemanticContext *sem, plAstNode *tree)
 {
+    int ret;
+    int (*func)(plSemanticContext *, plAstNode *);
+
     switch (tree->header.marker) {
-    case PL_MARKER_IMPORT: return plCompileImport(sem, tree);
+    case PL_MARKER_SEMICOLON:
+        ret = compileGlobalSpace(sem, plAstGetChild(tree, 0));
+        if (ret != PL_RET_OK) {
+            return ret;
+        }
+        func = compileGlobalSpace;
+        tree = plAstGetChild(tree, 1);
+        break;
 
-    case PL_MARKER_EXPORT: return plCompileExport(sem, tree);
+    case PL_MARKER_IMPORT: func = plCompileImport; break;
 
-    case PL_MARKER_OPAQUE: return plCompileOpaque(sem, tree);
+    case PL_MARKER_EXPORT: func = plCompileExport; break;
 
-    case PL_MARKER_EXPORT_ALL: sem->compiler_flags |= PL_COMPILER_FLAG_EXPORT_ALL; break;
+    case PL_MARKER_OPAQUE: func = plCompileOpaque; break;
 
-    case PL_MARKER_STRUCT: return plCompileStructDefinition(sem, tree);
+    case PL_MARKER_EXPORT_ALL: sem->compiler_flags |= PL_COMPILER_FLAG_EXPORT_ALL; return PL_RET_OK;
+
+    case PL_MARKER_STRUCT: func = plCompileStructDefinition; break;
+
+    case PL_MARKER_SOURCE:
+    case PL_MARKER_PIPE:
+    case PL_MARKER_SINK: func = plCompileFunction; break;
+
+    default: VASQ_ERROR(debug_logger, "Invalid node type: %i.", tree->header.marker); return PL_RET_USAGE;
     }
 
-    PLACEHOLDER();
-    return PL_RET_OK;
+    return func(sem, tree);
 }
 
 int
