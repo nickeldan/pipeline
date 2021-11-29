@@ -279,11 +279,6 @@ plAstCreateFamily(int marker, ...)
     va_start(args, marker);
     for (int k = 0; k < split_size; k++) {
         splitter->nodes[k] = va_arg(args, plAstNode *);
-        if (!splitter->nodes[k]) {
-            VASQ_ERROR(debug_logger, "Argument %i cannot be NULL.", k + 1);
-            free(parent);
-            return NULL;
-        }
     }
     va_end(args);
 

@@ -301,11 +301,6 @@ plExpectMarkerLog(const char *file_name, const char *function_name, unsigned int
     int ret;
     plLexicalToken token;
 
-    if (!location) {
-        VASQ_ERROR(debug_logger, "location cannot be NULL.");
-        return PL_RET_USAGE;
-    }
-
     ret = plNextTokenLog(file_name, function_name, line_no, scanner, &token);
     if (ret != PL_RET_OK) {
         return ret;
