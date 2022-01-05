@@ -1,4 +1,3 @@
-#include <alloca.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -188,12 +187,16 @@ plPopulateFloatFromString(const char *string, unsigned int length, plFloat_t *de
         return PL_RET_BAD_DATA;
     }
 
-    array = alloca(length + 1);
+    array = VASQ_MALLOC(debug_logger, length + 1);
+    if (!array) {
+        return PL_RET_OUT_OF_MEMORY;
+    }
     memcpy(array, string, length);
     array[length] = '\0';
 
     errno = 0;
     *decimal = strtod(array, &temp);
+    free(array);
     if (*temp != '\0' || errno != 0) {
         return PL_RET_BAD_DATA;
     }

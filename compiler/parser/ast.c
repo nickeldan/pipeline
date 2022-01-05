@@ -185,23 +185,25 @@ void
 plAstFree(plAstNode *node, plWordTable *table)
 {
     int split_size;
-    plAstSplitter *splitter = (plAstSplitter *)node;
 
     if (!node) {
         return;
     }
 
     split_size = plAstSplitSize(node->header.marker);
-    for (int k = 0; k < split_size; k++) {
-        plAstFree(splitter->nodes[k], table);
-    }
-
     if (split_size == -1) {
         plLexicalToken token;
 
         memcpy(&token.header, &node->header, sizeof(node->header));
         memcpy(&token.data, &((plAstNodeWithData *)node)->data, sizeof(token.data));
         plTokenCleanup(&token, table);
+    }
+    else {
+        plAstSplitter *splitter = (plAstSplitter *)node;
+
+        for (int k = 0; k < split_size; k++) {
+            plAstFree(splitter->nodes[k], table);
+        }
     }
     free(node);
 }

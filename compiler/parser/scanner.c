@@ -164,7 +164,9 @@ consumeWhitespace(plLexicalScanner *scanner)
             }
         }
         else {
-            for (; isWhitespace(scanner->line[consumed]); consumed++) {}
+            while (isWhitespace(scanner->line[consumed])) {
+                consumed++;
+            }
 
             if (scanner->line[consumed] == '/') {
                 switch (scanner->line[consumed + 1]) {
@@ -596,6 +598,8 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
             token->header.submarker = (scanner->line[0] == '<') ? PL_SUBMARKER_LSHIFT : PL_SUBMARKER_RSHIFT;
         }
         else {
+            scanner->last_marker = PL_MARKER_COMPARISON;
+
             if (scanner->line[1] == '=') {
                 token->header.submarker =
                     (scanner->line[0] == '<') ? PL_SUBMARKER_LESS_THAN_EQ : PL_SUBMARKER_GREATER_THAN_EQ;
@@ -605,8 +609,6 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
                 token->header.submarker =
                     (scanner->line[0] == '<') ? PL_SUBMARKER_LESS_THAN : PL_SUBMARKER_GREATER_THAN;
             }
-
-            scanner->last_marker = PL_MARKER_COMPARISON;
         }
         goto done;
 
