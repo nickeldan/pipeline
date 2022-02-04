@@ -252,9 +252,6 @@ readByteString(plLexicalScanner *scanner, plObjectHandle *handle)
     plByteArray *array;
 
     handle->as.bytes = plNewByteArray();
-    if (!handle->as.bytes) {
-        return PL_MARKER_OUT_OF_MEMORY;
-    }
     handle->flags =
         PL_OBJ_TYPE_BYTE_ARRAY | PL_OBJ_FLAG_OWNED | PL_OBJ_FLAG_DYNAMIC | PL_OBJ_FLAG_DYNAMIC_DATA;
     array = handle->as.bytes;

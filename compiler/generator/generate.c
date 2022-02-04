@@ -154,7 +154,7 @@ plContextError(const char *file_name, const char *function_name, unsigned int li
 plReference *
 plFindReference(const plSemanticContext *sem, const char *symbol, size_t *idx)
 {
-    if (!sem || !symbol) {
+    if (UNLIKELY(!sem || !symbol)) {
         VASQ_ERROR(debug_logger, "sem and symbol cannot be NULL.");
         return NULL;
     }
@@ -178,7 +178,7 @@ plResolveExtendedName(const plSemanticContext *sem, const plAstNode *node, size_
 {
     plReference *ref;
 
-    if (!sem || !node) {
+    if (UNLIKELY(!sem || !node)) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return NULL;
     }
@@ -197,7 +197,7 @@ plAddTable(plSemanticContext *sem)
 {
     plRefTable *new_table;
 
-    if (!sem) {
+    if (UNLIKELY(!sem)) {
         VASQ_ERROR(debug_logger, "sem cannot be NULL.");
         return NULL;
     }
@@ -213,7 +213,7 @@ plAddTable(plSemanticContext *sem)
             else {
                 new_capacity = (sem->stack_capacity * 3) / 2;
             }
-            sem->stack = plSafeRealloc(sem->stack, sizeof(*success) * new_capacity);
+            sem->stack = plSafeRealloc(sem->stack, sizeof(sem->stack) * new_capacity);
             sem->stack_capacity = new_capacity;
         }
 

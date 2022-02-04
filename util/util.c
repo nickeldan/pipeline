@@ -6,7 +6,7 @@
 
 #include "util.h"
 
-vasqLogger *debug_logger;
+vasqLogger *debug_logger = NULL;
 
 #if LL_USE >= 0
 
@@ -68,7 +68,6 @@ plSetupDebuggingLogger(vasqLogLevel_t level)
     atexit(freeDebuggingLogger);
 #else
     (void)level;
-    debug_logger = NULL;
 #endif
 
     return PL_RET_OK;
