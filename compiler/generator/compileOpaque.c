@@ -9,7 +9,7 @@ plCompileOpaque(plSemanticContext *sem, plAstNode *node)
     const char *name;
     plReference *ref;
 
-    if (!sem || !node) {
+    if (UNLIKELY(!sem || !node)) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return PL_RET_USAGE;
     }

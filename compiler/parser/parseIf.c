@@ -10,10 +10,10 @@ plParseIfBlock(plLexicalScanner *scanner, plAstNode **node)
     plLexicalToken token;
     plAstNode *condition_node, *statement_list = NULL, *else_node = NULL;
 
-    if (node) {
+    if (LIKELY(node)) {
         *node = NULL;
     }
-    if (!scanner || !node) {
+    if (UNLIKELY(!scanner || !node)) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return PL_RET_USAGE;
     }
@@ -61,10 +61,6 @@ plParseIfBlock(plLexicalScanner *scanner, plAstNode **node)
 skip_over_check:
 
     *node = plAstCreateFamily(PL_MARKER_IF, condition_node, statement_list, else_node);
-    if (!*node) {
-        ret = PL_RET_OUT_OF_MEMORY;
-        goto error;
-    }
     memcpy(&(*node)->header.location, &location, sizeof(location));
 
     return PL_RET_OK;

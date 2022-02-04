@@ -112,7 +112,7 @@ plGenerateModule(plAstNode *tree, const char *file_name, plModule *module, uint3
     int ret;
     plSemanticContext sem = {.file_name = file_name, .module = module, .compiler_flags = compiler_flags};
 
-    if (!tree || !file_name || !module) {
+    if (UNLIKELY(!tree || !file_name || !module)) {
         VASQ_ERROR(debug_logger, "tree, file_name, and module cannot be NULL");
         return PL_RET_USAGE;
     }
@@ -206,7 +206,6 @@ plAddTable(plSemanticContext *sem)
     if (new_table) {
         if (sem->stack_size == sem->stack_capacity) {
             size_t new_capacity;
-            plRefTable **success;
 
             if (sem->stack_capacity == 0) {
                 new_capacity = STACK_INITIAL_CAPACITY;
@@ -214,13 +213,7 @@ plAddTable(plSemanticContext *sem)
             else {
                 new_capacity = (sem->stack_capacity * 3) / 2;
             }
-            success = VASQ_REALLOC(debug_logger, sem->stack, sizeof(*success) * new_capacity);
-            if (!success) {
-                plRefTableFree(new_table);
-                return NULL;
-            }
-
-            sem->stack = success;
+            sem->stack = plSafeRealloc(sem->stack, sizeof(*success) * new_capacity);
             sem->stack_capacity = new_capacity;
         }
 

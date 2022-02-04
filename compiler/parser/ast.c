@@ -35,23 +35,23 @@ typedef plAstFourSplitNode plAstSplitter;
 plAstNode *
 plAstGetChild(const plAstNode *parent, unsigned int which)
 {
-    int node_type, split_size;
+    int node_type, split_size __attribute__((unused));
     const plAstSplitter *splitter = (const plAstSplitter *)parent;
 
-    if (!parent) {
+    if (UNLIKELY(!parent)) {
         VASQ_ERROR(debug_logger, "parent cannot be NULL.");
         return NULL;
     }
 
     node_type = parent->header.marker;
     split_size = plAstSplitSize(node_type);
-    if (split_size <= 0) {
+    if (UNLIKELY(split_size <= 0)) {
         VASQ_ERROR(debug_logger, "This node type (%s) does not have any children.",
                    plLexicalMarkerName(node_type));
         return NULL;
     }
 
-    if (which >= (unsigned int)split_size) {
+    if (UNLIKELY(which >= (unsigned int)split_size)) {
         VASQ_ERROR(debug_logger, "%u is too high an index for this node type (%s).", which,
                    plLexicalMarkerName(node_type));
         return NULL;
@@ -63,23 +63,23 @@ plAstGetChild(const plAstNode *parent, unsigned int which)
 bool
 plAstSetChild(plAstNode *parent, unsigned int which, plAstNode *child)
 {
-    int node_type, split_size;
+    int node_type, split_size __attribute__((unused));
     plAstSplitter *splitter = (plAstSplitter *)parent;
 
-    if (!parent) {
+    if (UNLIKELY(!parent)) {
         VASQ_ERROR(debug_logger, "parent cannot be NULL.");
         return false;
     }
 
     node_type = parent->header.marker;
     split_size = plAstSplitSize(node_type);
-    if (split_size <= 0) {
+    if (UNLIKELY(split_size <= 0)) {
         VASQ_ERROR(debug_logger, "This node type (%s) does not have any children.",
                    plLexicalMarkerName(node_type));
         return false;
     }
 
-    if (which >= (unsigned int)split_size) {
+    if (UNLIKELY(which >= (unsigned int)split_size)) {
         VASQ_ERROR(debug_logger, "%u is too high an index for this node type (%s).", which,
                    plLexicalMarkerName(node_type));
         return false;
@@ -95,13 +95,13 @@ plAstGetData(plAstNode *node)
     int node_type;
     plAstNodeWithData *node_with_data = (plAstNodeWithData *)node;
 
-    if (!node) {
+    if (UNLIKELY(!node)) {
         VASQ_ERROR(debug_logger, "node cannot be NULL.");
         return NULL;
     }
 
     node_type = node->header.marker;
-    if (plAstSplitSize(node_type) != -1) {
+    if (UNLIKELY(plAstSplitSize(node_type) != -1)) {
         VASQ_ERROR(debug_logger, "This node type (%s) does not have data.", plLexicalMarkerName(node_type));
         return NULL;
     }
@@ -116,7 +116,7 @@ plAstNew(int node_type)
 
     switch (plAstSplitSize(node_type)) {
     case -1:
-        node = VASQ_MALLOC(debug_logger, sizeof(plAstNodeWithData));
+        node = plSafeMalloc(sizeof(plAstNodeWithData));
         if (node) {
             *(plAstNodeWithData *)node = (plAstNodeWithData){0};
             goto set_node_type;
@@ -124,7 +124,7 @@ plAstNew(int node_type)
         break;
 
     case 0:
-        node = VASQ_MALLOC(debug_logger, sizeof(plAstNode));
+        node = plSafeMalloc(sizeof(plAstNode));
         if (node) {
             *node = (plAstNode){0};
             goto set_node_type;
@@ -132,7 +132,7 @@ plAstNew(int node_type)
         break;
 
     case 1:
-        node = VASQ_MALLOC(debug_logger, sizeof(plAstOneSplitNode));
+        node = plSafeMalloc(sizeof(plAstOneSplitNode));
         if (node) {
             *(plAstOneSplitNode *)node = (plAstOneSplitNode){0};
             goto set_node_type;
@@ -140,7 +140,7 @@ plAstNew(int node_type)
         break;
 
     case 2:
-        node = VASQ_MALLOC(debug_logger, sizeof(plAstTwoSplitNode));
+        node = plSafeMalloc(sizeof(plAstTwoSplitNode));
         if (node) {
             *(plAstTwoSplitNode *)node = (plAstTwoSplitNode){0};
             goto set_node_type;
@@ -148,7 +148,7 @@ plAstNew(int node_type)
         break;
 
     case 3:
-        node = VASQ_MALLOC(debug_logger, sizeof(plAstThreeSplitNode));
+        node = plSafeMalloc(sizeof(plAstThreeSplitNode));
         if (node) {
             *(plAstThreeSplitNode *)node = (plAstThreeSplitNode){0};
             goto set_node_type;
@@ -156,7 +156,7 @@ plAstNew(int node_type)
         break;
 
     case 4:
-        node = VASQ_MALLOC(debug_logger, sizeof(plAstFourSplitNode));
+        node = plSafeMalloc(sizeof(plAstFourSplitNode));
         if (node) {
             *(plAstFourSplitNode *)node = (plAstFourSplitNode){0};
             goto set_node_type;
@@ -272,7 +272,7 @@ plAstCreateFamily(int marker, ...)
     plAstSplitter *splitter;
 
     parent = plAstNew(marker);
-    if (!parent) {
+    if (UNLIKELY(!parent)) {
         return NULL;
     }
     splitter = (plAstSplitter *)parent;
@@ -292,25 +292,22 @@ plAstCreateConnection(int marker, plAstNode **first, plAstNode *second)
 {
     plAstNode *parent;
 
-    if (!first || !second) {
+    if (UNLIKELY(!first || !second)) {
         VASQ_ERROR(debug_logger, "first and second cannot be NULL.");
         return PL_RET_USAGE;
     }
 
-    if (!*first) {
+    if (UNLIKELY(!*first)) {
         VASQ_ERROR(debug_logger, "*first cannot be NULL.");
         return PL_RET_USAGE;
     }
 
-    if (plAstSplitSize(marker) != 2) {
+    if (UNLIKELY(plAstSplitSize(marker) != 2)) {
         VASQ_ERROR(debug_logger, "The marker must have a split size of 2.");
         return PL_RET_USAGE;
     }
 
     parent = plAstCreateFamily(marker, *first, second);
-    if (!parent) {
-        return PL_RET_OUT_OF_MEMORY;
-    }
     *first = parent;
 
     return PL_RET_OK;

@@ -45,17 +45,13 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
         }
 
         if (token.header.marker != PL_MARKER_NAME) {
-            PARSER_ERROR("Unexpected %s following %s in argunent list.",
+            PARSER_ERROR("Unexpected %s following %s in argument list.",
                          plLexicalMarkerName(token.header.marker), plLexicalMarkerName(previous_marker));
             plTokenCleanup(&token, scanner->table);
             return PL_RET_BAD_DATA;
         }
 
         name_node = plAstNew(PL_MARKER_NAME);
-        if (!name_node) {
-            plTokenCleanup(&token, scanner->table);
-            return PL_RET_OUT_OF_MEMORY;
-        }
         plAstCopyTokenInfo(name_node, &token);
 
         ret = EXPECT_MARKER(scanner, PL_MARKER_COLON, &location);
@@ -78,10 +74,6 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
                 plAstNode *temp_node;
 
                 temp_node = plAstCreateFamily(PL_MARKER_QUESTION, type_node);
-                if (!temp_node) {
-                    ret = PL_RET_OUT_OF_MEMORY;
-                    goto cleanup_name_node;
-                }
                 plAstCopyTokenInfo(temp_node, &token);
                 type_node = temp_node;
             }
@@ -91,11 +83,6 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
         }
 
         arg_node = plAstCreateFamily(PL_MARKER_COLON, name_node, type_node);
-        if (!arg_node) {
-            ret = PL_RET_OUT_OF_MEMORY;
-            plAstFree(type_node, scanner->table);
-            goto cleanup_name_node;
-        }
         memcpy(&arg_node->header.location, &location, sizeof(location));
 
         if (*arg_list) {
@@ -126,10 +113,10 @@ plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
     plLexicalToken token;
     plAstNode *function_name_node = NULL, *arg_list = NULL, *type_node = NULL, *statement_list = NULL;
 
-    if (node) {
+    if (LIKELY(node)) {
         *node = NULL;
     }
-    if (!scanner || !node) {
+    if (UNLIKELY(!scanner || !node)) {
         VASQ_ERROR(debug_logger, "scanner and node cannot be NULL.");
         return PL_RET_USAGE;
     }
@@ -139,7 +126,7 @@ plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
 
     if (function_marker == PL_MARKER_LOCAL && global) {
         VASQ_ERROR(debug_logger, "LOCAL not allowed in global scope.");
-        return PL_RET_USAGE;
+        return PL_RET_BAD_DATA;
     }
 
     ret = NEXT_TOKEN(scanner, &token);
@@ -155,10 +142,6 @@ plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
         }
 
         function_name_node = plAstNew(PL_MARKER_NAME);
-        if (!function_name_node) {
-            plTokenCleanup(&token, scanner->table);
-            return PL_RET_OUT_OF_MEMORY;
-        }
         plAstCopyTokenInfo(function_name_node, &token);
 
         ret = NEXT_TOKEN(scanner, &token);
@@ -207,6 +190,7 @@ plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
     }
     else if (token.header.marker != PL_MARKER_LEFT_BRACE) {
         PARSER_ERROR("Unexpected %s after function header.", plLexicalMarkerName(token.header.marker));
+        plTokenCleanup(&token, scanner->table);
         ret = PL_RET_BAD_DATA;
         goto error;
     }
@@ -219,10 +203,6 @@ plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
 skip_statement_list:
 
     *node = plAstNew(function_marker);
-    if (!*node) {
-        plAstFree(statement_list, scanner->table);
-        goto error;
-    }
     memcpy(&(*node)->header.location, &function_location, sizeof(function_location));
     if (declaration) {
         (*node)->header.submarker = PL_SUBMARKER_FUNC_DECL;

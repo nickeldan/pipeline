@@ -81,10 +81,8 @@ plNewByteArray(void)
 {
     plByteArray *array;
 
-    array = VASQ_MALLOC(debug_logger, sizeof(*array));
-    if (array) {
-        *array = (plByteArray){0};
-    }
+    array = plSafeMalloc(sizeof(*array));
+    *array = (plByteArray){0};
     return array;
 }
 
@@ -95,7 +93,7 @@ plPopulateIntegerFromString(const char *string, unsigned int length, plInteger_t
     char array[PL_INTEGER_MAX_LENGTH + 1];
     char *temp;
 
-    if (!string || !integer) {
+    if (UNLIKELY(!string || !integer)) {
         VASQ_ERROR(debug_logger, "string and integer cannot be NULL");
         return PL_RET_USAGE;
     }
@@ -137,7 +135,7 @@ plPopulateIntegerFromHexString(const char *string, unsigned int length, plIntege
     char array[PL_INTEGER_BIT_SIZE / 4 + 1];
     char *temp;
 
-    if (!string || !integer) {
+    if (UNLIKELY(!string || !integer)) {
         VASQ_ERROR(debug_logger, "string and integer cannot be NULL");
         return PL_RET_USAGE;
     }
@@ -177,7 +175,7 @@ plPopulateFloatFromString(const char *string, unsigned int length, plFloat_t *de
 {
     char *array, *temp;
 
-    if (!string || !decimal) {
+    if (UNLIKELY(!string || !decimal)) {
         VASQ_ERROR(debug_logger, "string and decimal cannot be NULL");
         return PL_RET_USAGE;
     }
@@ -209,6 +207,11 @@ plConcatenateByteArrays(plByteArray *first, const plByteArray *second)
 {
     uint32_t new_length;
 
+    if (UNLIKELY(!first || !second)) {
+        VASQ_ERROR(debug_logger, "The arguments cannot be NULL");
+        return PL_RET_USAGE;
+    }
+
     new_length = first->length + second->length;
     if (new_length < first->length) {
         VASQ_ERROR(debug_logger, "Integer overflow detected");
@@ -217,7 +220,6 @@ plConcatenateByteArrays(plByteArray *first, const plByteArray *second)
 
     if (new_length > first->capacity) {
         uint32_t new_capacity;
-        uint8_t *success;
 
         new_capacity = CAPACITY_EXPANSION(new_length);
         if (new_capacity < new_length) {
@@ -225,12 +227,7 @@ plConcatenateByteArrays(plByteArray *first, const plByteArray *second)
             return PL_RET_OVERFLOW;
         }
 
-        success = VASQ_REALLOC(debug_logger, first->bytes, new_capacity);
-        if (!success) {
-            return PL_RET_OUT_OF_MEMORY;
-        }
-
-        first->bytes = success;
+        first->bytes = plSafeRealloc(first->bytes, new_capacity);
         first->capacity = new_capacity;
     }
 

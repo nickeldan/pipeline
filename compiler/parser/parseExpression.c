@@ -204,10 +204,6 @@ start:
     case PL_MARKER_TYPE:
     case PL_MARKER_CONTEXT:
         *node = plAstNew(token.header.marker);
-        if (!*node) {
-            plTokenCleanup(&token, scanner->table);
-            return PL_RET_OUT_OF_MEMORY;
-        }
         plAstCopyTokenInfo(*node, &token);
 
         if (token.header.marker == PL_MARKER_OBJECT &&
@@ -293,10 +289,6 @@ start:
             plAstNode *connector_node;
 
             connector_node = plAstCreateFamily(PL_MARKER_NOT, *node);
-            if (!connector_node) {
-                ret = PL_RET_OUT_OF_MEMORY;
-                goto error;
-            }
             memcpy(&connector_node->header.location, &negation_location, sizeof(negation_location));
             *node = connector_node;
         }
@@ -406,7 +398,7 @@ error:
 int
 plParseExpression(plLexicalScanner *scanner, plAstNode **node, bool compilation_only)
 {
-    if (!scanner || !node) {
+    if (UNLIKELY(!scanner || !node)) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         if (node) {
             *node = NULL;

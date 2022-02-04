@@ -8,10 +8,10 @@ plParseReceiver(plLexicalScanner *scanner, plAstNode **node)
     int ret;
     plLexicalLocation arrow_location;
 
-    if (node) {
+    if (LIKELY(node)) {
         *node = NULL;
     }
-    if (!scanner || !node) {
+    if (UNLIKELY(!scanner || !node)) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return PL_RET_USAGE;
     }
@@ -27,10 +27,6 @@ plParseReceiver(plLexicalScanner *scanner, plAstNode **node)
 
         if (token.header.marker == PL_MARKER_UNDERSCORE) {
             second_node = plAstNew(PL_MARKER_UNDERSCORE);
-            if (!second_node) {
-                ret = PL_RET_OUT_OF_MEMORY;
-                goto error;
-            }
             plAstCopyTokenInfo(second_node, &token);
             goto connect_nodes;
         }
@@ -105,11 +101,6 @@ plParseReceiver(plLexicalScanner *scanner, plAstNode **node)
             }
 
             store_node = plAstNew(PL_MARKER_NAME);
-            if (!store_node) {
-                plTokenCleanup(&token2, scanner->table);
-                ret = PL_RET_OUT_OF_MEMORY;
-                goto loop_error;
-            }
             plAstCopyTokenInfo(store_node, &token2);
 
             ret = plAstCreateConnection(PL_MARKER_COLON, &second_node, store_node);

@@ -49,10 +49,6 @@ plParseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node, bool compil
     }
 
     array_node = plAstCreateFamily('A', *node);
-    if (!array_node) {
-        ret = PL_RET_OUT_OF_MEMORY;
-        goto error;
-    }
     memcpy(&array_node->header.location, &location, sizeof(location));
     *node = array_node;
 

@@ -9,10 +9,10 @@ plParseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
     plLexicalLocation location;
     plAstNode *condition_node, *statement_list = NULL;
 
-    if (node) {
+    if (LIKELY(node)) {
         *node = NULL;
     }
-    if (!scanner || !node) {
+    if (UNLIKELY(!scanner || !node)) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return PL_RET_USAGE;
     }
@@ -35,10 +35,6 @@ plParseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
     }
 
     *node = plAstCreateFamily(PL_MARKER_WHILE, condition_node, statement_list);
-    if (!*node) {
-        ret = PL_RET_OUT_OF_MEMORY;
-        goto error;
-    }
     memcpy(&(*node)->header.location, &location, sizeof(location));
 
     return PL_RET_OK;

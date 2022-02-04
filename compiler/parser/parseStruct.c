@@ -10,10 +10,10 @@ plParseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
     plLexicalToken token;
     plAstNode *struct_name_node, *arg_list = NULL;
 
-    if (node) {
+    if (LIKELY(node)) {
         *node = NULL;
     }
-    if (!scanner || !node) {
+    if (UNLIKELY(!scanner || !node)) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return PL_RET_USAGE;
     }
@@ -32,10 +32,6 @@ plParseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
         return PL_RET_BAD_DATA;
     }
     struct_name_node = plAstNew(PL_MARKER_NAME);
-    if (!struct_name_node) {
-        plTokenCleanup(&token, scanner->table);
-        return PL_RET_OUT_OF_MEMORY;
-    }
     plAstCopyTokenInfo(struct_name_node, &token);
 
     ret = EXPECT_MARKER(scanner, PL_MARKER_LEFT_BRACE, NULL);
@@ -73,20 +69,9 @@ plParseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
         }
 
         name_node = plAstNew(PL_MARKER_NAME);
-        if (!name_node) {
-            plAstFree(type_node, scanner->table);
-            ret = PL_RET_OUT_OF_MEMORY;
-            goto loop_error;
-        }
         plAstCopyTokenInfo(name_node, &token);
 
         arg_node = plAstCreateFamily(PL_MARKER_COLON, name_node, type_node);
-        if (!arg_node) {
-            plAstFree(name_node, scanner->table);
-            plAstFree(type_node, scanner->table);
-            ret = PL_RET_OUT_OF_MEMORY;
-            goto error;
-        }
         memcpy(&arg_node->header.location, &colon_location, sizeof(colon_location));
 
         if (arg_list) {
@@ -120,10 +105,6 @@ loop_error:
     }
 
     *node = plAstCreateFamily(PL_MARKER_STRUCT, struct_name_node, arg_list);
-    if (!*node) {
-        ret = PL_RET_OUT_OF_MEMORY;
-        goto error;
-    }
     memcpy(&(*node)->header.location, &location, sizeof(location));
 
     return PL_RET_OK;

@@ -37,7 +37,7 @@ plStoreReference(plRefTable *table, const char *symbol, uint32_t flags, const pl
 {
     plReference *ref;
 
-    if (!table || !symbol || !location) {
+    if (UNLIKELY(!table || !symbol || !location)) {
         VASQ_ERROR(debug_logger, "table, symbol, and location cannot be NULL.");
         return PL_RET_USAGE;
     }

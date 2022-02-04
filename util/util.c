@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -26,6 +27,32 @@ plTranslateVasqRet(int value)
     case VASQ_RET_OUT_OF_MEMORY: return PL_RET_OUT_OF_MEMORY;
     default: return -1;
     }
+}
+
+void *
+plSafeMalloc(size_t size)
+{
+    void *ptr;
+
+    ptr = malloc(size);
+    if (!ptr && size > 0) {
+        fprintf(stderr, "Failed to allocate %zu bytes.\n", size);
+        abort();
+    }
+    return ptr;
+}
+
+void *
+plSafeRealloc(void *ptr, size_t size)
+{
+    void *new_ptr;
+
+    new_ptr = realloc(ptr, size);
+    if (!new_ptr && size > 0) {
+        fprintf(stderr, "Failed to reallocate %zu bytes.\n", size);
+        abort();
+    }
+    return new_ptr;
 }
 
 int

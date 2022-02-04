@@ -40,9 +40,6 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         }
 
         *node = plAstNew(token.header.marker);
-        if (!*node) {
-            return PL_RET_OUT_OF_MEMORY;
-        }
         plAstCopyTokenInfo(*node, &token);
 
         return PL_RET_OK;
@@ -61,10 +58,6 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         }
 
         *node = plAstCreateFamily(token.header.marker, first_node);
-        if (!*node) {
-            ret = PL_RET_OUT_OF_MEMORY;
-            goto error;
-        }
         plAstCopyTokenInfo(*node, &token);
 
         return PL_RET_OK;
@@ -102,19 +95,9 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             }
 
             name_node = plAstNew(PL_MARKER_NAME);
-            if (!name_node) {
-                plTokenCleanup(&token, scanner->table);
-                plAstFree(type_node, scanner->table);
-                return PL_RET_OUT_OF_MEMORY;
-            }
             plAstCopyTokenInfo(name_node, &token);
 
             *node = plAstCreateFamily(next_token.header.marker, name_node, type_node);
-            if (*node) {
-                plAstFree(name_node, scanner->table);
-                plAstFree(type_node, scanner->table);
-                return PL_RET_OUT_OF_MEMORY;
-            }
             plAstCopyTokenInfo(*node, &next_token);
 
             return PL_RET_OK;
@@ -135,17 +118,9 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             plAstNode *name_node;
 
             name_node = plAstNew(PL_MARKER_NAME);
-            if (!name_node) {
-                plTokenCleanup(&next_token, scanner->table);
-                return PL_RET_OUT_OF_MEMORY;
-            }
             plAstCopyTokenInfo(name_node, &next_token);
 
             *node = plAstCreateFamily('%', name_node);
-            if (!*node) {
-                plAstFree(name_node, scanner->table);
-                return PL_RET_OUT_OF_MEMORY;
-            }
             memcpy(&(*node)->header.location, &token.header.location, sizeof(token.header.location));
 
             return PL_RET_OK;
@@ -188,11 +163,6 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         }
 
         *node = plAstCreateFamily(PL_MARKER_REASSIGNMENT, first_node, rvalue_node);
-        if (!*node) {
-            plAstFree(rvalue_node, scanner->table);
-            ret = PL_RET_OUT_OF_MEMORY;
-            goto error;
-        }
         plAstCopyTokenInfo(*node, &token);
 
         return PL_RET_OK;
@@ -217,10 +187,6 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
     }
 
     *node = plAstCreateFamily(PL_MARKER_ARROW, first_node, receiver_node);
-    if (!*node) {
-        ret = PL_RET_OUT_OF_MEMORY;
-        goto error;
-    }
     plAstCopyTokenInfo(*node, &token);
 
     return PL_RET_OK;
@@ -238,10 +204,10 @@ plParseStatementList(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
 
-    if (node) {
+    if (LIKELY(node)) {
         *node = NULL;
     }
-    if (!scanner || !node) {
+    if (UNLIKELY(!scanner || !node)) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return PL_RET_USAGE;
     }

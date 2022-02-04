@@ -7,10 +7,10 @@ plParseExtendedName(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret = PL_RET_OK;
 
-    if (node) {
+    if (LIKELY(node)) {
         *node = NULL;
     }
-    if (!scanner || !node) {
+    if (UNLIKELY(!scanner || !node)) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return PL_RET_USAGE;
     }
@@ -31,10 +31,6 @@ plParseExtendedName(plLexicalScanner *scanner, plAstNode **node)
             }
 
             period_node = plAstNew(PL_MARKER_PERIOD);
-            if (!period_node) {
-                ret = PL_RET_OUT_OF_MEMORY;
-                goto error;
-            }
             plAstCopyTokenInfo(period_node, &token);
 
             ret = NEXT_TOKEN(scanner, &token);
@@ -54,11 +50,6 @@ plParseExtendedName(plLexicalScanner *scanner, plAstNode **node)
         }
 
         name_node = plAstNew(PL_MARKER_NAME);
-        if (!name_node) {
-            plTokenCleanup(&token, scanner->table);
-            ret = PL_RET_OUT_OF_MEMORY;
-            goto loop_error;
-        }
         plAstCopyTokenInfo(name_node, &token);
 
         if (period_node) {
@@ -96,10 +87,10 @@ plParseExtendedType(plLexicalScanner *scanner, plAstNode **node)
     int ret;
     plLexicalToken token;
 
-    if (node) {
+    if (LIKELY(node)) {
         *node = NULL;
     }
-    if (!scanner || !node) {
+    if (UNLIKELY(!scanner || !node)) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return PL_RET_USAGE;
     }
@@ -111,10 +102,6 @@ plParseExtendedType(plLexicalScanner *scanner, plAstNode **node)
 
     if (token.header.marker == PL_MARKER_TYPE) {
         *node = plAstNew(PL_MARKER_TYPE);
-        if (!*node) {
-            plTokenCleanup(&token, scanner->table);
-            return PL_RET_OUT_OF_MEMORY;
-        }
         plAstCopyTokenInfo(*node, &token);
     }
     else {
@@ -134,10 +121,6 @@ plParseExtendedType(plLexicalScanner *scanner, plAstNode **node)
             plAstNode *question_node;
 
             question_node = plAstCreateFamily(PL_MARKER_QUESTION, *node);
-            if (!question_node) {
-                ret = PL_RET_OUT_OF_MEMORY;
-                goto error;
-            }
             plAstCopyTokenInfo(question_node, &token);
             *node = question_node;
         }

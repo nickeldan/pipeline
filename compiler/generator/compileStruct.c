@@ -6,7 +6,7 @@ plCompileStructDefinition(plSemanticContext *sem, plAstNode *node)
     plReference *ref;
     plStructRef *sref;
 
-    if (!sem || !node) {
+    if (UNLIKELY(!sem || !node)) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return PL_RET_USAGE;
     }

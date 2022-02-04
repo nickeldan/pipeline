@@ -29,17 +29,9 @@ parseImportExportOpaque(plLexicalScanner *scanner, plAstNode **node)
     }
 
     name_node = plAstNew(PL_MARKER_NAME);
-    if (!name_node) {
-        plTokenCleanup(&token, scanner->table);
-        return PL_RET_OUT_OF_MEMORY;
-    }
     plAstCopyTokenInfo(name_node, &token);
 
     *node = plAstCreateFamily(marker, name_node);
-    if (!*node) {
-        plAstFree(name_node, scanner->table);
-        return PL_RET_OUT_OF_MEMORY;
-    }
     memcpy(&(*node)->header.location, &location, sizeof(location));
 
     ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
@@ -78,11 +70,6 @@ parseConstantDeclaration(plLexicalScanner *scanner, plAstNode **node)
         goto error;
     }
     name_node = plAstNew(PL_MARKER_NAME);
-    if (!name_node) {
-        plTokenCleanup(&token, scanner->table);
-        ret = PL_RET_OUT_OF_MEMORY;
-        goto error;
-    }
     plAstCopyTokenInfo(name_node, &token);
 
     ret = plAstCreateConnection(PL_MARKER_ARROW, node, name_node);
@@ -128,10 +115,6 @@ parseMain(plLexicalScanner *scanner, plAstNode **node)
     }
 
     *node = plAstCreateFamily(PL_MARKER_MAIN, statement_list);
-    if (!*node) {
-        plAstFree(statement_list, scanner->table);
-        return PL_RET_OUT_OF_MEMORY;
-    }
     memcpy(&(*node)->header.location, &location, sizeof(location));
 
     return PL_RET_OK;
@@ -155,13 +138,8 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
 
         case PL_MARKER_EXPORT_ALL:
             node = plAstNew(PL_MARKER_EXPORT_ALL);
-            if (node) {
-                memcpy(&node->header.location, &token.header.location, sizeof(token.header.location));
-                ret = PL_RET_OK;
-            }
-            else {
-                ret = PL_RET_OUT_OF_MEMORY;
-            }
+            memcpy(&node->header.location, &token.header.location, sizeof(token.header.location));
+            ret = PL_RET_OK;
             break;
 
         case PL_MARKER_SOURCE:
@@ -223,7 +201,7 @@ plFileParse(FILE *in, const char *file_name, plAstNode **tree, plWordTable **tab
     int ret;
     plLexicalScanner scanner;
 
-    if (!in || !tree || !table) {
+    if (UNLIKELY(!in || !tree || !table)) {
         VASQ_ERROR(debug_logger, "in, tree, and table cannot be NULL.");
         return PL_RET_USAGE;
     }
@@ -258,7 +236,7 @@ plExpectMarkerNoLog(plLexicalScanner *scanner, int marker, plLexicalLocation *lo
     int ret;
     plLexicalToken token;
 
-    if (!location) {
+    if (UNLIKELY(!location)) {
         VASQ_ERROR(debug_logger, "location cannot be NULL.");
         return PL_RET_USAGE;
     }

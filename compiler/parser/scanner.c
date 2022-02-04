@@ -276,11 +276,7 @@ readByteString(plLexicalScanner *scanner, plObjectHandle *handle)
 
 good_string:
 
-    array->bytes = VASQ_MALLOC(debug_logger, array->capacity);
-    if (!array->bytes) {
-        plFreeObject(handle);
-        return PL_MARKER_OUT_OF_MEMORY;
-    }
+    array->bytes = plSafeMalloc(array->capacity);
 
     for (unsigned int k = 0; k < array->capacity; k++) {
         unsigned char c = scanner->line[k];
@@ -419,21 +415,10 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name)
     *scanner = (plLexicalScanner){0};
 
     scanner->table = plWordTableNew();
-    if (!scanner->table) {
-        return PL_RET_OUT_OF_MEMORY;
-    }
-
     scanner->keyword_table = plRefTableNew();
-    if (!scanner->keyword_table) {
-        ret = PL_RET_OUT_OF_MEMORY;
-        goto error;
-    }
 
     for (size_t k = 0; k < ARRAY_LENGTH(keywords); k++) {
-        if (!plUpdateRef(scanner->keyword_table, keywords[k].word, (void *)(intptr_t)keywords[k].marker)) {
-            ret = PL_RET_OUT_OF_MEMORY;
-            goto error;
-        }
+        plUpdateRef(scanner->keyword_table, keywords[k].word, (void *)(intptr_t)keywords[k].marker);
     }
 
     options.flags = 0;
@@ -441,14 +426,14 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name)
     options.user = scanner;
     ret = vasqLoggerCreate(STDOUT_FILENO, VASQ_LL_WARNING, PL_LOGGER_PREAMBLE "%x: %M\n", &options,
                            &scanner->scanner_logger);
-    if (ret != VASQ_RET_OK) {
+    if (UNLIKELY(ret != VASQ_RET_OK)) {
         goto error;
     }
 
     options.processor = parserProcessor;
     ret = vasqLoggerCreate(STDOUT_FILENO, VASQ_LL_WARNING, PL_LOGGER_PREAMBLE "%x: %M\n\t%x\n\t%x\n",
                            &options, &scanner->parser_logger);
-    if (ret != VASQ_RET_OK) {
+    if (UNLIKELY(ret != VASQ_RET_OK)) {
         goto error;
     }
 
@@ -469,20 +454,24 @@ error:
 void
 plScannerCleanup(plLexicalScanner *scanner)
 {
-    if (scanner) {
-        unsigned int num_look_ahead = scanner->num_look_ahead;
+    unsigned int num_look_ahead;
 
-        for (unsigned int k = 0; k < num_look_ahead; k++) {
-            plTokenCleanup(scanner->look_ahead + k, scanner->table);
-        }
-
-        vasqLoggerFree(scanner->scanner_logger);
-        vasqLoggerFree(scanner->parser_logger);
-        plWordTableFree(scanner->table);
-        plRefTableFree(scanner->keyword_table);
-
-        *scanner = (plLexicalScanner){0};
+    if (!scanner) {
+        return;
     }
+
+    num_look_ahead = scanner->num_look_ahead;
+
+    for (unsigned int k = 0; k < num_look_ahead; k++) {
+        plTokenCleanup(scanner->look_ahead + k, scanner->table);
+    }
+
+    vasqLoggerFree(scanner->scanner_logger);
+    vasqLoggerFree(scanner->parser_logger);
+    plWordTableFree(scanner->table);
+    plRefTableFree(scanner->keyword_table);
+
+    *scanner = (plLexicalScanner){0};
 }
 
 int
@@ -490,7 +479,7 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
 {
     unsigned int consumed;
 
-    if (!scanner || !token) {
+    if (UNLIKELY(!scanner || !token)) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return PL_MARKER_USAGE;
     }

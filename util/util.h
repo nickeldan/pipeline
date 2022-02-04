@@ -1,7 +1,9 @@
 #ifndef PIPELINE_UTIL_H
 #define PIPELINE_UTIL_H
 
+#include <stdbool.h>
 #include <stdint.h>
+#include <sys/types.h>
 
 #include "vasq/logger.h"
 #include "vasq/placeholder.h"
@@ -10,6 +12,14 @@
 
 #define ERROR_STRING   "\e[0;31mError: \e[0m"    // red
 #define WARNING_STRING "\e[0;34mWarning: \e[0m"  // blue
+
+#ifdef DEBUG
+#define LIKELY(expr)   expr
+#define UNLIKELY(expr) expr
+#else
+#define LIKELY(expr)   true
+#define UNLIKELY(expr) false
+#endif
 
 enum plRetValue {
     PL_RET_OK = 0,
@@ -23,6 +33,12 @@ enum plRetValue {
 
 int
 plTranslateVasqRet(int value);
+
+void *
+plSafeMalloc(size_t size);
+
+void *
+plSafeRealloc(void *ptr, size_t size);
 
 #if LL_USE >= 0
 #define PL_LOGGER_PREAMBLE "[%L]%_ %F:%f:%l: "

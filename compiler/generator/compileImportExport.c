@@ -19,10 +19,10 @@ plCompileImport(plSemanticContext *sem, plAstNode *node)
     size_t idx;
     uint32_t flags = PL_REF_FLAG_MODULE;
     const char *name;
-    plModule *module;
+    plModule *module = NULL;
     plReference *ref;
 
-    if (!sem || !node) {
+    if (UNLIKELY(!sem || !node)) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return PL_RET_USAGE;
     }
@@ -76,7 +76,7 @@ plCompileExport(plSemanticContext *sem, plAstNode *node)
     const char *name;
     plReference *ref;
 
-    if (!sem || !node) {
+    if (UNLIKELY(!sem || !node)) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return PL_RET_USAGE;
     }
