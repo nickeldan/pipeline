@@ -600,19 +600,21 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
 
     case '?':
         if (isVarChar(scanner->line[1])) {
-            unsigned int end;
+            unsigned int len;
+            char *start = scanner->line + 1;
+
+            for (len = 1; isVarChar(start[len]); len++) {}
 
             for (size_t k = 0; k < ARRAY_LENGTH(contexts); k++) {
-                if (strncmp(scanner->line + 1, contexts[k].word, contexts[k].len) == 0) {
+                if (contexts[k].len == len && strncmp(start, contexts[k].word, len) == 0) {
                     scanner->last_marker = PL_MARKER_CONTEXT;
                     token->header.submarker = contexts[k].marker;
-                    consumed = 1 + contexts[k].len;
+                    consumed = 1 + len;
                     goto done;
                 }
             }
 
-            for (end = 2; isVarChar(scanner->line[end]); end++) {}
-            PARSER_ERROR("Invalid context: %.*s", end - 1, scanner->line + 1);
+            PARSER_ERROR("Invalid context: %.*s", len, start);
             scanner->last_marker = PL_MARKER_BAD_DATA;
             goto return_marker;
         }
