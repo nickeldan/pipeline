@@ -629,12 +629,11 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
     if (isStartingVarChar(scanner->line[0])) {
         void *ref;
 
-        for (consumed = 1; consumed < scanner->line_length && isVarChar(scanner->line[consumed]);
-             consumed++) {}
+        for (; consumed < scanner->line_length && isVarChar(scanner->line[consumed]); consumed++) {}
 
         if (consumed + 1 < scanner->line_length && scanner->line[consumed] == '?' &&
             isVarChar(scanner->line[consumed + 1])) {
-            PARSER_ERROR("A '?' cannot connect two variable characters");
+            PARSER_ERROR("A '?' cannot connect two variable characters.");
             scanner->last_marker = PL_MARKER_BAD_DATA;
             goto return_marker;
         }
@@ -688,8 +687,7 @@ plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
     else if (isdigit(scanner->line[0])) {
         int value;
 
-        for (consumed = 1; consumed < scanner->line_length && isdigit(scanner->line[consumed]); consumed++) {
-        }
+        for (; consumed < scanner->line_length && isdigit(scanner->line[consumed]); consumed++) {}
 
         if (isVarChar(scanner->line[consumed])) {
             PARSER_ERROR("Invalid numeric literal.");
@@ -784,7 +782,7 @@ plGetLastLocation(const plLexicalScanner *scanner, plLexicalLocation *location)
 {
     const plLexicalLocation *ptr;
 
-    if (!scanner || !location) {
+    if (UNLIKELY(!scanner || !location)) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return;
     }
@@ -822,7 +820,7 @@ plTokenCleanup(plLexicalToken *token, plWordTable *table)
 void
 plLookaheadStoreNoLog(plLexicalScanner *scanner, plLexicalToken *token)
 {
-    if (!scanner || !token) {
+    if (UNLIKELY(!scanner || !token)) {
         return;
     }
 
@@ -855,7 +853,7 @@ void
 plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned int line_no,
                     plLexicalScanner *scanner, plLexicalToken *token)
 {
-    if (!scanner || !token) {
+    if (UNLIKELY(!scanner || !token)) {
         VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
         return;
     }

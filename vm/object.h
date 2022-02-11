@@ -85,20 +85,20 @@ plFreeObject(plObjectHandle *handle);
 const char *
 plObjectTypeName(uint32_t flags);
 
-#define PL_BOOL_LITERAL(value)                                             \
-    (plObjectHandle)                                                       \
-    {                                                                      \
-        .flags = PL_OBJ_TYPE_BOOL | PL_OBJ_FLAG_OWNED, .as.boolean = value \
-    }
-#define PL_NULL_LITERAL                               \
-    (plObjectHandle)                                  \
-    {                                                 \
-        .flags = PL_OBJ_TYPE_NULL | PL_OBJ_FLAG_OWNED \
-    }
-#define PL_BLANK_LITERAL                               \
+#define PL_BOOL_LITERAL(value)                         \
     (plObjectHandle)                                   \
     {                                                  \
-        .flags = PL_OBJ_TYPE_BLANK | PL_OBJ_FLAG_OWNED \
+        .flags = PL_OBJ_TYPE_BOOL, .as.boolean = value \
+    }
+#define PL_NULL_LITERAL           \
+    (plObjectHandle)              \
+    {                             \
+        .flags = PL_OBJ_TYPE_NULL \
+    }
+#define PL_BLANK_LITERAL           \
+    (plObjectHandle)               \
+    {                              \
+        .flags = PL_OBJ_TYPE_BLANK \
     }
 
 plByteArray *
