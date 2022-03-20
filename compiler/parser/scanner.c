@@ -53,7 +53,7 @@ static const struct keywordRecord keywords[] = {
     KEYWORD("cont", CONT),
     KEYWORD("break", BREAK),
     KEYWORD("verify", VERIFY),
-    KEYWORD("abort", ABORT),
+    KEYWORD("exit", EXIT),
     KEYWORD("is", IS),
     KEYWORD("as", AS),
     KEYWORD("import", IMPORT),

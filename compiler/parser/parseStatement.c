@@ -46,8 +46,8 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
 
     case PL_MARKER_PROD:
     case PL_MARKER_VERIFY:
-    case PL_MARKER_ABORT:
-        ret = plParseExpression(scanner, &first_node, (token.header.marker == PL_MARKER_ABORT));
+    case PL_MARKER_EXIT:
+        ret = plParseExpression(scanner, &first_node, (token.header.marker == PL_MARKER_EXIT));
         if (ret != PL_RET_OK) {
             return ret;
         }

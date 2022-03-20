@@ -26,7 +26,7 @@ plLexicalMarkerName(int marker)
     case PL_MARKER_CONT: return "CONT";
     case PL_MARKER_BREAK: return "BREAK";
     case PL_MARKER_VERIFY: return "VERIFY";
-    case PL_MARKER_ABORT: return "ABORT";
+    case PL_MARKER_EXIT: return "EXIT";
     case PL_MARKER_IS: return "IS";
     case PL_MARKER_AS: return "AS";
     case PL_MARKER_IMPORT: return "IMPORT";

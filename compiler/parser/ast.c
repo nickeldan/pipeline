@@ -226,7 +226,7 @@ plAstSplitSize(int node_type)
 
     case PL_MARKER_PROD:
     case PL_MARKER_VERIFY:
-    case PL_MARKER_ABORT:
+    case PL_MARKER_EXIT:
     case PL_MARKER_NOT:
     case PL_MARKER_QUESTION:
     case PL_MARKER_IMPORT:
