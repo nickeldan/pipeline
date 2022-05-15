@@ -224,6 +224,9 @@ plParseStatementList(plLexicalScanner *scanner, plAstNode **node)
         if (token.header.marker == PL_MARKER_RIGHT_BRACE) {
             break;
         }
+        else if (token.header.marker == PL_MARKER_SEMICOLON) {
+            continue;
+        }
 
         LOOKAHEAD_STORE(scanner, &token);
 
