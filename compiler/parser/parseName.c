@@ -1,11 +1,10 @@
-#include <string.h>
-
 #include "parserInternal.h"
 
 int
 plParseExtendedName(plLexicalScanner *scanner, plAstNode **node)
 {
-    int ret = PL_RET_OK;
+    int ret;
+    plLexicalToken token;
 
     if (LIKELY(node)) {
         *node = NULL;
@@ -15,60 +14,28 @@ plParseExtendedName(plLexicalScanner *scanner, plAstNode **node)
         return PL_RET_USAGE;
     }
 
-    while (true) {
-        plLexicalToken token;
-        plAstNode *period_node, *name_node;
+    ret = EXPECT_MARKER(scanner, PL_MARKER_NAME, &token);
+    if (ret != PL_RET_OK) {
+        return ret;
+    }
+    *node = plAstNew(PL_MARKER_NAME, &token);
 
-        ret = NEXT_TOKEN(scanner, &token);
+    while (PEEK_TOKEN(scanner, 0) == PL_MARKER_PERIOD) {
+        plLexicalToken period_token;
+        plAstNode *name_node;
+
+        ret = CONSUME_TOKEN(scanner, &period_token);
         if (ret != PL_RET_OK) {
             goto error;
         }
 
-        if (*node) {
-            if (token.header.marker != PL_MARKER_PERIOD) {
-                LOOKAHEAD_STORE(scanner, &token);
-                break;
-            }
-
-            period_node = plAstNew(PL_MARKER_PERIOD);
-            plAstCopyTokenInfo(period_node, &token);
-
-            ret = NEXT_TOKEN(scanner, &token);
-            if (ret != PL_RET_OK) {
-                goto error;
-            }
+        ret = EXPECT_MARKER(scanner, PL_MARKER_NAME, &token);
+        if (ret != PL_RET_OK) {
+            goto error;
         }
-        else {
-            period_node = NULL;
-        }
+        name_node = plAstNew(PL_MARKER_NAME, &token);
 
-        if (token.header.marker != PL_MARKER_NAME) {
-            PARSER_ERROR("Unexpected %s where NAME was expected.", plLexicalMarkerName(token.header.marker));
-            plTokenCleanup(&token, scanner->table);
-            ret = PL_RET_BAD_DATA;
-            goto loop_error;
-        }
-
-        name_node = plAstNew(PL_MARKER_NAME);
-        plAstCopyTokenInfo(name_node, &token);
-
-        if (period_node) {
-            if (!plAstSetChild(period_node, 0, *node) || !plAstSetChild(period_node, 1, name_node)) {
-                ret = PL_RET_USAGE;
-                goto loop_error;
-            }
-            *node = period_node;
-        }
-        else {
-            *node = name_node;
-        }
-
-        continue;
-
-loop_error:
-
-        plAstFree(period_node, scanner->table);
-        goto error;
+        plAstCreateConnection(PL_MARKER_PERIOD, &period_token, node, name_node);
     }
 
     return PL_RET_OK;
@@ -95,37 +62,25 @@ plParseExtendedType(plLexicalScanner *scanner, plAstNode **node)
         return PL_RET_USAGE;
     }
 
-    ret = NEXT_TOKEN(scanner, &token);
-    if (ret != PL_RET_OK) {
-        return ret;
-    }
-
-    if (token.header.marker == PL_MARKER_TYPE) {
-        *node = plAstNew(PL_MARKER_TYPE);
-        plAstCopyTokenInfo(*node, &token);
+    if (PEEK_TOKEN(scanner, 0) == PL_MARKER_TYPE) {
+        ret = CONSUME_TOKEN(scanner, &token);
+        if (ret != PL_RET_OK) {
+            return ret;
+        }
+        *node = plAstNew(PL_MARKER_TYPE, &token);
     }
     else {
-        LOOKAHEAD_STORE(scanner, &token);
-
         ret = plParseExtendedName(scanner, node);
         if (ret != PL_RET_OK) {
             return ret;
         }
 
-        ret = NEXT_TOKEN(scanner, &token);
-        if (ret != PL_RET_OK) {
-            goto error;
-        }
-
-        if (token.header.marker == PL_MARKER_QUESTION) {
-            plAstNode *question_node;
-
-            question_node = plAstCreateFamily(PL_MARKER_QUESTION, *node);
-            plAstCopyTokenInfo(question_node, &token);
-            *node = question_node;
-        }
-        else {
-            LOOKAHEAD_STORE(scanner, &token);
+        if (PEEK_TOKEN(scanner, 0) == PL_MARKER_QUESTION) {
+            ret = CONSUME_TOKEN(scanner, &token);
+            if (ret != PL_RET_OK) {
+                goto error;
+            }
+            *node = plAstCreateFamily(PL_MARKER_QUESTION, &token, *node);
         }
     }
 
@@ -135,6 +90,5 @@ error:
 
     plAstFree(*node, scanner->table);
     *node = NULL;
-
     return ret;
 }

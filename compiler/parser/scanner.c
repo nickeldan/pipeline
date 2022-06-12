@@ -189,6 +189,23 @@ consumeWhitespace(plLexicalScanner *scanner)
     } while (!stop_loop);
 }
 
+static void
+clearStored(plLexicalScanner *scanner)
+{
+    for (unsigned int k = 0; k < scanner->num_stored; k++) {
+        plTokenCleanup(&scanner->store[k], scanner->table);
+    }
+}
+
+static int
+setError(plLexicalScanner *scanner, int marker)
+{
+    clearStored(scanner);
+    PEEK_TOKEN(scanner, 0) = marker;
+    scanner->num_stored = 1;
+    return plTranslateTerminalMarker(marker);
+}
+
 static bool
 prepLine(plLexicalScanner *scanner)
 {
@@ -196,12 +213,10 @@ prepLine(plLexicalScanner *scanner)
         if (!fgets(scanner->buffer, sizeof(scanner->buffer), scanner->file)) {
             if (ferror(scanner->file)) {
                 SCANNER_ERROR("Failed to read from %s.", scanner->file_name);
-                scanner->last_marker = PL_MARKER_READ_FAILURE;
+                setError(scanner, PL_MARKER_READ_FAILURE);
+                return false;
             }
-            else {
-                scanner->last_marker = PL_MARKER_EOF;
-            }
-            return false;
+            return true;
         }
 
         scanner->location.line_no++;
@@ -209,7 +224,7 @@ prepLine(plLexicalScanner *scanner)
         scanner->line_length = strnlen(scanner->buffer, sizeof(scanner->buffer));
         if (scanner->line_length >= sizeof(scanner->buffer)) {
             SCANNER_ERROR("Line too long.");
-            scanner->last_marker = PL_MARKER_BAD_DATA;
+            setError(scanner, PL_MARKER_BAD_DATA);
             return false;
         }
 
@@ -229,7 +244,7 @@ prepLine(plLexicalScanner *scanner)
 
             if (!isprint(c) && c != '\t') {
                 SCANNER_ERROR("Unprintable character at column %u: 0x%02x", k, c);
-                scanner->last_marker = PL_MARKER_BAD_DATA;
+                setError(scanner, PL_MARKER_BAD_DATA);
                 return false;
             }
         }
@@ -240,13 +255,15 @@ prepLine(plLexicalScanner *scanner)
         if (scanner->line_length > 0) {
             VASQ_DEBUG(debug_logger, "%s, line %u: %.*s", scanner->file_name, scanner->location.line_no,
                        scanner->line_length, scanner->buffer);
+            plRegisterLine(scanner->line_table, scanner->location.line_no, scanner->buffer,
+                           scanner->line_length);
         }
     }
 
     return true;
 }
 
-static int
+static bool
 readByteString(plLexicalScanner *scanner, plObjectHandle *handle)
 {
     plByteArray *array;
@@ -327,25 +344,12 @@ good_string:
 
     advanceScanner(scanner, array->capacity + 1);  // The +1 is for the ending double quotes.
 
-    return PL_MARKER_OBJECT;
+    return true;
 
 error:
 
     plFreeObject(handle);
-    return PL_MARKER_BAD_DATA;
-}
-
-static void
-lookaheadStoreLogic(plLexicalScanner *scanner, const plLexicalToken *token)
-{
-    if (scanner->num_look_ahead > 0) {
-        unsigned int num_to_move;
-
-        num_to_move = MIN(scanner->num_look_ahead, PL_SCANNER_MAX_LOOK_AHEAD - 1);
-        memmove(scanner->look_ahead + 1, scanner->look_ahead + 0, sizeof(*token) * num_to_move);
-    }
-    memcpy(scanner->look_ahead + 0, token, sizeof(*token));
-    scanner->num_look_ahead++;
+    return false;
 }
 
 static void
@@ -371,24 +375,34 @@ stripLineBeginning(const char *line)
 static void
 parserProcessor(void *user_data, size_t position, vasqLogLevel_t level, char **dst, size_t *remaining)
 {
-    const plLexicalScanner *scanner = user_data;
-    plLexicalLocation location;
+    plLexicalScanner *scanner = user_data;
+    plLexicalLocation *location;
 
-    plGetLastLocation(scanner, &location);
+    if (scanner->error_on_peek < 0) {
+        location = &scanner->last_consumed_location;
+    }
+    else {
+        location = &scanner->store[(unsigned int)scanner->error_on_peek].header.location;
+    }
 
     switch (position) {
-        const char *error_string;
+        const char *error_string, *line, *stripped_line;
 
     case 0:
         error_string = (level == VASQ_LL_WARNING) ? WARNING_STRING : ERROR_STRING;
-        vasqIncSnprintf(dst, remaining, "%s%s:%u:%u", error_string, scanner->file_name, location.line_no,
-                        location.column_no);
+        vasqIncSnprintf(dst, remaining, "%s%s:%u:%u", error_string, scanner->file_name, location->line_no,
+                        location->column_no);
         break;
 
-    case 1: vasqIncSnprintf(dst, remaining, "%s", stripLineBeginning(scanner->buffer)); break;
+    case 1:
+        line = plLookupLine(scanner->line_table, location->line_no);
+        stripped_line = stripLineBeginning(line);
+        scanner->whitespace_stripped = (uintptr_t)stripped_line - (uintptr_t)line;
+        vasqIncSnprintf(dst, remaining, "%s", stripped_line);
+        break;
 
     case 2:
-        for (unsigned int k = 1; k < location.column_no; k++) {
+        for (unsigned int k = 1 + scanner->whitespace_stripped; k < location->column_no; k++) {
             vasqIncSnprintf(dst, remaining, " ");
         }
         vasqIncSnprintf(dst, remaining, "^");
@@ -396,6 +410,284 @@ parserProcessor(void *user_data, size_t position, vasqLogLevel_t level, char **d
 
     default: break;
     }
+}
+
+static int
+tokenRead(plLexicalScanner *scanner)
+{
+    int marker;
+    unsigned int consumed;
+    plLexicalToken *token;
+
+    if (UNLIKELY(!scanner)) {
+        VASQ_ERROR(debug_logger, "scanner cannot be NULL.");
+        return PL_RET_USAGE;
+    }
+
+    if (UNLIKELY(scanner->num_stored == PL_SCANNER_MAX_STORE)) {
+        VASQ_ERROR(debug_logger, "The token store is full.");
+        return PL_RET_USAGE;
+    }
+
+    if (scanner->num_stored > 0 && scanner->store[scanner->num_stored - 1].header.marker == PL_MARKER_EOF) {
+        return PL_RET_OK;
+    }
+
+    if (TERMINAL_MARKER(PEEK_TOKEN(scanner, 0)) || !prepLine(scanner)) {
+        return plTranslateTerminalMarker(PEEK_TOKEN(scanner, 0));
+    }
+
+    token = &scanner->store[scanner->num_stored];
+    token->data.handle = (plObjectHandle){0};
+    token->header.submarker = PL_SUBMARKER_NONE;
+    memcpy(&token->header.location, &scanner->location, sizeof(scanner->location));
+    consumed = 1;
+
+    switch (scanner->line[0]) {
+    case '\0': marker = PL_MARKER_EOF; goto done;
+
+    case ';': marker = PL_MARKER_SEMICOLON; goto done;
+
+    case ':': marker = PL_MARKER_COLON; goto done;
+
+    case ',': marker = PL_MARKER_COMMA; goto done;
+
+    case '.': marker = PL_MARKER_PERIOD; goto done;
+
+    case '(': marker = PL_MARKER_LEFT_PARENS; goto done;
+
+    case ')': marker = PL_MARKER_RIGHT_PARENS; goto done;
+
+    case '{': marker = PL_MARKER_LEFT_BRACE; goto done;
+
+    case '}': marker = PL_MARKER_RIGHT_BRACE; goto done;
+
+    case '[': marker = PL_MARKER_LEFT_BRACKET; goto done;
+
+    case ']': marker = PL_MARKER_RIGHT_BRACKET; goto done;
+
+    case '-':
+        if (scanner->line[1] == '>') {
+            marker = PL_MARKER_ARROW;
+            consumed = 2;
+            goto done;
+        }
+        /* FALLTHROUGH */
+    case '+':
+    case '*':
+    case '/':
+    case '%':
+    case '|':
+    case '&':
+        token->header.submarker = resolveArithmetic(scanner->line[0]);
+        if (scanner->line[1] == '=') {
+            marker = PL_MARKER_REASSIGNMENT;
+            consumed = 2;
+        }
+        else {
+            marker = PL_MARKER_ARITHMETIC;
+        }
+
+        goto done;
+
+    case '=':
+    case '!':
+        if (scanner->line[1] == '=') {
+            marker = PL_MARKER_COMPARISON;
+            token->header.submarker =
+                (scanner->line[0] == '=') ? PL_SUBMARKER_EQUAL : PL_SUBMARKER_NOT_EQUAL;
+            consumed = 2;
+            goto done;
+        }
+        else {
+            PARSER_ERROR("Invalid token: '%c'", scanner->line[0]);
+            return setError(scanner, PL_MARKER_BAD_DATA);
+        }
+
+    case '<':
+    case '>':
+        if (scanner->line[1] == scanner->line[0]) {
+            if (scanner->line[2] == '=') {
+                marker = PL_MARKER_REASSIGNMENT;
+                consumed = 3;
+            }
+            else {
+                marker = PL_MARKER_ARITHMETIC;
+                consumed = 2;
+            }
+
+            token->header.submarker = (scanner->line[0] == '<') ? PL_SUBMARKER_LSHIFT : PL_SUBMARKER_RSHIFT;
+        }
+        else {
+            marker = PL_MARKER_COMPARISON;
+
+            if (scanner->line[1] == '=') {
+                token->header.submarker =
+                    (scanner->line[0] == '<') ? PL_SUBMARKER_LESS_THAN_EQ : PL_SUBMARKER_GREATER_THAN_EQ;
+                consumed = 2;
+            }
+            else {
+                token->header.submarker =
+                    (scanner->line[0] == '<') ? PL_SUBMARKER_LESS_THAN : PL_SUBMARKER_GREATER_THAN;
+            }
+        }
+        goto done;
+
+    case '?':
+        if (isVarChar(scanner->line[1])) {
+            unsigned int len;
+            char *start = scanner->line + 1;
+
+            for (len = 1; isVarChar(start[len]); len++) {}
+
+            for (size_t k = 0; k < ARRAY_LENGTH(contexts); k++) {
+                if (contexts[k].len == len && strncmp(start, contexts[k].word, len) == 0) {
+                    marker = PL_MARKER_CONTEXT;
+                    token->header.submarker = contexts[k].marker;
+                    consumed = 1 + len;
+                    goto done;
+                }
+            }
+
+            PARSER_ERROR("Invalid context: %.*s", len, start);
+            return setError(scanner, PL_MARKER_BAD_DATA);
+        }
+        else {
+            marker = PL_MARKER_QUESTION;
+            goto done;
+        }
+
+    default: break;
+    }
+
+    if (isStartingVarChar(scanner->line[0])) {
+        void *ref;
+
+        for (; consumed < scanner->line_length && isVarChar(scanner->line[consumed]); consumed++) {}
+
+        if (consumed + 1 < scanner->line_length && scanner->line[consumed] == '?' &&
+            isVarChar(scanner->line[consumed + 1])) {
+            PARSER_ERROR("A '?' cannot connect two variable characters.");
+            return setError(scanner, PL_MARKER_BAD_DATA);
+        }
+
+        if (plLookupRef(scanner->keyword_table, scanner->line, consumed, &ref)) {
+            marker = (int)(intptr_t)ref;
+
+            switch (marker) {
+            case PL_MARKER_OBJECT: token->data.handle = resolveStaticLiteral(scanner->line[0]); break;
+            case PL_MARKER_LOGICAL:
+                token->header.submarker = (scanner->line[0] == 'o') ? PL_SUBMARKER_OR : PL_SUBMARKER_AND;
+                break;
+            case PL_MARKER_TYPE: token->header.submarker = resolveType(scanner->line); break;
+            default: break;
+            }
+        }
+        else if (consumed == 1 && scanner->line[0] == '_') {
+            marker = PL_MARKER_UNDERSCORE;
+        }
+        else {
+            token->data.name = plRegisterWord(scanner->table, scanner->line, consumed);
+            if (!token->data.name) {
+                return setError(scanner, PL_MARKER_OUT_OF_MEMORY);
+            }
+
+            marker = PL_MARKER_NAME;
+        }
+    }
+    else if (scanner->line[0] == '0' && scanner->line[1] == 'x') {
+        for (consumed = 0; consumed < scanner->line_length; consumed++) {
+            if (!isxdigit(scanner->line[consumed])) {
+                if (isVarChar(scanner->line[consumed])) {
+                    PARSER_ERROR("Invalid hex literal.");
+                    return setError(scanner, PL_MARKER_BAD_DATA);
+                }
+
+                break;
+            }
+        }
+
+        if (plPopulateIntegerFromHexString(scanner->line + 2, consumed, &token->data.handle.as.integer) !=
+            PL_RET_OK) {
+            return setError(scanner, PL_MARKER_OUT_OF_MEMORY);
+        }
+        consumed += 2;
+        token->data.handle.flags = PL_OBJ_TYPE_INT | PL_OBJ_FLAG_OWNED;
+        marker = PL_MARKER_OBJECT;
+    }
+    else if (isdigit(scanner->line[0])) {
+        int value;
+
+        for (; consumed < scanner->line_length && isdigit(scanner->line[consumed]); consumed++) {}
+
+        if (isVarChar(scanner->line[consumed])) {
+            PARSER_ERROR("Invalid numeric literal.");
+            return setError(scanner, PL_MARKER_BAD_DATA);
+        }
+
+        if (scanner->line[consumed] == '.') {
+            for (consumed++; consumed < scanner->line_length && isdigit(scanner->line[consumed]);
+                 consumed++) {}
+
+            if (isVarChar(scanner->line[consumed])) {
+                PARSER_ERROR("Invalid numeric literal.");
+                return setError(scanner, PL_MARKER_BAD_DATA);
+            }
+
+            token->data.handle.flags = PL_OBJ_TYPE_FLOAT | PL_OBJ_FLAG_OWNED;
+            value = plPopulateFloatFromString(scanner->line, consumed, &token->data.handle.as.decimal);
+        }
+        else {
+            token->data.handle.flags = PL_OBJ_TYPE_INT | PL_OBJ_FLAG_OWNED;
+            value = plPopulateIntegerFromString(scanner->line, consumed, &token->data.handle.as.integer);
+        }
+
+        if (value != PL_RET_OK) {
+            if (value == PL_RET_OUT_OF_MEMORY) {
+                marker = PL_MARKER_OUT_OF_MEMORY;
+            }
+            else {
+                PARSER_ERROR("Invalid numeric literal.");
+                marker = PL_MARKER_BAD_DATA;
+            }
+            return setError(scanner, marker);
+        }
+
+        marker = PL_MARKER_OBJECT;
+    }
+    else if (isVarChar(scanner->line[0])) {
+        for (; consumed < scanner->line_length && isVarChar(scanner->line[consumed]); consumed++) {}
+
+        if (consumed == 1 && scanner->line[0] == '_') {
+            marker = PL_MARKER_UNDERSCORE;
+        }
+        else {
+            token->data.name = plRegisterWord(scanner->table, scanner->line, consumed);
+            if (!token->data.name) {
+                return setError(scanner, PL_MARKER_OUT_OF_MEMORY);
+            }
+            marker = PL_MARKER_NAME;
+        }
+    }
+    else if (scanner->line[0] == '"') {
+        advanceScanner(scanner, 1);
+        if (!readByteString(scanner, &token->data.handle)) {
+            return setError(scanner, PL_MARKER_BAD_DATA);
+        }
+        consumed = 0;  // readByteString already advanced the scanner.
+        marker = PL_MARKER_OBJECT;
+    }
+    else {
+        PARSER_ERROR("Invalid token: '%c'", scanner->line[0]);
+        return setError(scanner, PL_MARKER_BAD_DATA);
+    }
+
+done:
+
+    token->header.marker = marker;
+    scanner->num_stored++;
+    advanceScanner(scanner, consumed);
+    return PL_RET_OK;
 }
 
 int
@@ -413,6 +705,7 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name)
 
     scanner->table = plWordTableNew();
     scanner->keyword_table = plRefTableNew();
+    scanner->line_table = plLineTableNew();
 
     for (size_t k = 0; k < ARRAY_LENGTH(keywords); k++) {
         plUpdateRef(scanner->keyword_table, keywords[k].word, (void *)(intptr_t)keywords[k].marker);
@@ -436,8 +729,16 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name)
 
     scanner->file = file;
     scanner->file_name = file_name ? file_name : "<anonymous file>";
-    scanner->last_marker = PL_MARKER_INIT;
+    PEEK_TOKEN(scanner, 0) = PL_MARKER_INIT;
+    scanner->error_on_peek = -1;
     scanner->line = scanner->buffer;
+
+    for (unsigned int k = 0; k < PL_SCANNER_MAX_STORE; k++) {
+        ret = tokenRead(scanner);
+        if (ret != PL_RET_OK) {
+            goto error;
+        }
+    }
 
     return PL_RET_OK;
 
@@ -451,319 +752,61 @@ error:
 void
 plScannerCleanup(plLexicalScanner *scanner)
 {
-    unsigned int num_look_ahead;
-
     if (!scanner) {
         return;
     }
 
-    num_look_ahead = scanner->num_look_ahead;
-
-    for (unsigned int k = 0; k < num_look_ahead; k++) {
-        plTokenCleanup(scanner->look_ahead + k, scanner->table);
-    }
+    clearStored(scanner);
 
     vasqLoggerFree(scanner->scanner_logger);
     vasqLoggerFree(scanner->parser_logger);
     plWordTableFree(scanner->table);
     plRefTableFree(scanner->keyword_table);
+    plLineTableFree(scanner->line_table);
 
     *scanner = (plLexicalScanner){0};
 }
 
 int
-plTokenRead(plLexicalScanner *scanner, plLexicalToken *token)
+plTokenConsume(plLexicalScanner *scanner, plLexicalToken *token)
 {
-    unsigned int consumed;
+    int ret;
 
-    if (UNLIKELY(!scanner || !token)) {
-        VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
-        return PL_MARKER_USAGE;
+    if (UNLIKELY(!scanner)) {
+        VASQ_ERROR(debug_logger, "scanner cannot be NULL.");
+        return PL_RET_USAGE;
     }
 
-    if (TERMINAL_MARKER(scanner->last_marker)) {
-        goto return_marker;
+    if (UNLIKELY(scanner->num_stored == 0 || scanner->num_stored > PL_SCANNER_MAX_STORE)) {
+        VASQ_CRITICAL(debug_logger, "scanner->num_stored is invalid (%u).", scanner->num_stored);
+        return PL_RET_USAGE;
     }
 
-    if (scanner->num_look_ahead > 0) {
-        memcpy(token, scanner->look_ahead + 0, sizeof(*token));
-        scanner->last_marker = token->header.marker;
-        memcpy(&scanner->last_look_ahead_loc, &token->header.location, sizeof(token->header.location));
-        if (scanner->num_look_ahead > 1) {
-            memmove(scanner->look_ahead + 0, scanner->look_ahead + 1,
-                    sizeof(*token) * (scanner->num_look_ahead - 1));
-        }
-        scanner->num_look_ahead--;
-        goto return_marker;
-    }
-    else {
-        scanner->last_look_ahead_loc.line_no = 0;
+    if (TERMINAL_MARKER(PEEK_TOKEN(scanner, 0)) && PEEK_TOKEN(scanner, 0) != PL_MARKER_EOF) {
+        return plTranslateTerminalMarker(PEEK_TOKEN(scanner, 0));
     }
 
-    if (!prepLine(scanner)) {
-        goto return_marker;
+    if (token) {
+        memcpy(token, &scanner->store[0], sizeof(*token));
+    }
+    else if (UNLIKELY(CONTAINS_DATA(PEEK_TOKEN(scanner, 0)))) {
+        VASQ_CRITICAL(debug_logger, "Cannot throw away a token which contains data (%s)",
+                      plLexicalMarkerName(PEEK_TOKEN(scanner, 0)));
+        return PL_RET_USAGE;
     }
 
-    token->data.handle = (plObjectHandle){0};
-    token->header.submarker = PL_SUBMARKER_NONE;
-    memcpy(&token->header.location, &scanner->location, sizeof(scanner->location));
-    consumed = 1;
+    memcpy(&scanner->last_consumed_location, &scanner->store[0].header.location,
+           sizeof(scanner->last_consumed_location));
 
-    switch (scanner->line[0]) {
-    case ';': scanner->last_marker = PL_MARKER_SEMICOLON; goto done;
-
-    case ':': scanner->last_marker = PL_MARKER_COLON; goto done;
-
-    case ',': scanner->last_marker = PL_MARKER_COMMA; goto done;
-
-    case '.': scanner->last_marker = PL_MARKER_PERIOD; goto done;
-
-    case '(': scanner->last_marker = PL_MARKER_LEFT_PARENS; goto done;
-
-    case ')': scanner->last_marker = PL_MARKER_RIGHT_PARENS; goto done;
-
-    case '{': scanner->last_marker = PL_MARKER_LEFT_BRACE; goto done;
-
-    case '}': scanner->last_marker = PL_MARKER_RIGHT_BRACE; goto done;
-
-    case '[': scanner->last_marker = PL_MARKER_LEFT_BRACKET; goto done;
-
-    case ']': scanner->last_marker = PL_MARKER_RIGHT_BRACKET; goto done;
-
-    case '-':
-        if (scanner->line[1] == '>') {
-            scanner->last_marker = PL_MARKER_ARROW;
-            consumed = 2;
-            goto done;
-        }
-        /* FALLTHROUGH */
-    case '+':
-    case '*':
-    case '/':
-    case '%':
-    case '|':
-    case '&':
-        token->header.submarker = resolveArithmetic(scanner->line[0]);
-        if (scanner->line[1] == '=') {
-            scanner->last_marker = PL_MARKER_REASSIGNMENT;
-            consumed = 2;
-        }
-        else {
-            scanner->last_marker = PL_MARKER_ARITHMETIC;
-        }
-
-        goto done;
-
-    case '=':
-    case '!':
-        if (scanner->line[1] == '=') {
-            scanner->last_marker = PL_MARKER_COMPARISON;
-            token->header.submarker =
-                (scanner->line[0] == '=') ? PL_SUBMARKER_EQUAL : PL_SUBMARKER_NOT_EQUAL;
-            consumed = 2;
-            goto done;
-        }
-        else {
-            PARSER_ERROR("Invalid token: '%c'", scanner->line[0]);
-            scanner->last_marker = PL_MARKER_BAD_DATA;
-            goto return_marker;
-        }
-
-    case '<':
-    case '>':
-        if (scanner->line[1] == scanner->line[0]) {
-            if (scanner->line[2] == '=') {
-                scanner->last_marker = PL_MARKER_REASSIGNMENT;
-                consumed = 3;
-            }
-            else {
-                scanner->last_marker = PL_MARKER_ARITHMETIC;
-                consumed = 2;
-            }
-
-            token->header.submarker = (scanner->line[0] == '<') ? PL_SUBMARKER_LSHIFT : PL_SUBMARKER_RSHIFT;
-        }
-        else {
-            scanner->last_marker = PL_MARKER_COMPARISON;
-
-            if (scanner->line[1] == '=') {
-                token->header.submarker =
-                    (scanner->line[0] == '<') ? PL_SUBMARKER_LESS_THAN_EQ : PL_SUBMARKER_GREATER_THAN_EQ;
-                consumed = 2;
-            }
-            else {
-                token->header.submarker =
-                    (scanner->line[0] == '<') ? PL_SUBMARKER_LESS_THAN : PL_SUBMARKER_GREATER_THAN;
-            }
-        }
-        goto done;
-
-    case '?':
-        if (isVarChar(scanner->line[1])) {
-            unsigned int len;
-            char *start = scanner->line + 1;
-
-            for (len = 1; isVarChar(start[len]); len++) {}
-
-            for (size_t k = 0; k < ARRAY_LENGTH(contexts); k++) {
-                if (contexts[k].len == len && strncmp(start, contexts[k].word, len) == 0) {
-                    scanner->last_marker = PL_MARKER_CONTEXT;
-                    token->header.submarker = contexts[k].marker;
-                    consumed = 1 + len;
-                    goto done;
-                }
-            }
-
-            PARSER_ERROR("Invalid context: %.*s", len, start);
-            scanner->last_marker = PL_MARKER_BAD_DATA;
-            goto return_marker;
-        }
-        else {
-            scanner->last_marker = PL_MARKER_QUESTION;
-            goto done;
-        }
-
-    default: break;
+    if (scanner->num_stored > 1) {  // Otherwise, the last marker must be EOF.
+        memmove(&scanner->store[0], &scanner->store[1], sizeof(*token) * --scanner->num_stored);
     }
 
-    if (isStartingVarChar(scanner->line[0])) {
-        void *ref;
-
-        for (; consumed < scanner->line_length && isVarChar(scanner->line[consumed]); consumed++) {}
-
-        if (consumed + 1 < scanner->line_length && scanner->line[consumed] == '?' &&
-            isVarChar(scanner->line[consumed + 1])) {
-            PARSER_ERROR("A '?' cannot connect two variable characters.");
-            scanner->last_marker = PL_MARKER_BAD_DATA;
-            goto return_marker;
-        }
-
-        if (plLookupRef(scanner->keyword_table, scanner->line, consumed, &ref)) {
-            scanner->last_marker = (int)(intptr_t)ref;
-
-            switch (scanner->last_marker) {
-            case PL_MARKER_OBJECT: token->data.handle = resolveStaticLiteral(scanner->line[0]); break;
-            case PL_MARKER_LOGICAL:
-                token->header.submarker = (scanner->line[0] == 'o') ? PL_SUBMARKER_OR : PL_SUBMARKER_AND;
-                break;
-            case PL_MARKER_TYPE: token->header.submarker = resolveType(scanner->line); break;
-            default: break;
-            }
-        }
-        else if (consumed == 1 && scanner->line[0] == '_') {
-            scanner->last_marker = PL_MARKER_UNDERSCORE;
-        }
-        else {
-            token->data.name = plRegisterWord(scanner->table, scanner->line, consumed);
-            if (!token->data.name) {
-                scanner->last_marker = PL_MARKER_OUT_OF_MEMORY;
-                goto return_marker;
-            }
-
-            scanner->last_marker = PL_MARKER_NAME;
-        }
+    ret = tokenRead(scanner);
+    if (ret != PL_RET_OK && token) {
+        plTokenCleanup(token, scanner->table);
     }
-    else if (scanner->line[0] == '0' && scanner->line[1] == 'x') {
-        for (consumed = 0; consumed < scanner->line_length; consumed++) {
-            if (!isxdigit(scanner->line[consumed])) {
-                if (isVarChar(scanner->line[consumed])) {
-                    PARSER_ERROR("Invalid hex literal.");
-                    scanner->last_marker = PL_MARKER_BAD_DATA;
-                    goto return_marker;
-                }
-
-                break;
-            }
-        }
-
-        if (plPopulateIntegerFromHexString(scanner->line + 2, consumed, &token->data.handle.as.integer) !=
-            PL_RET_OK) {
-            scanner->last_marker = PL_MARKER_OUT_OF_MEMORY;
-            goto return_marker;
-        }
-        consumed += 2;
-        token->data.handle.flags = PL_OBJ_TYPE_INT | PL_OBJ_FLAG_OWNED;
-    }
-    else if (isdigit(scanner->line[0])) {
-        int value;
-
-        for (; consumed < scanner->line_length && isdigit(scanner->line[consumed]); consumed++) {}
-
-        if (isVarChar(scanner->line[consumed])) {
-            PARSER_ERROR("Invalid numeric literal.");
-            scanner->last_marker = PL_MARKER_BAD_DATA;
-            goto return_marker;
-        }
-
-        if (scanner->line[consumed] == '.') {
-            for (consumed++; consumed < scanner->line_length && isdigit(scanner->line[consumed]);
-                 consumed++) {}
-
-            if (isVarChar(scanner->line[consumed])) {
-                PARSER_ERROR("Invalid numeric literal.");
-                scanner->last_marker = PL_MARKER_BAD_DATA;
-                goto return_marker;
-            }
-
-            token->data.handle.flags = PL_OBJ_TYPE_FLOAT | PL_OBJ_FLAG_OWNED;
-            value = plPopulateFloatFromString(scanner->line, consumed, &token->data.handle.as.decimal);
-        }
-        else {
-            token->data.handle.flags = PL_OBJ_TYPE_INT | PL_OBJ_FLAG_OWNED;
-            value = plPopulateIntegerFromString(scanner->line, consumed, &token->data.handle.as.integer);
-        }
-
-        if (value != PL_RET_OK) {
-            if (value == PL_RET_OUT_OF_MEMORY) {
-                scanner->last_marker = PL_MARKER_OUT_OF_MEMORY;
-            }
-            else {
-                PARSER_ERROR("Invalid numeric literal.");
-                scanner->last_marker = PL_MARKER_BAD_DATA;
-            }
-            goto return_marker;
-        }
-
-        scanner->last_marker = PL_MARKER_OBJECT;
-    }
-    else if (isVarChar(scanner->line[0])) {
-        for (; consumed < scanner->line_length && isVarChar(scanner->line[consumed]); consumed++) {}
-
-        if (consumed == 1 && scanner->line[0] == '_') {
-            scanner->last_marker = PL_MARKER_UNDERSCORE;
-        }
-        else {
-            token->data.name = plRegisterWord(scanner->table, scanner->line, consumed);
-            if (!token->data.name) {
-                scanner->last_marker = PL_MARKER_OUT_OF_MEMORY;
-                goto return_marker;
-            }
-
-            scanner->last_marker = PL_MARKER_NAME;
-        }
-    }
-    else if (scanner->line[0] == '"') {
-        advanceScanner(scanner, 1);
-        scanner->last_marker = readByteString(scanner, &token->data.handle);
-        if (TERMINAL_MARKER(scanner->last_marker)) {
-            goto return_marker;
-        }
-        consumed = 0;  // readByteString already advanced the scanner.
-    }
-    else {
-        PARSER_ERROR("Invalid token: '%c'", scanner->line[0]);
-        scanner->last_marker = PL_MARKER_BAD_DATA;
-        goto return_marker;
-    }
-
-done:
-
-    token->header.marker = scanner->last_marker;
-    advanceScanner(scanner, consumed);
-
-return_marker:
-
-    return scanner->last_marker;
+    return ret;
 }
 
 int
@@ -777,25 +820,33 @@ plTranslateTerminalMarker(int marker)
     }
 }
 
-void
-plGetLastLocation(const plLexicalScanner *scanner, plLexicalLocation *location)
+#if LL_USE != -1
+
+int
+plTokenConsumeLog(const char *file_name, const char *function_name, unsigned int line_no,
+                  plLexicalScanner *scanner, plLexicalToken *token)
 {
-    const plLexicalLocation *ptr;
+    int ret, marker;
+    plLexicalToken temp_token;
+    plLexicalToken *token_ptr = token ? token : &temp_token;
 
-    if (UNLIKELY(!scanner || !location)) {
-        VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
-        return;
+    ret = plTokenConsume(scanner, token_ptr);
+    if (ret != PL_RET_OK) {
+        return ret;
     }
-
-    if (scanner->last_look_ahead_loc.line_no > 0) {
-        ptr = &scanner->last_look_ahead_loc;
+    marker = token_ptr->header.marker;
+    if (!TERMINAL_MARKER(marker)) {
+        vasqLogStatement(debug_logger, VASQ_LL_INFO, file_name, function_name, line_no, "Consumed token: %s",
+                         plLexicalMarkerName(marker));
     }
-    else {
-        ptr = &scanner->location;
+    else if (marker == PL_MARKER_EOF) {
+        vasqLogStatement(debug_logger, VASQ_LL_INFO, file_name, function_name, line_no,
+                         "End of file reached");
     }
-
-    memcpy(location, ptr, sizeof(*ptr));
+    return PL_RET_OK;
 }
+
+#endif  // LL_USE != -1
 
 void
 plTokenCleanup(plLexicalToken *token, plWordTable *table)
@@ -814,56 +865,3 @@ plTokenCleanup(plLexicalToken *token, plWordTable *table)
     default: break;
     }
 }
-
-#if LL_USE == -1
-
-void
-plLookaheadStoreNoLog(plLexicalScanner *scanner, plLexicalToken *token)
-{
-    if (UNLIKELY(!scanner || !token)) {
-        return;
-    }
-
-    assert(scanner->num_look_ahead < PL_SCANNER_MAX_LOOK_AHEAD);
-
-    lookaheadStoreLogic(scanner, token);
-}
-
-#else  // LL_USE == -1
-
-int
-plTokenReadLog(const char *file_name, const char *function_name, unsigned int line_no,
-               plLexicalScanner *scanner, plLexicalToken *token)
-{
-    int ret;
-
-    ret = plTokenRead(scanner, token);
-    if (!TERMINAL_MARKER(ret)) {
-        vasqLogStatement(debug_logger, VASQ_LL_INFO, file_name, function_name, line_no, "Read token: %s",
-                         plLexicalMarkerName(ret));
-    }
-    else if (ret == PL_MARKER_EOF) {
-        vasqLogStatement(debug_logger, VASQ_LL_INFO, file_name, function_name, line_no,
-                         "End of file reached.");
-    }
-    return ret;
-}
-
-void
-plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned int line_no,
-                    plLexicalScanner *scanner, plLexicalToken *token)
-{
-    if (UNLIKELY(!scanner || !token)) {
-        VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
-        return;
-    }
-
-    VASQ_ASSERT(debug_logger, scanner->num_look_ahead < PL_SCANNER_MAX_LOOK_AHEAD);
-
-    lookaheadStoreLogic(scanner, token);
-    vasqLogStatement(debug_logger, VASQ_LL_INFO, file_name, function_name, line_no,
-                     "%s stored as look ahead (%u total).", plLexicalMarkerName(token->header.marker),
-                     scanner->num_look_ahead);
-}
-
-#endif  // LL_USE == -1

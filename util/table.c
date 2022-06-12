@@ -3,7 +3,8 @@
 
 #include "table.h"
 
-#define NUM_RECORDS 97
+#define NUM_RECORDS      97
+#define EXPONENTIAL_BASE 11
 
 typedef struct plAbstractRecord {
     struct plAbstractRecord *next;
@@ -21,6 +22,12 @@ typedef struct plRefRecord {
     void *ctx;
 } plRefRecord;
 
+typedef struct plLineRecord {
+    struct plLineRecord *next;
+    char *line;
+    unsigned int line_no;
+} plLineRecord;
+
 typedef struct plAbstractTable {
     plAbstractRecord *records[NUM_RECORDS];
 } plAbstractTable;
@@ -31,6 +38,10 @@ struct plWordTable {
 
 struct plRefTable {
     plRefRecord *records[NUM_RECORDS];
+};
+
+struct plLineTable {
+    plLineRecord *records[NUM_RECORDS];
 };
 
 static unsigned int
@@ -50,8 +61,21 @@ wordHash(const char *word, unsigned int length)
     return hash % NUM_RECORDS;
 }
 
+static unsigned int
+numHash(unsigned int num)
+{
+    unsigned int hash = 1;
+
+    for (unsigned int k = 0; k < num; k++) {
+        hash *= EXPONENTIAL_BASE;
+        hash %= NUM_RECORDS;
+    }
+
+    return hash;
+}
+
 static plAbstractRecord *
-findRecord(const plAbstractTable *table, const char *word, unsigned int length, unsigned int *hash,
+findRecord(plAbstractRecord **records, const char *word, unsigned int length, unsigned int *hash,
            plAbstractRecord **prev)
 {
     unsigned int h;
@@ -67,7 +91,7 @@ findRecord(const plAbstractTable *table, const char *word, unsigned int length, 
         *hash = h;
     }
 
-    for (plAbstractRecord *traverse = table->records[h]; traverse; traverse = traverse->next) {
+    for (plAbstractRecord *traverse = records[h]; traverse; traverse = traverse->next) {
         if (traverse->length == length && memcmp(traverse->string, word, length) == 0) {
             if (prev) {
                 *prev = p;
@@ -124,7 +148,7 @@ plWordTableNew(void)
 {
     plWordTable *table;
 
-    table = VASQ_MALLOC(debug_logger, sizeof(*table));
+    table = malloc(sizeof(*table));
     if (table) {
         *table = (plWordTable){0};
     }
@@ -136,9 +160,21 @@ plRefTableNew(void)
 {
     plRefTable *table;
 
-    table = VASQ_MALLOC(debug_logger, sizeof(*table));
+    table = malloc(sizeof(*table));
     if (table) {
         *table = (plRefTable){0};
+    }
+    return table;
+}
+
+plLineTable *
+plLineTableNew(void)
+{
+    plLineTable *table;
+
+    table = malloc(sizeof(*table));
+    if (table) {
+        *table = (plLineTable){0};
     }
     return table;
 }
@@ -155,6 +191,25 @@ plRefTableFree(plRefTable *table)
     abstractTableFree((plAbstractTable *)table);
 }
 
+void
+plLineTableFree(plLineTable *table)
+{
+    if (!table) {
+        return;
+    }
+
+    for (unsigned int k = 0; k < NUM_RECORDS; k++) {
+        for (plLineRecord *traverse = table->records[k]; traverse;) {
+            plLineRecord *temp = traverse;
+
+            traverse = traverse->next;
+            free(temp->line);
+            free(temp);
+        }
+    }
+    free(table);
+}
+
 const char *
 plRegisterWord(plWordTable *table, const char *word, unsigned int length)
 {
@@ -166,24 +221,24 @@ plRegisterWord(plWordTable *table, const char *word, unsigned int length)
         return NULL;
     }
 
-    record = (plWordRecord *)findRecord((plAbstractTable *)table, word, length, &hash, NULL);
+    record = (plWordRecord *)findRecord((plAbstractRecord **)table->records, word, length, &hash, NULL);
     if (record) {
         record->num_references++;
     }
     else {
-        record = VASQ_MALLOC(debug_logger, sizeof(*record));
+        record = malloc(sizeof(*record));
         if (!record) {
             return NULL;
         }
 
-        record->abstract.string = VASQ_MALLOC(debug_logger, length + 1);
+        record->abstract.string = malloc(length + 1);
         if (!record->abstract.string) {
             free(record);
             return NULL;
         }
         memcpy(record->abstract.string, word, length);
         record->abstract.string[length] = '\0';
-        record->abstract.length = length + 1;
+        record->abstract.length = length;
         record->num_references = 1;
 
         record->abstract.next = (plAbstractRecord *)table->records[hash];
@@ -208,7 +263,7 @@ plUnregisterWord(plWordTable *table, const char *word)
         return;
     }
 
-    record = (plWordRecord *)findRecord((plAbstractTable *)table, word, strlen(word), &hash,
+    record = (plWordRecord *)findRecord((plAbstractRecord **)table->records, word, strlen(word), &hash,
                                         (plAbstractRecord **)&prev);
     if (record) {
         if (--record->num_references == 0) {
@@ -238,7 +293,7 @@ plLookupRef(const plRefTable *table, const char *word, unsigned int length, void
         return false;
     }
 
-    record = (plRefRecord *)findRecord((const plAbstractTable *)table, word, length, NULL, NULL);
+    record = (plRefRecord *)findRecord((plAbstractRecord **)table->records, word, length, NULL, NULL);
     if (!record) {
         return false;
     }
@@ -262,9 +317,9 @@ plUpdateRef(plRefTable *table, const char *word, void *new_ctx)
     }
 
     len = strlen(word);
-    record = (plRefRecord *)findRecord((plAbstractTable *)table, word, len, &hash, NULL);
+    record = (plRefRecord *)findRecord((plAbstractRecord **)table->records, word, len, &hash, NULL);
     if (!record) {
-        record = VASQ_MALLOC(debug_logger, sizeof(*record));
+        record = malloc(sizeof(*record));
         if (!record) {
             return false;
         }
@@ -334,4 +389,58 @@ plRefTableIterate(plRefTableIterator *iterator, void **ctx)
     }
 
     return ret;
+}
+
+int
+plRegisterLine(plLineTable *table, unsigned int line_no, const char *line, unsigned int length)
+{
+    unsigned int hash;
+    plLineRecord *record;
+
+    if (!table || !line) {
+        VASQ_ERROR(debug_logger, "table and line cannot be NULL.");
+        return PL_RET_USAGE;
+    }
+
+    if (length == 0) {
+        VASQ_ERROR(debug_logger, "length cannot be zero.");
+        return PL_RET_USAGE;
+    }
+
+    hash = numHash(line_no);
+    record = malloc(sizeof(*record));
+    if (!record) {
+        return PL_RET_OUT_OF_MEMORY;
+    }
+    record->line = malloc(length + 1);
+    if (!record->line) {
+        free(record);
+        return PL_RET_OUT_OF_MEMORY;
+    }
+    memcpy(record->line, line, length);
+    record->line[length] = '\0';
+    record->line_no = line_no;
+
+    record->next = table->records[hash];
+    table->records[hash] = record;
+
+    return PL_RET_OK;
+}
+
+const char *
+plLookupLine(const plLineTable *table, unsigned int line_no)
+{
+    if (!table) {
+        VASQ_ERROR(debug_logger, "table cannot be NULL.");
+        return NULL;
+    }
+
+    for (plLineRecord *traverse = table->records[numHash(line_no)]; traverse; traverse = traverse->next) {
+        if (traverse->line_no == line_no) {
+            return traverse->line;
+        }
+    }
+
+    VASQ_ERROR(debug_logger, "Line %u is not in the table.", line_no);
+    return NULL;
 }

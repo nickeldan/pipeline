@@ -7,6 +7,8 @@ typedef struct plWordTable plWordTable;
 
 typedef struct plRefTable plRefTable;
 
+typedef struct plLineTable plLineTable;
+
 typedef struct plRefTableIterator {
     const plRefTable *table;
     const void *opaque;
@@ -19,11 +21,17 @@ plWordTableNew(void);
 plRefTable *
 plRefTableNew(void);
 
+plLineTable *
+plLineTableNew(void);
+
 void
 plWordTableFree(plWordTable *table);
 
 void
 plRefTableFree(plRefTable *table);
+
+void
+plLineTableFree(plLineTable *table);
 
 const char *
 plRegisterWord(plWordTable *table, const char *word, unsigned int length);
@@ -42,5 +50,11 @@ plRefTableIteratorInit(plRefTableIterator *iterator, const plRefTable *table);
 
 const char *
 plRefTableIterate(plRefTableIterator *iterator, void **ctx);
+
+int
+plRegisterLine(plLineTable *table, unsigned int line_no, const char *line, unsigned int length);
+
+const char *
+plLookupLine(const plLineTable *table, unsigned int line_no);
 
 #endif  // PIPELINE_TABLE_H

@@ -1,5 +1,3 @@
-#include <string.h>
-
 #include "vasq/safe_snprintf.h"
 
 #include "parserInternal.h"
@@ -7,36 +5,34 @@
 static int
 parseImportExportOpaque(plLexicalScanner *scanner, plAstNode **node)
 {
-    int ret, marker;
-    plLexicalLocation location;
-    plLexicalToken token;
+    int ret;
+    plLexicalToken lead_token, token;
     plAstNode *name_node;
 
     *node = NULL;
-    marker = scanner->last_marker;
-    plGetLastLocation(scanner, &location);
 
-    ret = NEXT_TOKEN(scanner, &token);
+    ret = CONSUME_TOKEN(scanner, &lead_token);
     if (ret != PL_RET_OK) {
         return ret;
     }
 
+    ret = CONSUME_TOKEN(scanner, &token);
+    if (ret != PL_RET_OK) {
+        return ret;
+    }
     if (token.header.marker != PL_MARKER_NAME) {
-        PARSER_ERROR("Expected %s intead of %s.", plLexicalMarkerName(PL_MARKER_NAME),
-                     plLexicalMarkerName(token.header.marker));
+        PARSER_ERROR("Unexpected %s where NAME was expected", plLexicalMarkerName(token.header.marker));
         plTokenCleanup(&token, scanner->table);
         return PL_RET_BAD_DATA;
     }
 
-    name_node = plAstNew(PL_MARKER_NAME);
-    plAstCopyTokenInfo(name_node, &token);
-
-    *node = plAstCreateFamily(marker, name_node);
-    memcpy(&(*node)->header.location, &location, sizeof(location));
+    name_node = plAstNew(PL_MARKER_NAME, &token);
+    *node = plAstCreateFamily(lead_token.header.marker, &lead_token, name_node);
 
     ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
     if (ret != PL_RET_OK) {
         plAstFree(*node, scanner->table);
+        *node = NULL;
     }
     return ret;
 }
@@ -45,8 +41,7 @@ static int
 parseConstantDeclaration(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
-    plLexicalLocation location;
-    plLexicalToken token;
+    plLexicalToken arrow_token, name_token;
     plAstNode *name_node;
 
     ret = plParseExpression(scanner, node, true);
@@ -54,30 +49,18 @@ parseConstantDeclaration(plLexicalScanner *scanner, plAstNode **node)
         return ret;
     }
 
-    ret = EXPECT_MARKER(scanner, PL_MARKER_ARROW, &location);
+    ret = EXPECT_MARKER(scanner, PL_MARKER_ARROW, &arrow_token);
     if (ret != PL_RET_OK) {
         goto error;
     }
 
-    ret = NEXT_TOKEN(scanner, &token);
+    ret = EXPECT_MARKER(scanner, PL_MARKER_NAME, &name_token);
     if (ret != PL_RET_OK) {
         goto error;
     }
-    if (token.header.marker != PL_MARKER_NAME) {
-        PARSER_ERROR("Unexpected %s in place of NAME.", plLexicalMarkerName(token.header.marker));
-        plTokenCleanup(&token, scanner->table);
-        ret = PL_RET_BAD_DATA;
-        goto error;
-    }
-    name_node = plAstNew(PL_MARKER_NAME);
-    plAstCopyTokenInfo(name_node, &token);
+    name_node = plAstNew(PL_MARKER_NAME, &name_token);
 
-    ret = plAstCreateConnection(PL_MARKER_ARROW, node, name_node);
-    if (ret != PL_RET_OK) {
-        plAstFree(name_node, scanner->table);
-        goto error;
-    }
-    memcpy(&(*node)->header.location, &location, sizeof(location));
+    plAstCreateConnection(PL_MARKER_ARROW, &arrow_token, node, name_node);
 
     ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
     if (ret != PL_RET_OK) {
@@ -98,11 +81,14 @@ static int
 parseMain(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
-    plLexicalLocation location;
+    plLexicalToken lead_token;
     plAstNode *statement_list;
 
     *node = NULL;
-    plGetLastLocation(scanner, &location);
+    ret = CONSUME_TOKEN(scanner, &lead_token);
+    if (ret != PL_RET_OK) {
+        return ret;
+    }
 
     ret = EXPECT_MARKER(scanner, PL_MARKER_LEFT_BRACE, NULL);
     if (ret != PL_RET_OK) {
@@ -114,8 +100,7 @@ parseMain(plLexicalScanner *scanner, plAstNode **node)
         return ret;
     }
 
-    *node = plAstCreateFamily(PL_MARKER_MAIN, statement_list);
-    memcpy(&(*node)->header.location, &location, sizeof(location));
+    *node = plAstCreateFamily(PL_MARKER_MAIN, &lead_token, statement_list);
 
     return PL_RET_OK;
 }
@@ -124,22 +109,25 @@ static int
 parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
 {
     int ret;
-    plLexicalToken token;
 
     *tree = NULL;
 
-    while (!TERMINAL_MARKER(TOKEN_READ(scanner, &token))) {
+    while (!TERMINAL_MARKER(PEEK_TOKEN(scanner, 0))) {
         plAstNode *node;
 
-        switch (scanner->last_marker) {
+        switch (PEEK_TOKEN(scanner, 0)) {
+            plLexicalToken token;
+
         case PL_MARKER_IMPORT:
         case PL_MARKER_EXPORT:
         case PL_MARKER_OPAQUE: ret = parseImportExportOpaque(scanner, &node); break;
 
         case PL_MARKER_EXPORT_ALL:
-            node = plAstNew(PL_MARKER_EXPORT_ALL);
-            memcpy(&node->header.location, &token.header.location, sizeof(token.header.location));
-            ret = PL_RET_OK;
+            ret = CONSUME_TOKEN(scanner, &token);
+            if (ret != PL_RET_OK) {
+                goto error;
+            }
+            node = plAstNew(PL_MARKER_EXPORT_ALL, &token);
             break;
 
         case PL_MARKER_SOURCE:
@@ -150,33 +138,29 @@ parseGlobalSpace(plLexicalScanner *scanner, plAstNode **tree)
 
         case PL_MARKER_MAIN: ret = parseMain(scanner, &node); break;
 
-        case PL_MARKER_SEMICOLON: continue;
+        case PL_MARKER_SEMICOLON:
+            ret = CONSUME_TOKEN(scanner, NULL);
+            if (ret != PL_RET_OK) {
+                goto error;
+            }
+            continue;
 
-        default:
-            LOOKAHEAD_STORE(scanner, &token);
-
-            ret = parseConstantDeclaration(scanner, &node);
-            break;
+        default: ret = parseConstantDeclaration(scanner, &node); break;
         }
 
         if (ret != PL_RET_OK) {
             goto error;
         }
-
         if (*tree) {
-            ret = plAstCreateConnection(PL_MARKER_SEMICOLON, tree, node);
-            if (ret != PL_RET_OK) {
-                plAstFree(node, scanner->table);
-                goto error;
-            }
+            plAstCreateConnection(PL_MARKER_SEMICOLON, NULL, tree, node);
         }
         else {
             *tree = node;
         }
     }
 
-    if (scanner->last_marker != PL_MARKER_EOF) {
-        ret = plTranslateTerminalMarker(scanner->last_marker);
+    if (PEEK_TOKEN(scanner, 0) != PL_MARKER_EOF) {
+        ret = plTranslateTerminalMarker(PEEK_TOKEN(scanner, 0));
         goto error;
     }
 
@@ -219,98 +203,42 @@ plFileParse(FILE *in, const char *file_name, plAstNode **tree, plWordTable **tab
     return ret;
 }
 
-#if LL_USE == -1
-
 int
-plNextTokenNoLog(plLexicalScanner *scanner, plLexicalToken *token)
-{
-    int marker;
-
-    marker = plTokenRead(scanner, token);
-    return TERMINAL_MARKER(marker) ? plTranslateTerminalMarker(marker) : PL_RET_OK;
-}
-
-int
-plExpectMarkerNoLog(plLexicalScanner *scanner, int marker, plLexicalLocation *location)
+plExpectMarker(
+#if LL_USE != -1
+    const char *file_name, const char *function_name, unsigned int line_no,
+#endif
+    plLexicalScanner *scanner, int marker, plLexicalToken *token)
 {
     int ret;
-    plLexicalToken token;
+    plLexicalToken temp_token;
+    plLexicalToken *token_ptr = token ? token : &temp_token;
 
-    if (UNLIKELY(!location)) {
-        VASQ_ERROR(debug_logger, "location cannot be NULL.");
+    if (UNLIKELY(!scanner)) {
+        VASQ_ERROR(debug_logger, "scanner cannot be NULL.");
         return PL_RET_USAGE;
     }
 
-    ret = NEXT_TOKEN(scanner, &token);
+#if LL_USE == -1
+    ret = CONSUME_TOKEN(scanner, token_ptr);
+#else
+    ret = plTokenConsumeLog(file_name, function_name, line_no, scanner, token_ptr);
+#endif
     if (ret != PL_RET_OK) {
         return ret;
     }
 
-    if (token.header.marker != marker) {
-        PARSER_ERROR("Expected %s instead of %s.", plLexicalMarkerName(marker),
-                     plLexicalMarkerName(token.header.marker));
-        plTokenCleanup(&token, scanner->table);
-        return PL_RET_BAD_DATA;
-    }
-
-    if (location) {
-        memcpy(location, &token.header.location, sizeof(token.header.location));
-    }
-
-    return PL_RET_OK;
-}
-
-#else  // LL_USE == -1
-
-int
-plNextTokenLog(const char *file_name, const char *function_name, unsigned int line_no,
-               plLexicalScanner *scanner, plLexicalToken *token)
-{
-    int marker;
-
-    marker = plTokenReadLog(file_name, function_name, line_no, scanner, token);
-    return TERMINAL_MARKER(marker) ? plTranslateTerminalMarker(marker) : PL_RET_OK;
-}
-
-int
-plExpectMarkerLog(const char *file_name, const char *function_name, unsigned int line_no,
-                  plLexicalScanner *scanner, int marker, plLexicalLocation *location)
-{
-    int ret;
-    plLexicalToken token;
-
-    ret = plNextTokenLog(file_name, function_name, line_no, scanner, &token);
-    if (ret != PL_RET_OK) {
-        return ret;
-    }
-
-    if (token.header.marker != marker) {
+    if (token_ptr->header.marker != marker) {
+#if LL_USE == -1
+        PARSER_ERROR(
+#else
         vasqLogStatement(scanner->parser_logger, VASQ_LL_ERROR, file_name, function_name, line_no,
-                         "Expected %s instead of %s.", plLexicalMarkerName(marker),
-                         plLexicalMarkerName(token.header.marker));
-        plTokenCleanup(&token, scanner->table);
+#endif
+            "Expected %s instead of %s.", plLexicalMarkerName(marker),
+            plLexicalMarkerName(token_ptr->header.marker));
+        plTokenCleanup(token_ptr, scanner->table);
         return PL_RET_BAD_DATA;
     }
 
-    if (location) {
-        memcpy(location, &token.header.location, sizeof(token.header.location));
-    }
-
     return PL_RET_OK;
-}
-
-#endif  // LL_USE == -1
-
-void
-plAstCopyTokenInfo(plAstNode *node, const plLexicalToken *token)
-{
-    if (!node || !token) {
-        VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
-        return;
-    }
-
-    memcpy(&node->header, &token->header, sizeof(token->header));
-    if (plAstSplitSize(node->header.marker) == -1) {
-        memcpy(plAstGetData(node), &token->data, sizeof(token->data));
-    }
 }

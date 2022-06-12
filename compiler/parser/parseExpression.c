@@ -81,28 +81,22 @@ parseMonomial(plLexicalScanner *scanner, plAstNode **node, bool allow_negation, 
 {
     int ret;
     bool negation = false;
-    plLexicalToken token;
-    plLexicalLocation negation_location = {0};
+    plLexicalToken token, negation_token = {0};
     plAstNode *second_node;
 
     *node = NULL;
 
 start:
 
-    ret = NEXT_TOKEN(scanner, &token);
-    if (ret != PL_RET_OK) {
-        return ret;
-    }
-
-    switch (token.header.marker) {
+    switch (PEEK_TOKEN(scanner, 0)) {
     case PL_MARKER_LEFT_PARENS:
-        ret = NEXT_TOKEN(scanner, &token);
+        ret = CONSUME_TOKEN(scanner, NULL);
         if (ret != PL_RET_OK) {
             return ret;
         }
 
-        if (token.header.marker == PL_MARKER_SOURCE) {
-            plLexicalLocation arrow_location;
+        if (PEEK_TOKEN(scanner, 0) == PL_MARKER_SOURCE) {
+            plLexicalToken arrow_token;
 
             if (compilation_only) {
                 PARSER_ERROR(
@@ -115,7 +109,7 @@ start:
                 return ret;
             }
 
-            ret = EXPECT_MARKER(scanner, PL_MARKER_ARROW, &arrow_location);
+            ret = EXPECT_MARKER(scanner, PL_MARKER_ARROW, &arrow_token);
             if (ret != PL_RET_OK) {
                 goto error;
             }
@@ -125,19 +119,15 @@ start:
                 goto error;
             }
 
-            ret = plAstCreateConnection(PL_MARKER_ARROW, node, second_node);
+            ret = plAstCreateConnection(PL_MARKER_ARROW, &arrow_token, node, second_node);
             if (ret != PL_RET_OK) {
                 plAstFree(second_node, scanner->table);
                 goto error;
             }
-            memcpy(&(*node)->header.location, &arrow_location, sizeof(arrow_location));
         }
         else {
-            plOperatorOrder_t new_order;
+            plOperatorOrder_t new_order = compilation_only ? PL_ORDER_START : PL_ORDER_ARROW;
 
-            LOOKAHEAD_STORE(scanner, &token);
-
-            new_order = compilation_only ? PL_ORDER_START : PL_ORDER_ARROW;
             ret = parseExpressionStart(scanner, node, new_order, compilation_only);
             if (ret != PL_RET_OK) {
                 return ret;
@@ -155,79 +145,71 @@ start:
             PARSER_ERROR("NOT not allowed in this context.");
             return PL_RET_BAD_DATA;
         }
+        ret = CONSUME_TOKEN(scanner, &token);
+        if (ret != PL_RET_OK) {
+            return ret;
+        }
 
         negation = !negation;
         if (negation) {
-            memcpy(&negation_location, &token.header.location, sizeof(token.header.location));
+            memcpy(&negation_token, &token, sizeof(token));
         }
         goto start;
 
     case PL_MARKER_NAME:
-        LOOKAHEAD_STORE(scanner, &token);
-
         ret = plParseExtendedName(scanner, node);
         if (ret != PL_RET_OK) {
             return ret;
         }
 
-        ret = NEXT_TOKEN(scanner, &token);
-        if (ret != PL_RET_OK) {
-            goto error;
-        }
-
-        if (token.header.marker == PL_MARKER_LEFT_PARENS) {
+        if (PEEK_TOKEN(scanner, 0) == PL_MARKER_LEFT_PARENS) {
             plOperatorOrder_t new_order = compilation_only ? PL_ORDER_START : PL_ORDER_COMMA;
+
+            ret = CONSUME_TOKEN(scanner, &token);
+            if (ret != PL_RET_OK) {
+                goto error;
+            }
 
             ret = parseExpressionStart(scanner, &second_node, new_order, compilation_only);
             if (ret != PL_RET_OK) {
                 goto error;
             }
 
-            ret = plAstCreateConnection(PL_MARKER_LEFT_PARENS, node, second_node);
+            ret = plAstCreateConnection(PL_MARKER_LEFT_PARENS, &token, node, second_node);
             if (ret != PL_RET_OK) {
                 plAstFree(second_node, scanner->table);
                 goto error;
             }
-            memcpy(&(*node)->header.location, &token.header.location, sizeof(token.header.location));
 
             ret = EXPECT_MARKER(scanner, PL_MARKER_RIGHT_PARENS, NULL);
             if (ret != PL_RET_OK) {
                 goto error;
             }
         }
-        else {
-            LOOKAHEAD_STORE(scanner, &token);
-        }
         break;
 
     case PL_MARKER_OBJECT:
     case PL_MARKER_TYPE:
     case PL_MARKER_CONTEXT:
-        *node = plAstNew(token.header.marker);
-        plAstCopyTokenInfo(*node, &token);
+        ret = CONSUME_TOKEN(scanner, &token);
+        if (ret != PL_RET_OK) {
+            return ret;
+        }
+        *node = plAstNew(token.header.marker, &token);
 
         if (token.header.marker == PL_MARKER_OBJECT &&
             OBJ_TYPE(&token.data.handle) == PL_OBJ_TYPE_BYTE_ARRAY) {
-            while (true) {
-                plLexicalToken token2;
-
-                ret = NEXT_TOKEN(scanner, &token2);
+            while (PEEK_TOKEN(scanner, 0) == PL_MARKER_OBJECT &&
+                   OBJ_TYPE(&scanner->store[0].data.handle) == PL_OBJ_TYPE_BYTE_ARRAY) {
+                ret = CONSUME_TOKEN(scanner, &token);
                 if (ret != PL_RET_OK) {
                     goto error;
                 }
-
-                if (token2.header.marker == PL_MARKER_OBJECT &&
-                    OBJ_TYPE(&token2.data.handle) == PL_OBJ_TYPE_BYTE_ARRAY) {
-                    ret = plConcatenateByteArrays(plAstGetData(*node)->handle.as.bytes,
-                                                  token2.data.handle.as.bytes);
-                    plTokenCleanup(&token2, scanner->table);
-                    if (ret != PL_RET_OK) {
-                        goto error;
-                    }
-                }
-                else {
-                    LOOKAHEAD_STORE(scanner, &token2);
-                    break;
+                ret = plConcatenateByteArrays(plAstGetData(*node)->handle.as.bytes,
+                                              token.data.handle.as.bytes);
+                plTokenCleanup(&token, scanner->table);
+                if (ret != PL_RET_OK) {
+                    goto error;
                 }
             }
         }
@@ -241,15 +223,23 @@ start:
         }
         break;
 
+    case PL_MARKER_UNDERSCORE:
+        ret = CONSUME_TOKEN(scanner, &token);
+        if (ret == PL_RET_OK) {
+            *node = plAstNew(PL_MARKER_UNDERSCORE, &token);
+        }
+        return ret;
+
     default:
-        PARSER_ERROR("Unexpected %s in place of expression.", plLexicalMarkerName(token.header.marker));
+        scanner->error_on_peek = 0;
+        PARSER_ERROR("Unexpected %s in place of expression.", plLexicalMarkerName(PEEK_TOKEN(scanner, 0)));
         // I don't need to call plTokenCleanup since I know that it's neither a NAME nor an OBJECT.
         return PL_RET_BAD_DATA;
     }
 
     // Check for attributes and array indexing.
-    while (true) {
-        ret = NEXT_TOKEN(scanner, &token);
+    while (PEEK_TOKEN(scanner, 0) == PL_MARKER_LEFT_BRACKET || PEEK_TOKEN(scanner, 0) == PL_MARKER_PERIOD) {
+        ret = CONSUME_TOKEN(scanner, &token);
         if (ret != PL_RET_OK) {
             goto error;
         }
@@ -259,38 +249,31 @@ start:
             if (ret != PL_RET_OK) {
                 goto error;
             }
-
             ret = EXPECT_MARKER(scanner, PL_MARKER_RIGHT_BRACKET, NULL);
         }
-        else if (token.header.marker == PL_MARKER_PERIOD) {
-            ret = plParseExtendedName(scanner, &second_node);
-        }
         else {
-            LOOKAHEAD_STORE(scanner, &token);
-            break;
+            ret = plParseExtendedName(scanner, &second_node);
         }
 
         if (ret != PL_RET_OK) {
+            if (token.header.marker == PL_MARKER_LEFT_BRACKET) {
+                plAstFree(second_node, scanner->table);
+            }
             goto error;
         }
 
-        ret = plAstCreateConnection(token.header.marker, node, second_node);
+        ret = plAstCreateConnection(token.header.marker, &token, node, second_node);
         if (ret != PL_RET_OK) {
             plAstFree(second_node, scanner->table);
             goto error;
         }
-        plAstCopyTokenInfo(*node, &token);
     }
 
-    if (negation_location.line_no > 0) {
+    if (negation_token.header.location.line_no > 0) {
         // Even if negation is false (meaning that the NOT token appeared an even number of times), the
         // value of the expression must still be converted into a Bool.
-        for (int k = 0; k <= 1 - (int)negation; k++) {  // negation, as an integer, is either 0 or 1.
-            plAstNode *connector_node;
-
-            connector_node = plAstCreateFamily(PL_MARKER_NOT, *node);
-            memcpy(&connector_node->header.location, &negation_location, sizeof(negation_location));
-            *node = connector_node;
+        for (int k = 0; k <= 1 - negation; k++) {  // negation is either 0 or 1.
+            *node = plAstCreateFamily(PL_MARKER_NOT, &negation_token, *node);
         }
     }
 
@@ -309,90 +292,52 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
                        bool compilation_only)
 {
     int ret;
-    plLexicalToken token1;
-    plAstNode *second_node = NULL;
 
     while (true) {
         plOperatorOrder_t new_order;
-        plLexicalToken token2;
-
-        ret = NEXT_TOKEN(scanner, &token2);
-        if (ret != PL_RET_OK) {
-            goto error;
-        }
+        plLexicalToken connector_token;
+        plAstNode *second_node;
 
         if ((*current)->header.marker == PL_MARKER_COMMA && order < PL_ORDER_COMMA &&
-            token2.header.marker != PL_MARKER_ARROW) {
+            PEEK_TOKEN(scanner, 0) != PL_MARKER_ARROW) {
             PARSER_ERROR("Expected ARROW after comma-delimited source list.");
-            ret = PL_RET_BAD_DATA;
-            goto error;
+            return PL_RET_BAD_DATA;
         }
 
-        new_order = operatorOrder(&token2);
-        if (new_order != order) {
-            LOOKAHEAD_STORE(scanner, &token2);
-
-            if (new_order > order) {
-                break;
-            }
-
-            ret = parseExpressionRecurse(scanner, second_node ? &second_node : current, new_order,
-                                         compilation_only);
+        new_order = operatorOrder(&scanner->store[0]);
+        if (new_order > order) {
+            break;
+        }
+        if (new_order < order) {
+            ret = parseExpressionRecurse(scanner, current, new_order, compilation_only);
             if (ret != PL_RET_OK) {
-                goto error;
+                return ret;
             }
-
             continue;
         }
 
-        if (token2.header.marker == PL_MARKER_ARROW) {
-            // second_node must be NULL here.
-            ret = plParseReceiver(scanner, &second_node);
-            if (ret != PL_RET_OK) {
-                goto error;
-            }
-
-            ret = plAstCreateConnection(PL_MARKER_ARROW, current, second_node);
-            if (ret != PL_RET_OK) {
-                goto error;
-            }
-            plAstCopyTokenInfo(*current, &token2);
-
-            return PL_RET_OK;
-        }
-
-        if (second_node) {
-            ret = plAstCreateConnection(token1.header.marker, current, second_node);
-            if (ret != PL_RET_OK) {
-                goto error;
-            }
-            plAstCopyTokenInfo(*current, &token1);
-            second_node = NULL;
-        }
-        else {
-            memcpy(&token1, &token2, sizeof(token2));
+        ret = CONSUME_TOKEN(scanner, &connector_token);
+        if (ret != PL_RET_OK) {
+            return ret;
         }
 
         ret = parseMonomial(scanner, &second_node, (order > PL_ORDER_NUMERIC), compilation_only);
         if (ret != PL_RET_OK) {
-            goto error;
+            return ret;
         }
-    }
 
-    if (second_node) {
-        ret = plAstCreateConnection(token1.header.marker, current, second_node);
-        if (ret != PL_RET_OK) {
-            goto error;
+        while ((new_order = operatorOrder(&scanner->store[0])) < order) {
+            ret = parseExpressionRecurse(scanner, &second_node, new_order, compilation_only);
+            if (ret != PL_RET_OK) {
+                plAstFree(second_node, scanner->table);
+                return ret;
+            }
         }
-        plAstCopyTokenInfo(*current, &token1);
+
+        plAstCreateConnection(connector_token.header.marker, &connector_token, current, second_node);
     }
 
     return PL_RET_OK;
-
-error:
-
-    plAstFree(second_node, scanner->table);
-    return ret;
 }
 
 int

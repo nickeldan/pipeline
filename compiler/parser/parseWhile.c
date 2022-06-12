@@ -6,7 +6,7 @@ int
 plParseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
-    plLexicalLocation location;
+    plLexicalToken lead_token;
     plAstNode *condition_node, *statement_list = NULL;
 
     if (LIKELY(node)) {
@@ -17,7 +17,10 @@ plParseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
         return PL_RET_USAGE;
     }
 
-    plGetLastLocation(scanner, &location);
+    ret = CONSUME_TOKEN(scanner, &lead_token);
+    if (ret != PL_RET_OK) {
+        return ret;
+    }
 
     ret = plParseExpression(scanner, &condition_node, false);
     if (ret != PL_RET_OK) {
@@ -34,8 +37,7 @@ plParseWhileBlock(plLexicalScanner *scanner, plAstNode **node)
         goto error;
     }
 
-    *node = plAstCreateFamily(PL_MARKER_WHILE, condition_node, statement_list);
-    memcpy(&(*node)->header.location, &location, sizeof(location));
+    *node = plAstCreateFamily(PL_MARKER_WHILE, &lead_token, condition_node, statement_list);
 
     return PL_RET_OK;
 

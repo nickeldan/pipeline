@@ -27,7 +27,7 @@ bool
 plAstSetHandle(plAstNode *node, const plObjectHandle *handle);
 
 plAstNode *
-plAstNew(int node_type);
+plAstNew(int marker, const plLexicalToken *token);
 
 void
 plAstFree(plAstNode *node, plWordTable *table);
@@ -36,10 +36,10 @@ int
 plAstSplitSize(int node_type) __attribute__((pure));
 
 plAstNode *
-plAstCreateFamily(int marker, ...);
+plAstCreateFamily(int marker, const plLexicalToken *token, ...);
 
 int
-plAstCreateConnection(int marker, plAstNode **first, plAstNode *second);
+plAstCreateConnection(int marker, const plLexicalToken *token, plAstNode **first, plAstNode *second);
 
 void
 plAstPrint(const plAstNode *node, unsigned int margin);

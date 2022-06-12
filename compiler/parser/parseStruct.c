@@ -1,13 +1,10 @@
-#include <string.h>
-
 #include "parserInternal.h"
 
 int
 plParseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
-    plLexicalLocation location;
-    plLexicalToken token;
+    plLexicalToken lead_token, token;
     plAstNode *struct_name_node, *arg_list = NULL;
 
     if (LIKELY(node)) {
@@ -18,47 +15,37 @@ plParseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
         return PL_RET_USAGE;
     }
 
-    plGetLastLocation(scanner, &location);
-
-    ret = NEXT_TOKEN(scanner, &token);
+    ret = CONSUME_TOKEN(scanner, &lead_token);
     if (ret != PL_RET_OK) {
         return ret;
     }
 
-    if (token.header.marker != PL_MARKER_NAME) {
-        PARSER_ERROR("Expected NAME instead of %s following STRUCT.",
-                     plLexicalMarkerName(token.header.marker));
-        plTokenCleanup(&token, scanner->table);
-        return PL_RET_BAD_DATA;
+    ret = EXPECT_MARKER(scanner, PL_MARKER_NAME, &token);
+    if (ret != PL_RET_OK) {
+        return ret;
     }
-    struct_name_node = plAstNew(PL_MARKER_NAME);
-    plAstCopyTokenInfo(struct_name_node, &token);
+    struct_name_node = plAstNew(PL_MARKER_NAME, &token);
 
     ret = EXPECT_MARKER(scanner, PL_MARKER_LEFT_BRACE, NULL);
     if (ret != PL_RET_OK) {
         goto error;
     }
 
-    while (true) {
-        plLexicalLocation colon_location;
+    while (PEEK_TOKEN(scanner, 0) != PL_MARKER_RIGHT_BRACE) {
+        plLexicalToken colon_token;
         plAstNode *name_node, *type_node, *arg_node;
 
-        ret = NEXT_TOKEN(scanner, &token);
+        ret = CONSUME_TOKEN(scanner, &token);
         if (ret != PL_RET_OK) {
             goto error;
         }
-
-        if (token.header.marker == PL_MARKER_RIGHT_BRACE) {
-            break;
-        }
-
         if (token.header.marker != PL_MARKER_NAME) {
             PARSER_ERROR("Expected NAME at beginning of struct field definition.");
             ret = PL_RET_BAD_DATA;
             goto loop_error;
         }
 
-        ret = EXPECT_MARKER(scanner, PL_MARKER_COLON, &colon_location);
+        ret = EXPECT_MARKER(scanner, PL_MARKER_COLON, &colon_token);
         if (ret != PL_RET_OK) {
             goto loop_error;
         }
@@ -68,28 +55,21 @@ plParseStructDefinition(plLexicalScanner *scanner, plAstNode **node)
             goto loop_error;
         }
 
-        name_node = plAstNew(PL_MARKER_NAME);
-        plAstCopyTokenInfo(name_node, &token);
+        name_node = plAstNew(PL_MARKER_NAME, &token);
+        arg_node = plAstCreateFamily(PL_MARKER_COLON, &colon_token, name_node, type_node);
 
-        arg_node = plAstCreateFamily(PL_MARKER_COLON, name_node, type_node);
-        memcpy(&arg_node->header.location, &colon_location, sizeof(colon_location));
+        ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
+        if (ret != PL_RET_OK) {
+            plAstFree(arg_node, scanner->table);
+            goto error;
+        }
 
         if (arg_list) {
-            ret = plAstCreateConnection(PL_MARKER_SEMICOLON, &arg_list, arg_node);
-            if (ret != PL_RET_OK) {
-                plAstFree(arg_node, scanner->table);
-                goto error;
-            }
+            plAstCreateConnection(PL_MARKER_SEMICOLON, NULL, &arg_list, arg_node);
         }
         else {
             arg_list = arg_node;
         }
-
-        ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
-        if (ret != PL_RET_OK) {
-            goto error;
-        }
-
         continue;
 
 loop_error:
@@ -104,8 +84,7 @@ loop_error:
         goto error;
     }
 
-    *node = plAstCreateFamily(PL_MARKER_STRUCT, struct_name_node, arg_list);
-    memcpy(&(*node)->header.location, &location, sizeof(location));
+    *node = plAstCreateFamily(PL_MARKER_STRUCT, &lead_token, struct_name_node, arg_list);
 
     return PL_RET_OK;
 

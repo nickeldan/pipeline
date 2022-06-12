@@ -24,29 +24,33 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
 
     *node = NULL;
 
-    ret = NEXT_TOKEN(scanner, &token);
-    if (ret != PL_RET_OK) {
-        return ret;
-    }
-
-    switch (token.header.marker) {
+    switch (PEEK_TOKEN(scanner, 0)) {
     case PL_MARKER_DROP:
     case PL_MARKER_END:
     case PL_MARKER_BREAK:
     case PL_MARKER_CONT:
+        ret = CONSUME_TOKEN(scanner, &token);
+        if (ret != PL_RET_OK) {
+            return ret;
+        }
+
         ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
         if (ret != PL_RET_OK) {
             return ret;
         }
 
-        *node = plAstNew(token.header.marker);
-        plAstCopyTokenInfo(*node, &token);
+        *node = plAstNew(token.header.marker, &token);
 
         return PL_RET_OK;
 
     case PL_MARKER_PROD:
     case PL_MARKER_VERIFY:
     case PL_MARKER_EXIT:
+        ret = CONSUME_TOKEN(scanner, &token);
+        if (ret != PL_RET_OK) {
+            return ret;
+        }
+
         ret = plParseExpression(scanner, &first_node, (token.header.marker == PL_MARKER_EXIT));
         if (ret != PL_RET_OK) {
             return ret;
@@ -57,8 +61,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             goto error;
         }
 
-        *node = plAstCreateFamily(token.header.marker, first_node);
-        plAstCopyTokenInfo(*node, &token);
+        *node = plAstCreateFamily(token.header.marker, &token, first_node);
 
         return PL_RET_OK;
 
@@ -66,78 +69,70 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
 
     case PL_MARKER_WHILE: return plParseWhileBlock(scanner, node);
 
-    default: break;
-    }
-
-    if (token.header.marker == PL_MARKER_NAME) {
-        plLexicalToken next_token;
-
-        ret = NEXT_TOKEN(scanner, &next_token);
-        if (ret != PL_RET_OK) {
-            plTokenCleanup(&token, scanner->table);
-            return ret;
-        }
-
-        if (next_token.header.marker == PL_MARKER_AS) {
+    case PL_MARKER_NAME:
+        if (PEEK_TOKEN(scanner, 1) == PL_MARKER_AS) {
+            plLexicalToken as_token;
             plAstNode *name_node, *type_node;
 
-            ret = plParseExtendedType(scanner, &type_node);
+            ret = CONSUME_TOKEN(scanner, &token);
             if (ret != PL_RET_OK) {
-                plTokenCleanup(&token, scanner->table);
                 return ret;
             }
+            name_node = plAstNew(PL_MARKER_NAME, &token);
+
+            if ((ret = CONSUME_TOKEN(scanner, &as_token)) != PL_RET_OK ||
+                (ret = plParseExtendedType(scanner, &type_node)) != PL_RET_OK) {
+                plAstFree(name_node, scanner->table);
+                return ret;
+            }
+
+            *node = plAstCreateFamily(PL_MARKER_AS, &as_token, name_node, type_node);
 
             ret = EXPECT_MARKER(scanner, PL_MARKER_SEMICOLON, NULL);
             if (ret != PL_RET_OK) {
-                plTokenCleanup(&token, scanner->table);
-                plAstFree(type_node, scanner->table);
+                goto error;
+            }
+
+            return PL_RET_OK;
+        }
+        break;
+
+    case PL_MARKER_ARITHMETIC:
+        if (scanner->store[0].header.submarker == PL_SUBMARKER_MODULO) {
+            plLexicalToken name_token;
+            plAstNode *name_node;
+
+            ret = CONSUME_TOKEN(scanner, &token);
+            if (ret != PL_RET_OK) {
                 return ret;
             }
 
-            name_node = plAstNew(PL_MARKER_NAME);
-            plAstCopyTokenInfo(name_node, &token);
+            ret = CONSUME_TOKEN(scanner, &name_token);
+            if (ret != PL_RET_OK) {
+                return ret;
+            }
+            if (name_token.header.marker != PL_MARKER_NAME) {
+                PARSER_ERROR("Expected NAME following '%'");
+                plTokenCleanup(&name_token, scanner->table);
+                return PL_RET_BAD_DATA;
+            }
+            name_node = plAstNew(PL_MARKER_NAME, &name_token);
 
-            *node = plAstCreateFamily(next_token.header.marker, name_node, type_node);
-            plAstCopyTokenInfo(*node, &next_token);
-
-            return PL_RET_OK;
-        }
-        else {
-            LOOKAHEAD_STORE(scanner, &next_token);
-        }
-    }
-    else if (token.header.marker == PL_MARKER_ARITHMETIC && token.header.submarker == PL_SUBMARKER_MODULO) {
-        plLexicalToken next_token;
-
-        ret = NEXT_TOKEN(scanner, &next_token);
-        if (ret != PL_RET_OK) {
-            return ret;
-        }
-
-        if (next_token.header.marker == PL_MARKER_NAME) {
-            plAstNode *name_node;
-
-            name_node = plAstNew(PL_MARKER_NAME);
-            plAstCopyTokenInfo(name_node, &next_token);
-
-            *node = plAstCreateFamily('%', name_node);
-            memcpy(&(*node)->header.location, &token.header.location, sizeof(token.header.location));
+            *node = plAstCreateFamily('%', &token, name_node);
 
             return PL_RET_OK;
         }
-        else {
-            LOOKAHEAD_STORE(scanner, &next_token);
-        }
-    }
+        break;
 
-    LOOKAHEAD_STORE(scanner, &token);
+    default: break;
+    }
 
     ret = plParseExpression(scanner, &first_node, false);
     if (ret != PL_RET_OK) {
         return ret;
     }
 
-    ret = NEXT_TOKEN(scanner, &token);
+    ret = CONSUME_TOKEN(scanner, &token);
     if (ret != PL_RET_OK) {
         goto error;
     }
@@ -162,8 +157,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
             goto error;
         }
 
-        *node = plAstCreateFamily(PL_MARKER_REASSIGNMENT, first_node, rvalue_node);
-        plAstCopyTokenInfo(*node, &token);
+        *node = plAstCreateFamily(PL_MARKER_REASSIGNMENT, &token, first_node, rvalue_node);
 
         return PL_RET_OK;
     }
@@ -186,8 +180,7 @@ parseStatement(plLexicalScanner *scanner, plAstNode **node)
         goto error;
     }
 
-    *node = plAstCreateFamily(PL_MARKER_ARROW, first_node, receiver_node);
-    plAstCopyTokenInfo(*node, &token);
+    *node = plAstCreateFamily(PL_MARKER_ARROW, &token, first_node, receiver_node);
 
     return PL_RET_OK;
 
@@ -212,23 +205,16 @@ plParseStatementList(plLexicalScanner *scanner, plAstNode **node)
         return PL_RET_USAGE;
     }
 
-    while (true) {
-        plLexicalToken token;
+    while (PEEK_TOKEN(scanner, 0) != PL_MARKER_RIGHT_BRACE) {
         plAstNode *statement_node;
 
-        ret = NEXT_TOKEN(scanner, &token);
-        if (ret != PL_RET_OK) {
-            goto error;
-        }
-
-        if (token.header.marker == PL_MARKER_RIGHT_BRACE) {
-            break;
-        }
-        else if (token.header.marker == PL_MARKER_SEMICOLON) {
+        if (PEEK_TOKEN(scanner, 0) == PL_MARKER_SEMICOLON) {
+            ret = CONSUME_TOKEN(scanner, NULL);
+            if (ret != PL_RET_OK) {
+                goto error;
+            }
             continue;
         }
-
-        LOOKAHEAD_STORE(scanner, &token);
 
         ret = parseStatement(scanner, &statement_node);
         if (ret != PL_RET_OK) {
@@ -236,7 +222,7 @@ plParseStatementList(plLexicalScanner *scanner, plAstNode **node)
         }
 
         if (*node) {
-            ret = plAstCreateConnection(PL_MARKER_SEMICOLON, node, statement_node);
+            ret = plAstCreateConnection(PL_MARKER_SEMICOLON, NULL, node, statement_node);
             if (ret != PL_RET_OK) {
                 plAstFree(statement_node, scanner->table);
                 goto error;
@@ -245,6 +231,11 @@ plParseStatementList(plLexicalScanner *scanner, plAstNode **node)
         else {
             *node = statement_node;
         }
+    }
+
+    ret = CONSUME_TOKEN(scanner, NULL);
+    if (ret != PL_RET_OK) {
+        goto error;
     }
 
     return PL_RET_OK;

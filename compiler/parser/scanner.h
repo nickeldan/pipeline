@@ -9,8 +9,8 @@
 
 #include "token.h"
 
-#define PL_SCANNER_BUFFER_SIZE    200
-#define PL_SCANNER_MAX_LOOK_AHEAD 2
+#define PL_SCANNER_BUFFER_SIZE 200
+#define PL_SCANNER_MAX_STORE   2
 
 typedef struct plLexicalScanner {
     vasqLogger *scanner_logger;
@@ -18,14 +18,16 @@ typedef struct plLexicalScanner {
     FILE *file;
     plWordTable *table;
     plRefTable *keyword_table;
+    plLineTable *line_table;
     const char *file_name;
     char *line;
-    plLexicalToken look_ahead[PL_SCANNER_MAX_LOOK_AHEAD];
+    plLexicalToken store[PL_SCANNER_MAX_STORE];
     plLexicalLocation location;
-    plLexicalLocation last_look_ahead_loc;
+    plLexicalLocation last_consumed_location;
     unsigned int line_length;
-    int last_marker;
-    unsigned char num_look_ahead;
+    unsigned int whitespace_stripped;
+    unsigned char num_stored;
+    char error_on_peek;
     char buffer[PL_SCANNER_BUFFER_SIZE];
     unsigned int inside_comment_block : 1;
 } plLexicalScanner;
@@ -38,36 +40,26 @@ plScannerInit(plLexicalScanner *scanner, FILE *file, const char *file_name);
 void
 plScannerCleanup(plLexicalScanner *scanner);
 
+#define PEEK_TOKEN(scanner, spot) ((scanner)->store[spot].header.marker)
+
 int
-plTokenRead(plLexicalScanner *scanner, plLexicalToken *token);
+plTokenConsume(plLexicalScanner *scanner, plLexicalToken *token);
 
 int
 plTranslateTerminalMarker(int marker);
 
 #if LL_USE == -1
 
-#define TOKEN_READ(scanner, token) plTokenRead(scanner, token)
-
-void
-plLookaheadStoreNoLog(plLexicalScanner *scanner, plLexicalToken *token);
-#define LOOKAHEAD_STORE(scanner, token) plLookaheadStoreNoLog(scanner, token)
+#define CONSUME_TOKEN(scanner, token) plTokenConsume(scanner, token)
 
 #else
 
 int
-plTokenReadLog(const char *file_name, const char *function_name, unsigned int line_no,
-               plLexicalScanner *scanner, plLexicalToken *token);
-#define TOKEN_READ(scanner, token)      plTokenReadLog(__FILE__, __func__, __LINE__, scanner, token)
-
-void
-plLookaheadStoreLog(const char *file_name, const char *function_name, unsigned int line_no,
-                    plLexicalScanner *scanner, plLexicalToken *token);
-#define LOOKAHEAD_STORE(scanner, token) plLookaheadStoreLog(__FILE__, __func__, __LINE__, scanner, token)
+plTokenConsumeLog(const char *file_name, const char *function_name, unsigned int line_no,
+                  plLexicalScanner *scanner, plLexicalToken *token);
+#define CONSUME_TOKEN(scanner, token) plTokenConsumeLog(__FILE__, __func__, __LINE__, scanner, token)
 
 #endif  // LL_USE == -1
-
-void
-plGetLastLocation(const plLexicalScanner *scanner, plLexicalLocation *location);
 
 void
 plTokenCleanup(plLexicalToken *token, plWordTable *table);

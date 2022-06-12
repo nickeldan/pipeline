@@ -67,6 +67,7 @@ enum plLexicalMarker {
 };
 #define VALID_MARKER(marker)    (((marker) > PL_MARKER_INIT && (marker) < PL_MARKER_UNUSED) || isprint(marker))
 #define TERMINAL_MARKER(marker) ((marker) <= PL_MARKER_EOF)
+#define CONTAINS_DATA(marker)   ((marker) == PL_MARKER_NAME || (marker) == PL_MARKER_OBJECT)
 
 enum plLexicalSubmarker {
     PL_SUBMARKER_NONE = 0,

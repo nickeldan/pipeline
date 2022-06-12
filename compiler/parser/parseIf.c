@@ -1,13 +1,10 @@
-#include <string.h>
-
 #include "parserInternal.h"
 
 int
 plParseIfBlock(plLexicalScanner *scanner, plAstNode **node)
 {
     int ret;
-    plLexicalLocation location;
-    plLexicalToken token;
+    plLexicalToken if_token;
     plAstNode *condition_node, *statement_list = NULL, *else_node = NULL;
 
     if (LIKELY(node)) {
@@ -18,7 +15,10 @@ plParseIfBlock(plLexicalScanner *scanner, plAstNode **node)
         return PL_RET_USAGE;
     }
 
-    plGetLastLocation(scanner, &location);
+    ret = CONSUME_TOKEN(scanner, &if_token);
+    if (ret != PL_RET_OK) {
+        return ret;
+    }
 
     ret = plParseExpression(scanner, &condition_node, false);
     if (ret != PL_RET_OK) {
@@ -35,23 +35,18 @@ plParseIfBlock(plLexicalScanner *scanner, plAstNode **node)
         goto error;
     }
 
-    ret = NEXT_TOKEN(scanner, &token);
-    if (ret != PL_RET_OK) {
-        goto error;
-    }
-
-    switch (token.header.marker) {
+    switch (PEEK_TOKEN(scanner, 0)) {
     case PL_MARKER_EIF: ret = plParseIfBlock(scanner, &else_node); break;
 
     case PL_MARKER_ELSE:
-        ret = EXPECT_MARKER(scanner, PL_MARKER_LEFT_BRACE, NULL);
-        if (ret != PL_RET_OK) {
+        if ((ret = CONSUME_TOKEN(scanner, NULL)) != PL_RET_OK ||
+            (ret = EXPECT_MARKER(scanner, PL_MARKER_LEFT_BRACE, NULL)) != PL_RET_OK) {
             goto error;
         }
         ret = plParseStatementList(scanner, &else_node);
         break;
 
-    default: LOOKAHEAD_STORE(scanner, &token); goto skip_over_check;
+    default: goto skip_over_check;
     }
 
     if (ret != PL_RET_OK) {
@@ -60,8 +55,7 @@ plParseIfBlock(plLexicalScanner *scanner, plAstNode **node)
 
 skip_over_check:
 
-    *node = plAstCreateFamily(PL_MARKER_IF, condition_node, statement_list, else_node);
-    memcpy(&(*node)->header.location, &location, sizeof(location));
+    *node = plAstCreateFamily(PL_MARKER_IF, &if_token, condition_node, statement_list, else_node);
 
     return PL_RET_OK;
 

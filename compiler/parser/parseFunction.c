@@ -5,16 +5,15 @@
 static int
 parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_list)
 {
-    int ret;
+    int ret, previous_marker = function_marker;
+    plLexicalToken comma_token;
     plAstNode *name_node = NULL;
 
     while (true) {
-        int previous_marker = scanner->last_marker;
-        plLexicalToken token;
-        plLexicalLocation location, comma_location;
+        plLexicalToken token, colon_token;
         plAstNode *arg_node, *type_node;
 
-        ret = NEXT_TOKEN(scanner, &token);
+        ret = CONSUME_TOKEN(scanner, &token);
         if (ret != PL_RET_OK) {
             return ret;
         }
@@ -39,7 +38,7 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
                 return PL_RET_BAD_DATA;
             }
 
-            memcpy(&comma_location, &token.header.location, sizeof(token.header.location));
+            memcpy(&comma_token, &token, sizeof(token));
 
             continue;
         }
@@ -51,10 +50,9 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
             return PL_RET_BAD_DATA;
         }
 
-        name_node = plAstNew(PL_MARKER_NAME);
-        plAstCopyTokenInfo(name_node, &token);
+        name_node = plAstNew(PL_MARKER_NAME, &token);
 
-        ret = EXPECT_MARKER(scanner, PL_MARKER_COLON, &location);
+        ret = EXPECT_MARKER(scanner, PL_MARKER_COLON, &colon_token);
         if (ret != PL_RET_OK) {
             goto cleanup_name_node;
         }
@@ -64,34 +62,22 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
             goto cleanup_name_node;
         }
 
-        if (type_node->header.marker != PL_MARKER_TYPE) {
-            ret = NEXT_TOKEN(scanner, &token);
+        if (type_node->header.marker != PL_MARKER_TYPE && PEEK_TOKEN(scanner, 0) == PL_MARKER_QUESTION) {
+            ret = CONSUME_TOKEN(scanner, &token);
             if (ret != PL_RET_OK) {
                 goto cleanup_name_node;
             }
-
-            if (token.header.marker == PL_MARKER_QUESTION) {
-                plAstNode *temp_node;
-
-                temp_node = plAstCreateFamily(PL_MARKER_QUESTION, type_node);
-                plAstCopyTokenInfo(temp_node, &token);
-                type_node = temp_node;
-            }
-            else {
-                LOOKAHEAD_STORE(scanner, &token);
-            }
+            type_node = plAstCreateFamily(PL_MARKER_QUESTION, &token, type_node);
         }
 
-        arg_node = plAstCreateFamily(PL_MARKER_COLON, name_node, type_node);
-        memcpy(&arg_node->header.location, &location, sizeof(location));
+        arg_node = plAstCreateFamily(PL_MARKER_COLON, &colon_token, name_node, type_node);
 
         if (*arg_list) {
-            ret = plAstCreateConnection(PL_MARKER_COMMA, arg_list, arg_node);
+            ret = plAstCreateConnection(PL_MARKER_COMMA, &comma_token, arg_list, arg_node);
             if (ret != PL_RET_OK) {
                 plAstFree(arg_node, scanner->table);
                 return ret;
             }
-            memcpy(&(*arg_list)->header.location, &comma_location, sizeof(comma_location));
         }
         else {
             *arg_list = arg_node;
@@ -107,10 +93,9 @@ cleanup_name_node:
 int
 plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
 {
-    int ret, function_marker;
+    int ret;
     bool declaration;
-    plLexicalLocation function_location;
-    plLexicalToken token;
+    plLexicalToken lead_token, token;
     plAstNode *function_name_node = NULL, *arg_list = NULL, *type_node = NULL, *statement_list = NULL;
 
     if (LIKELY(node)) {
@@ -121,30 +106,32 @@ plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
         return PL_RET_USAGE;
     }
 
-    function_marker = scanner->last_marker;
-    plGetLastLocation(scanner, &function_location);
+    ret = CONSUME_TOKEN(scanner, &lead_token);
+    if (ret != PL_RET_OK) {
+        return ret;
+    }
 
-    if (function_marker == PL_MARKER_LOCAL && global) {
+    if (lead_token.header.marker == PL_MARKER_LOCAL && global) {
         VASQ_ERROR(debug_logger, "LOCAL not allowed in global scope.");
         return PL_RET_BAD_DATA;
     }
 
-    ret = NEXT_TOKEN(scanner, &token);
+    ret = CONSUME_TOKEN(scanner, &token);
     if (ret != PL_RET_OK) {
         return ret;
     }
 
     if (global) {
         if (token.header.marker != PL_MARKER_NAME) {
-            PARSER_ERROR("Anonymous %s not allowed in global scope.", plLexicalMarkerName(function_marker));
+            PARSER_ERROR("Anonymous %s not allowed in global scope.",
+                         plLexicalMarkerName(lead_token.header.marker));
             plTokenCleanup(&token, scanner->table);
             return PL_RET_BAD_DATA;
         }
 
-        function_name_node = plAstNew(PL_MARKER_NAME);
-        plAstCopyTokenInfo(function_name_node, &token);
+        function_name_node = plAstNew(PL_MARKER_NAME, &token);
 
-        ret = NEXT_TOKEN(scanner, &token);
+        ret = CONSUME_TOKEN(scanner, &token);
         if (ret != PL_RET_OK) {
             goto error;
         }
@@ -157,12 +144,12 @@ plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
         goto error;
     }
 
-    ret = parseArgList(scanner, function_marker, &arg_list);
+    ret = parseArgList(scanner, lead_token.header.marker, &arg_list);
     if (ret != PL_RET_OK) {
         goto error;
     }
 
-    if (function_marker != PL_MARKER_SINK && function_marker != PL_MARKER_LOCAL) {
+    if (lead_token.header.marker != PL_MARKER_SINK && lead_token.header.marker != PL_MARKER_LOCAL) {
         ret = EXPECT_MARKER(scanner, PL_MARKER_ARROW, NULL);
         if (ret != PL_RET_OK) {
             goto error;
@@ -174,7 +161,7 @@ plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
         }
     }
 
-    ret = NEXT_TOKEN(scanner, &token);
+    ret = CONSUME_TOKEN(scanner, &token);
     if (ret != PL_RET_OK) {
         goto error;
     }
@@ -202,13 +189,12 @@ plParseFunction(plLexicalScanner *scanner, plAstNode **node, bool global)
 
 skip_statement_list:
 
-    *node = plAstNew(function_marker);
-    memcpy(&(*node)->header.location, &function_location, sizeof(function_location));
+    *node = plAstNew(lead_token.header.marker, &lead_token);
     if (declaration) {
         (*node)->header.submarker = PL_SUBMARKER_FUNC_DECL;
     }
 
-    if (function_marker == PL_MARKER_LOCAL) {
+    if (lead_token.header.marker == PL_MARKER_LOCAL) {
         if (!plAstSetChild(*node, 0, arg_list) || !plAstSetChild(*node, 1, statement_list)) {
             ret = PL_RET_USAGE;
             goto error;
@@ -220,7 +206,7 @@ skip_statement_list:
             goto error;
         }
 
-        if (function_marker == PL_MARKER_SINK) {
+        if (lead_token.header.marker == PL_MARKER_SINK) {
             if (!plAstSetChild(*node, 2, statement_list)) {
                 ret = PL_RET_USAGE;
                 goto error;

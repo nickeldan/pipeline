@@ -110,16 +110,16 @@ plAstGetData(plAstNode *node)
 }
 
 plAstNode *
-plAstNew(int node_type)
+plAstNew(int marker, const plLexicalToken *token)
 {
     plAstNode *node;
 
-    switch (plAstSplitSize(node_type)) {
+    switch (plAstSplitSize(marker)) {
     case -1:
         node = plSafeMalloc(sizeof(plAstNodeWithData));
         if (node) {
             *(plAstNodeWithData *)node = (plAstNodeWithData){0};
-            goto set_node_type;
+            goto set_token;
         }
         break;
 
@@ -127,7 +127,7 @@ plAstNew(int node_type)
         node = plSafeMalloc(sizeof(plAstNode));
         if (node) {
             *node = (plAstNode){0};
-            goto set_node_type;
+            goto set_token;
         }
         break;
 
@@ -135,7 +135,7 @@ plAstNew(int node_type)
         node = plSafeMalloc(sizeof(plAstOneSplitNode));
         if (node) {
             *(plAstOneSplitNode *)node = (plAstOneSplitNode){0};
-            goto set_node_type;
+            goto set_token;
         }
         break;
 
@@ -143,7 +143,7 @@ plAstNew(int node_type)
         node = plSafeMalloc(sizeof(plAstTwoSplitNode));
         if (node) {
             *(plAstTwoSplitNode *)node = (plAstTwoSplitNode){0};
-            goto set_node_type;
+            goto set_token;
         }
         break;
 
@@ -151,7 +151,7 @@ plAstNew(int node_type)
         node = plSafeMalloc(sizeof(plAstThreeSplitNode));
         if (node) {
             *(plAstThreeSplitNode *)node = (plAstThreeSplitNode){0};
-            goto set_node_type;
+            goto set_token;
         }
         break;
 
@@ -159,25 +159,31 @@ plAstNew(int node_type)
         node = plSafeMalloc(sizeof(plAstFourSplitNode));
         if (node) {
             *(plAstFourSplitNode *)node = (plAstFourSplitNode){0};
-            goto set_node_type;
+            goto set_token;
         }
         break;
 
     default:
-        if (VALID_MARKER(node_type)) {
-            VASQ_ERROR(debug_logger, "Invalid node type: %s", plLexicalMarkerName(node_type));
+        if (VALID_MARKER(marker)) {
+            VASQ_ERROR(debug_logger, "Invalid node type: %s", plLexicalMarkerName(marker));
         }
         else {
-            VASQ_ERROR(debug_logger, "Invalid node type: %i", node_type);
+            VASQ_ERROR(debug_logger, "Invalid node type: %i", marker);
         }
         break;
     }
 
     return NULL;
 
-set_node_type:
+set_token:
 
-    node->header.marker = node_type;
+    if (token) {
+        memcpy(&node->header, &token->header, sizeof(token->header));
+        if (plAstSplitSize(token->header.marker) == -1) {
+            memcpy(plAstGetData(node), &token->data, sizeof(token->data));
+        }
+    }
+    node->header.marker = marker;
     return node;
 }
 
@@ -264,21 +270,21 @@ plAstSplitSize(int node_type)
 }
 
 plAstNode *
-plAstCreateFamily(int marker, ...)
+plAstCreateFamily(int marker, const plLexicalToken *token, ...)
 {
     int split_size;
     va_list args;
     plAstNode *parent;
     plAstSplitter *splitter;
 
-    parent = plAstNew(marker);
+    parent = plAstNew(marker, token);
     if (UNLIKELY(!parent)) {
         return NULL;
     }
     splitter = (plAstSplitter *)parent;
 
     split_size = plAstSplitSize(marker);
-    va_start(args, marker);
+    va_start(args, token);
     for (int k = 0; k < split_size; k++) {
         splitter->nodes[k] = va_arg(args, plAstNode *);
     }
@@ -288,10 +294,8 @@ plAstCreateFamily(int marker, ...)
 }
 
 int
-plAstCreateConnection(int marker, plAstNode **first, plAstNode *second)
+plAstCreateConnection(int marker, const plLexicalToken *token, plAstNode **first, plAstNode *second)
 {
-    plAstNode *parent;
-
     if (UNLIKELY(!first || !second)) {
         VASQ_ERROR(debug_logger, "first and second cannot be NULL.");
         return PL_RET_USAGE;
@@ -307,8 +311,7 @@ plAstCreateConnection(int marker, plAstNode **first, plAstNode *second)
         return PL_RET_USAGE;
     }
 
-    parent = plAstCreateFamily(marker, *first, second);
-    *first = parent;
+    *first = plAstCreateFamily(marker, token, *first, second);
 
     return PL_RET_OK;
 }

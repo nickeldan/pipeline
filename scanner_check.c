@@ -39,12 +39,12 @@ main(int argc, char **argv)
         goto done;
     }
 
-    while (!TERMINAL_MARKER(TOKEN_READ(&scanner, &token))) {
-        if (scanner.location.line_no > line_no) {
+    while ((ret = CONSUME_TOKEN(&scanner, &token)) == PL_RET_OK && !TERMINAL_MARKER(token.header.marker)) {
+        if (scanner.last_consumed_location.line_no > line_no) {
             if (line_no > 0) {
                 printf("\n");
             }
-            line_no = scanner.location.line_no;
+            line_no = scanner.last_consumed_location.line_no;
         }
         printf("%s ", plLexicalMarkerName(token.header.marker));
 
@@ -55,12 +55,6 @@ main(int argc, char **argv)
 
     printf("\n");
 
-    if (scanner.last_marker == PL_MARKER_EOF) {
-        ret = PL_RET_OK;
-    }
-    else {
-        ret = plTranslateTerminalMarker(scanner.last_marker);
-    }
     plScannerCleanup(&scanner);
 
 done:

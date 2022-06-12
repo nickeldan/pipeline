@@ -1,55 +1,58 @@
-#include <string.h>
-
 #include "parserInternal.h"
 
 int
 plParseArrayDeclaration(plLexicalScanner *scanner, plAstNode **node, bool compilation_only)
 {
     int ret;
-    plLexicalLocation location;
+    plLexicalToken lead_token;
     plAstNode *array_node;
 
-    plGetLastLocation(scanner, &location);
+    if (LIKELY(node)) {
+        *node = NULL;
+    }
+    if (UNLIKELY(!scanner || !node)) {
+        VASQ_ERROR(debug_logger, "The arguments cannot be NULL.");
+        return PL_RET_USAGE;
+    }
+
+    ret = CONSUME_TOKEN(scanner, &lead_token);
+    if (ret != PL_RET_OK) {
+        return ret;
+    }
+    if (UNLIKELY(lead_token.header.marker != PL_MARKER_LEFT_BRACKET)) {
+        VASQ_ERROR(debug_logger, "Invalid token consumed (%s).",
+                   plLexicalMarkerName(lead_token.header.marker));
+        plTokenCleanup(&lead_token, scanner->table);
+        return PL_RET_USAGE;
+    }
 
     ret = plParseExpression(scanner, node, compilation_only);
     if (ret != PL_RET_OK) {
         return ret;
     }
 
-    while (true) {
-        plLexicalToken token;
-        plAstNode *second_node;
+    while (PEEK_TOKEN(scanner, 0) == PL_MARKER_COMMA) {
+        plLexicalToken comma_token;
+        plAstNode *next_node;
 
-        ret = NEXT_TOKEN(scanner, &token);
+        ret = CONSUME_TOKEN(scanner, &comma_token);
         if (ret != PL_RET_OK) {
             goto error;
         }
 
-        if (token.header.marker == PL_MARKER_RIGHT_BRACKET) {
-            break;
-        }
-        else if (token.header.marker != PL_MARKER_COMMA) {
-            PARSER_ERROR("Expected ',' or ']' following expression in array declaration.");
-            plTokenCleanup(&token, scanner->table);
-            ret = PL_RET_BAD_DATA;
-            goto error;
-        }
-
-        ret = plParseExpression(scanner, &second_node, compilation_only);
+        ret = plParseExpression(scanner, &next_node, compilation_only);
         if (ret != PL_RET_OK) {
             goto error;
         }
 
-        ret = plAstCreateConnection(PL_MARKER_COMMA, node, second_node);
-        if (ret != PL_RET_OK) {
-            plAstFree(second_node, scanner->table);
-            goto error;
-        }
-        plAstCopyTokenInfo(*node, &token);
+        plAstCreateConnection(PL_MARKER_COMMA, &comma_token, node, next_node);
     }
 
-    array_node = plAstCreateFamily('A', *node);
-    memcpy(&array_node->header.location, &location, sizeof(location));
+    ret = EXPECT_MARKER(scanner, PL_MARKER_RIGHT_BRACKET, NULL);
+    if (ret != PL_RET_OK) {
+        goto error;
+    }
+    array_node = plAstCreateFamily('A', &lead_token, *node);
     *node = array_node;
 
     return PL_RET_OK;
