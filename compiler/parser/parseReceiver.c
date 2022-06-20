@@ -71,10 +71,7 @@ plParseReceiver(plLexicalScanner *scanner, plAstNode **node)
         }
 
         if (*node) {
-            ret = plAstCreateConnection(PL_MARKER_ARROW, &arrow_token, node, second_node);
-            if (ret != PL_RET_OK) {
-                goto loop_error;
-            }
+            plAstCreateConnection(PL_MARKER_ARROW, &arrow_token, node, second_node);
         }
         else {
             *node = second_node;

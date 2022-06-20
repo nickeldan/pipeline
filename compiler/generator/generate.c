@@ -78,12 +78,12 @@ compileGlobalSpace(plSemanticContext *sem, plAstNode *tree)
 
     switch (tree->header.marker) {
     case PL_MARKER_SEMICOLON:
-        ret = compileGlobalSpace(sem, plAstGetChild(tree, 0));
+        ret = compileGlobalSpace(sem, AST_CHILD(tree, 0));
         if (ret != PL_RET_OK) {
             return ret;
         }
         func = compileGlobalSpace;
-        tree = plAstGetChild(tree, 1);
+        tree = AST_CHILD(tree, 1);
         break;
 
     case PL_MARKER_IMPORT: func = plCompileImport; break;

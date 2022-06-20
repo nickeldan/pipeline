@@ -119,11 +119,7 @@ start:
                 goto error;
             }
 
-            ret = plAstCreateConnection(PL_MARKER_ARROW, &arrow_token, node, second_node);
-            if (ret != PL_RET_OK) {
-                plAstFree(second_node, scanner->table);
-                goto error;
-            }
+            plAstCreateConnection(PL_MARKER_ARROW, &arrow_token, node, second_node);
         }
         else {
             plOperatorOrder_t new_order = compilation_only ? PL_ORDER_START : PL_ORDER_ARROW;
@@ -175,11 +171,7 @@ start:
                 goto error;
             }
 
-            ret = plAstCreateConnection(PL_MARKER_LEFT_PARENS, &token, node, second_node);
-            if (ret != PL_RET_OK) {
-                plAstFree(second_node, scanner->table);
-                goto error;
-            }
+            plAstCreateConnection(PL_MARKER_LEFT_PARENS, &token, node, second_node);
 
             ret = EXPECT_MARKER(scanner, PL_MARKER_RIGHT_PARENS, NULL);
             if (ret != PL_RET_OK) {
@@ -205,8 +197,7 @@ start:
                 if (ret != PL_RET_OK) {
                     goto error;
                 }
-                ret = plConcatenateByteArrays(plAstGetData(*node)->handle.as.bytes,
-                                              token.data.handle.as.bytes);
+                ret = plConcatenateByteArrays(AST_DATA(*node)->handle.as.bytes, token.data.handle.as.bytes);
                 plTokenCleanup(&token, scanner->table);
                 if (ret != PL_RET_OK) {
                     goto error;
@@ -262,11 +253,7 @@ start:
             goto error;
         }
 
-        ret = plAstCreateConnection(token.header.marker, &token, node, second_node);
-        if (ret != PL_RET_OK) {
-            plAstFree(second_node, scanner->table);
-            goto error;
-        }
+        plAstCreateConnection(token.header.marker, &token, node, second_node);
     }
 
     if (negation_token.header.location.line_no > 0) {

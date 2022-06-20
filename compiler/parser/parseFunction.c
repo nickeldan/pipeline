@@ -73,11 +73,7 @@ parseArgList(plLexicalScanner *scanner, int function_marker, plAstNode **arg_lis
         arg_node = plAstCreateFamily(PL_MARKER_COLON, &colon_token, name_node, type_node);
 
         if (*arg_list) {
-            ret = plAstCreateConnection(PL_MARKER_COMMA, &comma_token, arg_list, arg_node);
-            if (ret != PL_RET_OK) {
-                plAstFree(arg_node, scanner->table);
-                return ret;
-            }
+            plAstCreateConnection(PL_MARKER_COMMA, &comma_token, arg_list, arg_node);
         }
         else {
             *arg_list = arg_node;
@@ -195,28 +191,19 @@ skip_statement_list:
     }
 
     if (lead_token.header.marker == PL_MARKER_LOCAL) {
-        if (!plAstSetChild(*node, 0, arg_list) || !plAstSetChild(*node, 1, statement_list)) {
-            ret = PL_RET_USAGE;
-            goto error;
-        }
+        AST_CHILD(*node, 0) = arg_list;
+        AST_CHILD(*node, 1) = statement_list;
     }
     else {
-        if (!plAstSetChild(*node, 0, function_name_node) || !plAstSetChild(*node, 1, arg_list)) {
-            ret = PL_RET_USAGE;
-            goto error;
-        }
+        AST_CHILD(*node, 0) = function_name_node;
+        AST_CHILD(*node, 1) = arg_list;
 
         if (lead_token.header.marker == PL_MARKER_SINK) {
-            if (!plAstSetChild(*node, 2, statement_list)) {
-                ret = PL_RET_USAGE;
-                goto error;
-            }
+            AST_CHILD(*node, 2) = statement_list;
         }
         else {
-            if (!plAstSetChild(*node, 2, type_node) || !plAstSetChild(*node, 3, statement_list)) {
-                ret = PL_RET_USAGE;
-                goto error;
-            }
+            AST_CHILD(*node, 2) = type_node;
+            AST_CHILD(*node, 3) = statement_list;
         }
     }
 

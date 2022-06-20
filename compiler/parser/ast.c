@@ -5,110 +5,6 @@
 #include "ast.h"
 #include "scanner.h"
 
-typedef struct plAstNodeWithData {
-    plLexicalTokenHeader header;
-    plLexicalTokenData data;
-} plAstNodeWithData;
-
-typedef struct plAstOneSplitNode {
-    plLexicalTokenHeader header;
-    plAstNode *nodes[1];
-} plAstOneSplitNode;
-
-typedef struct plAstTwoSplitNode {
-    plLexicalTokenHeader header;
-    plAstNode *nodes[2];
-} plAstTwoSplitNode;
-
-typedef struct plAstThreeSplitNode {
-    plLexicalTokenHeader header;
-    plAstNode *nodes[3];
-} plAstThreeSplitNode;
-
-typedef struct plAstFourSplitNode {
-    plLexicalTokenHeader header;
-    plAstNode *nodes[4];
-} plAstFourSplitNode;
-
-typedef plAstFourSplitNode plAstSplitter;
-
-plAstNode *
-plAstGetChild(const plAstNode *parent, unsigned int which)
-{
-    int node_type, split_size __attribute__((unused));
-    const plAstSplitter *splitter = (const plAstSplitter *)parent;
-
-    if (UNLIKELY(!parent)) {
-        VASQ_ERROR(debug_logger, "parent cannot be NULL.");
-        return NULL;
-    }
-
-    node_type = parent->header.marker;
-    split_size = plAstSplitSize(node_type);
-    if (UNLIKELY(split_size <= 0)) {
-        VASQ_ERROR(debug_logger, "This node type (%s) does not have any children.",
-                   plLexicalMarkerName(node_type));
-        return NULL;
-    }
-
-    if (UNLIKELY(which >= (unsigned int)split_size)) {
-        VASQ_ERROR(debug_logger, "%u is too high an index for this node type (%s).", which,
-                   plLexicalMarkerName(node_type));
-        return NULL;
-    }
-
-    return splitter->nodes[which];
-}
-
-bool
-plAstSetChild(plAstNode *parent, unsigned int which, plAstNode *child)
-{
-    int node_type, split_size __attribute__((unused));
-    plAstSplitter *splitter = (plAstSplitter *)parent;
-
-    if (UNLIKELY(!parent)) {
-        VASQ_ERROR(debug_logger, "parent cannot be NULL.");
-        return false;
-    }
-
-    node_type = parent->header.marker;
-    split_size = plAstSplitSize(node_type);
-    if (UNLIKELY(split_size <= 0)) {
-        VASQ_ERROR(debug_logger, "This node type (%s) does not have any children.",
-                   plLexicalMarkerName(node_type));
-        return false;
-    }
-
-    if (UNLIKELY(which >= (unsigned int)split_size)) {
-        VASQ_ERROR(debug_logger, "%u is too high an index for this node type (%s).", which,
-                   plLexicalMarkerName(node_type));
-        return false;
-    }
-
-    splitter->nodes[which] = child;
-    return true;
-}
-
-plLexicalTokenData *
-plAstGetData(plAstNode *node)
-{
-    int node_type;
-    plAstNodeWithData *node_with_data = (plAstNodeWithData *)node;
-
-    if (UNLIKELY(!node)) {
-        VASQ_ERROR(debug_logger, "node cannot be NULL.");
-        return NULL;
-    }
-
-    node_type = node->header.marker;
-    if (UNLIKELY(plAstSplitSize(node_type) != -1)) {
-        VASQ_ERROR(debug_logger, "This node type (%s) does not have data.", plLexicalMarkerName(node_type));
-        return NULL;
-    }
-
-    return &node_with_data->data;
-}
-
 plAstNode *
 plAstNew(int marker, const plLexicalToken *token)
 {
@@ -180,7 +76,7 @@ set_token:
     if (token) {
         memcpy(&node->header, &token->header, sizeof(token->header));
         if (plAstSplitSize(token->header.marker) == -1) {
-            memcpy(plAstGetData(node), &token->data, sizeof(token->data));
+            memcpy(AST_DATA(node), &token->data, sizeof(token->data));
         }
     }
     node->header.marker = marker;
@@ -275,52 +171,47 @@ plAstCreateFamily(int marker, const plLexicalToken *token, ...)
     int split_size;
     va_list args;
     plAstNode *parent;
-    plAstSplitter *splitter;
 
     parent = plAstNew(marker, token);
     if (UNLIKELY(!parent)) {
         return NULL;
     }
-    splitter = (plAstSplitter *)parent;
 
     split_size = plAstSplitSize(marker);
     va_start(args, token);
     for (int k = 0; k < split_size; k++) {
-        splitter->nodes[k] = va_arg(args, plAstNode *);
+        AST_CHILD(parent, k) = va_arg(args, plAstNode *);
     }
     va_end(args);
 
     return parent;
 }
 
-int
+void
 plAstCreateConnection(int marker, const plLexicalToken *token, plAstNode **first, plAstNode *second)
 {
     if (UNLIKELY(!first || !second)) {
         VASQ_ERROR(debug_logger, "first and second cannot be NULL.");
-        return PL_RET_USAGE;
+        exit(PL_RET_USAGE);
     }
 
     if (UNLIKELY(!*first)) {
         VASQ_ERROR(debug_logger, "*first cannot be NULL.");
-        return PL_RET_USAGE;
+        exit(PL_RET_USAGE);
     }
 
     if (UNLIKELY(plAstSplitSize(marker) != 2)) {
         VASQ_ERROR(debug_logger, "The marker must have a split size of 2.");
-        return PL_RET_USAGE;
+        exit(PL_RET_USAGE);
     }
 
     *first = plAstCreateFamily(marker, token, *first, second);
-
-    return PL_RET_OK;
 }
 
 void
 plAstPrint(const plAstNode *node, unsigned int margin)
 {
     int split_size;
-    const plAstSplitter *splitter = (const plAstSplitter *)node;
 
     for (unsigned int k = 0; k < margin; k++) {
         printf("\t");
@@ -333,13 +224,12 @@ plAstPrint(const plAstNode *node, unsigned int margin)
 
     printf("%s", plLexicalMarkerName(node->header.marker));
     if (node->header.marker == PL_MARKER_NAME) {
-        const plAstNodeWithData *node_with_data = (const plAstNodeWithData *)node;
-        printf(" (%s)", node_with_data->data.name);
+        printf(" (%s)", AST_DATA(node)->name);
     }
     printf("\n");
 
     split_size = plAstSplitSize(node->header.marker);
     for (int k = 0; k < split_size; k++) {
-        plAstPrint(splitter->nodes[k], margin + 1);
+        plAstPrint(AST_CHILD(node, k), margin + 1);
     }
 }

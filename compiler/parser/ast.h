@@ -11,11 +11,35 @@ typedef struct plAstNode {
     plLexicalTokenHeader header;
 } plAstNode;
 
-plAstNode *
-plAstGetChild(const plAstNode *parent, unsigned int which);
+typedef struct plAstNodeWithData {
+    plLexicalTokenHeader header;
+    plLexicalTokenData data;
+} plAstNodeWithData;
 
-bool
-plAstSetChild(plAstNode *parent, unsigned int which, plAstNode *child);
+typedef struct plAstOneSplitNode {
+    plLexicalTokenHeader header;
+    plAstNode *nodes[1];
+} plAstOneSplitNode;
+
+typedef struct plAstTwoSplitNode {
+    plLexicalTokenHeader header;
+    plAstNode *nodes[2];
+} plAstTwoSplitNode;
+
+typedef struct plAstThreeSplitNode {
+    plLexicalTokenHeader header;
+    plAstNode *nodes[3];
+} plAstThreeSplitNode;
+
+typedef struct plAstFourSplitNode {
+    plLexicalTokenHeader header;
+    plAstNode *nodes[4];
+} plAstFourSplitNode;
+
+typedef plAstFourSplitNode plAstSplitter;
+
+#define AST_CHILD(node, which) (((plAstSplitter *)(node))->nodes[which])
+#define AST_DATA(node)         (&((plAstNodeWithData *)(node))->data)
 
 plLexicalTokenData *
 plAstGetData(plAstNode *node);
@@ -38,7 +62,7 @@ plAstSplitSize(int node_type) __attribute__((pure));
 plAstNode *
 plAstCreateFamily(int marker, const plLexicalToken *token, ...);
 
-int
+void
 plAstCreateConnection(int marker, const plLexicalToken *token, plAstNode **first, plAstNode *second);
 
 void

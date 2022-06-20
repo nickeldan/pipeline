@@ -9,7 +9,7 @@ isLvalue(const plAstNode *node)
     case PL_MARKER_NAME: return true;
 
     case PL_MARKER_PERIOD:
-    case PL_MARKER_LEFT_BRACKET: return isLvalue(plAstGetChild(node, 0));
+    case PL_MARKER_LEFT_BRACKET: return isLvalue(AST_CHILD(node, 0));
 
     default: return false;
     }
@@ -222,11 +222,7 @@ plParseStatementList(plLexicalScanner *scanner, plAstNode **node)
         }
 
         if (*node) {
-            ret = plAstCreateConnection(PL_MARKER_SEMICOLON, NULL, node, statement_node);
-            if (ret != PL_RET_OK) {
-                plAstFree(statement_node, scanner->table);
-                goto error;
-            }
+            plAstCreateConnection(PL_MARKER_SEMICOLON, NULL, node, statement_node);
         }
         else {
             *node = statement_node;
