@@ -279,22 +279,19 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
                        bool compilation_only)
 {
     int ret;
+    plOperatorOrder_t new_order;
 
-    while (true) {
-        plOperatorOrder_t new_order;
+    while ((new_order = operatorOrder(&scanner->store[0])) <= order) {
         plLexicalToken connector_token;
         plAstNode *second_node;
 
         if ((*current)->header.marker == PL_MARKER_COMMA && order < PL_ORDER_COMMA &&
             PEEK_TOKEN(scanner, 0) != PL_MARKER_ARROW) {
+            scanner->error_on_peek = 0;
             PARSER_ERROR("Expected ARROW after comma-delimited source list.");
             return PL_RET_BAD_DATA;
         }
 
-        new_order = operatorOrder(&scanner->store[0]);
-        if (new_order > order) {
-            break;
-        }
         if (new_order < order) {
             ret = parseExpressionRecurse(scanner, current, new_order, compilation_only);
             if (ret != PL_RET_OK) {
@@ -305,6 +302,14 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
 
         ret = CONSUME_TOKEN(scanner, &connector_token);
         if (ret != PL_RET_OK) {
+            return ret;
+        }
+
+        if ( connector_token.header.marker == PL_MARKER_ARROW ) {
+            ret = plParseReceiver(scanner, &second_node);
+            if ( ret == PL_RET_OK ) {
+                plAstCreateConnection(PL_MARKER_ARROW, &connector_token, current, second_node);
+            }
             return ret;
         }
 
