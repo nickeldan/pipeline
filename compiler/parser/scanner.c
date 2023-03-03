@@ -285,6 +285,7 @@ readByteString(plLexicalScanner *scanner, plObjectHandle *handle)
         }
     }
 
+    scanner->error_on_peek = -2;
     PARSER_ERROR("Unterminated string literal.");
     goto error;
 
@@ -305,6 +306,7 @@ good_string:
             case '"': c = '"'; break;
             case 'x':
                 if (k + 2 >= scanner->line_length) {
+                    advanceScanner(scanner, k - 1);
                     PARSER_ERROR("Unresolved hex byte in string literal.");
                     goto error;
                 }
@@ -314,6 +316,7 @@ good_string:
                     unsigned char c2 = scanner->line[k + 1 + j], x;
 
                     if (!isxdigit(c2)) {
+                        advanceScanner(scanner, k + 1 + j);
                         PARSER_ERROR("Invalid hex byte in string literal.");
                         goto error;
                     }
@@ -334,6 +337,7 @@ good_string:
                 break;
 
             default:
+                advanceScanner(scanner, k - 1);
                 PARSER_ERROR("Invalid escaped character in string literal: %c", scanner->line[k]);
                 goto error;
             }
@@ -378,8 +382,11 @@ parserProcessor(void *user_data, size_t position, vasqLogLevel_t level, char **d
     plLexicalScanner *scanner = user_data;
     plLexicalLocation *location;
 
-    if (scanner->error_on_peek < 0) {
+    if (scanner->error_on_peek == -1) {
         location = &scanner->last_consumed_location;
+    }
+    else if (scanner->error_on_peek < 0) {
+        location = &scanner->temp_location;
     }
     else {
         location = &scanner->store[(unsigned int)scanner->error_on_peek].header.location;
@@ -419,11 +426,6 @@ tokenRead(plLexicalScanner *scanner)
     unsigned int consumed;
     plLexicalToken *token;
 
-    if (UNLIKELY(!scanner)) {
-        VASQ_ERROR(debug_logger, "scanner cannot be NULL.");
-        return PL_RET_USAGE;
-    }
-
     if (UNLIKELY(scanner->num_stored == PL_SCANNER_MAX_STORE)) {
         VASQ_ERROR(debug_logger, "The token store is full.");
         return PL_RET_USAGE;
@@ -440,6 +442,7 @@ tokenRead(plLexicalScanner *scanner)
     token = &scanner->store[scanner->num_stored];
     token->data.handle = (plObjectHandle){0};
     token->header.submarker = PL_SUBMARKER_NONE;
+    memcpy(&scanner->temp_location, &scanner->location, sizeof(scanner->location));
     memcpy(&token->header.location, &scanner->location, sizeof(scanner->location));
     consumed = 1;
 
@@ -572,7 +575,7 @@ tokenRead(plLexicalScanner *scanner)
         }
 
         if (plLookupRef(scanner->keyword_table, scanner->line, consumed, &ref)) {
-            marker = (int)(intptr_t)ref;
+            marker = (intptr_t)ref;
 
             switch (marker) {
             case PL_MARKER_OBJECT: token->data.handle = resolveStaticLiteral(scanner->line[0]); break;
@@ -599,6 +602,7 @@ tokenRead(plLexicalScanner *scanner)
         for (consumed = 0; consumed < scanner->line_length; consumed++) {
             if (!isxdigit(scanner->line[consumed])) {
                 if (isVarChar(scanner->line[consumed])) {
+                    advanceScanner(scanner, consumed);
                     PARSER_ERROR("Invalid hex literal.");
                     return setError(scanner, PL_MARKER_BAD_DATA);
                 }

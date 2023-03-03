@@ -24,6 +24,7 @@ typedef struct plLexicalScanner {
     plLexicalToken store[PL_SCANNER_MAX_STORE];
     plLexicalLocation location;
     plLexicalLocation last_consumed_location;
+    plLexicalLocation temp_location;
     unsigned int line_length;
     unsigned int whitespace_stripped;
     unsigned char num_stored;

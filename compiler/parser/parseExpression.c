@@ -99,6 +99,7 @@ start:
             plLexicalToken arrow_token;
 
             if (compilation_only) {
+                scanner->error_on_peek = 0;
                 PARSER_ERROR(
                     "SOURCE is not allowed in an expression which must be resolved at compile time.");
                 return PL_RET_BAD_DATA;
@@ -138,6 +139,7 @@ start:
 
     case PL_MARKER_NOT:
         if (!allow_negation) {
+            scanner->error_on_peek = 0;
             PARSER_ERROR("NOT not allowed in this context.");
             return PL_RET_BAD_DATA;
         }
@@ -213,13 +215,6 @@ start:
             return ret;
         }
         break;
-
-    case PL_MARKER_UNDERSCORE:
-        ret = CONSUME_TOKEN(scanner, &token);
-        if (ret == PL_RET_OK) {
-            *node = plAstNew(PL_MARKER_UNDERSCORE, &token);
-        }
-        return ret;
 
     default:
         scanner->error_on_peek = 0;
@@ -305,9 +300,9 @@ parseExpressionRecurse(plLexicalScanner *scanner, plAstNode **current, plOperato
             return ret;
         }
 
-        if ( connector_token.header.marker == PL_MARKER_ARROW ) {
+        if (connector_token.header.marker == PL_MARKER_ARROW) {
             ret = plParseReceiver(scanner, &second_node);
-            if ( ret == PL_RET_OK ) {
+            if (ret == PL_RET_OK) {
                 plAstCreateConnection(PL_MARKER_ARROW, &connector_token, current, second_node);
             }
             return ret;

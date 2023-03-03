@@ -50,6 +50,7 @@ plParseReceiver(plLexicalScanner *scanner, plAstNode **node)
 
             if (second_node->header.marker == PL_MARKER_TYPE ||
                 second_node->header.marker == PL_MARKER_UNDERSCORE) {
+                scanner->error_on_peek = 0;
                 PARSER_ERROR("Unexpected ':' following %s.",
                              plLexicalMarkerName(second_node->header.marker));
                 ret = PL_RET_BAD_DATA;
